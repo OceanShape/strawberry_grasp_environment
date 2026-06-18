@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="strawberry_grasp_environment_robot">
+
+  <!-- ========================================== -->
+  <!-- 1. Include Doosan e0509                    -->
+  <!-- ========================================== -->
+  <xacro:include filename="/home/sun/strawberry_grasp_environment/src/doosan_robot2/dsr_description2/xacro/e0509.urdf.xacro" />
+
+  <!-- ========================================== -->
+  <!-- 2. Include Robotis RH-P12-RN               -->
+  <!-- ========================================== -->
+  <!-- We modified the original file to remove the world_fixed joint -->
+  <xacro:include filename="/home/sun/strawberry_grasp_environment/src/RH-P12-RN/rh_p12_rn_description/urdf/rh_p12_rn.xacro" />
+
+  <!-- define pi -->
+  <xacro:property name="pi" value="3.1415926535897931" />
+
+  <!-- Joint connecting arm to gripper -->
+  <!-- The z offset and rotation should be adjusted based on the real hardware mount -->
+  <joint name="arm_to_gripper" type="fixed">
+    <parent link="link_6" />
+    <child link="rh_p12_rn_base" />
+    <origin xyz="0 0 0" rpy="0 0 ${radians(90)}" />
+  </joint>
+
+  <!-- ========================================== -->
+  <!-- 3. Custom 3D Printed Gripper Parts -->
+  <!-- ========================================== -->
+  <!-- 
+    The user can modify these origins and collision primitives later. 
+    The stl file is assumed to be in strawberry_grasp_environment_description/meshes/gripper_parts.stl
+  -->
+
+  <!-- Left Custom Part -->
+  <link name="left_custom_part">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0" rpy="${radians(-90)} 0 ${radians(-90)}"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="${radians(-90)} 0 ${radians(-90)}" />
+      <geometry>
+        <!-- Replace this with the correct mesh if it's mirrored, or use scale="-1 1 1" etc. -->
+        <mesh filename="package://strawberry_grasp_environment_description/meshes/gripper_parts.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+
+  </link>
+
+  <joint name="l2_to_left_custom_part" type="fixed">
+    <parent link="rh_p12_rn_l2" />
+    <child link="left_custom_part" />
+    <origin xyz="0.02090 0.00498 0.00058" rpy="${radians(-90)} ${radians(6)} ${radians(-90)}" />
+  </joint>
+
+  <!-- Right Custom Part -->
+  <link name="right_custom_part">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0" rpy="${radians(90)} 0 ${radians(90)}"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="${radians(90)} 0 ${radians(90)}" />
+      <geometry>
+        <!-- Using the same mesh. You might need to flip it if it's asymmetrical -->0
+        <mesh filename="package://strawberry_grasp_environment_description/meshes/gripper_parts.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+
+  </link>
+
+  <joint name="r2_to_right_custom_part" type="fixed">
+    <parent link="rh_p12_rn_r2" />
+    <child link="right_custom_part" />
+    <origin xyz="-0.02090 -0.00499 0.00058" rpy="${radians(90)} ${radians(6)} ${radians(90)}" />
+  </joint>
+
+</robot>

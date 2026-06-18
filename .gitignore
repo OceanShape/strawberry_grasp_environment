@@ -1,0 +1,3 @@
+# Ignore official large repositories
+src/doosan_robot2/
+src/RH-P12-RN/
