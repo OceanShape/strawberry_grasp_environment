@@ -1,0 +1,56 @@
+#usda 1.0
+(
+    "광원 레이어 — 씬의 모든 조명을 이 레이어에서 관리"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "World"
+{
+    def Xform "lights"
+    {
+        def DomeLight "dome_light" (
+            "기존 딸기 애셋에 내장돼 있던 studio HDRI 환경광을 씬 레벨로 분리한 것"
+        )
+        {
+            float inputs:intensity = 1
+            asset inputs:texture:file = @../textures/studio.hdr@
+        }
+
+        def RectLight "RectLight" (
+            prepend apiSchemas = ["ShapingAPI"]
+        )
+        {
+            color3f inputs:color = (1, 0.99999696, 0.99999)
+            float inputs:colorTemperature = 2000
+            float inputs:exposure = 0.1
+            float inputs:height = 2000
+            float inputs:intensity = 1000
+            bool inputs:normalize = 0
+            float inputs:shaping:cone:angle = 180
+            float inputs:width = 2000
+            quatd xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:scale = (1.2, 0.6, 0.1)
+            double3 xformOp:translate = (0.3, 0.75, 2)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+
+        def RectLight "RectLight_01" (
+            prepend apiSchemas = ["ShapingAPI"]
+        )
+        {
+            color3f inputs:color = (1, 0.99999696, 0.99999)
+            float inputs:colorTemperature = 2000
+            float inputs:exposure = 0.1
+            float inputs:height = 2000
+            float inputs:intensity = 1000
+            bool inputs:normalize = 0
+            float inputs:shaping:cone:angle = 180
+            float inputs:width = 2000
+            quatd xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:scale = (1.2, 0.6, 0.1)
+            double3 xformOp:translate = (0.3, 0.75, 2)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+    }
+}

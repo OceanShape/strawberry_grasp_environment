@@ -1,0 +1,48 @@
+#usda 1.0
+(
+    "최상위 씬 — 조립만 담당. 지오메트리를 직접 만들지 말 것. 배치는 layers/layout_layer.usd, 물리는 layers/physics_layer.usd, 조명은 layers/lighting_layer.usd에서 수정"
+    defaultPrim = "World"
+    endTimeCode = 1000000
+    metersPerUnit = 1
+    startTimeCode = 0
+    subLayers = [
+        @./layers/layout_layer.usd@,
+        @./layers/physics_layer.usd@,
+        @./layers/lighting_layer.usd@
+    ]
+    timeCodesPerSecond = 60
+    upAxis = "Z"
+)
+
+def Xform "World"
+{
+    def "lab_environment" (
+        prepend payload = @./lab_environment.usd@
+    )
+    {
+    }
+
+    def "robot_assembly" (
+        prepend references = @../assets/robot/robot_assembly.usd@
+    )
+    {
+    }
+
+    def "strawberry_ripe" (
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "ripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_unripe" (
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "unripe"
+        }
+    )
+    {
+    }
+}

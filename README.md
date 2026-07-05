@@ -2,6 +2,11 @@
 
 본 문서는 아이작 심(Isaac Sim) 기반의 딸기 수확 강화학습 환경을 구축하기 위해, 두산 로봇 팔(e0509)과 로보티즈 그리퍼(RH-P12-RN), 리얼센스 카메라(D455) 및 자체 제작 커스텀 파츠를 단일 URDF로 통합한 작업 내역과 사용 방법을 안내하는 설명서입니다.
 
+> **📌 USD 프로젝트 구조 안내 (2026-07):**
+> 기존 `robot/` 폴더의 USD 구성은 `USD_PROJECT_GUIDE.md`의 원칙에 따라 **`strawberry_harvest/`** 폴더로 재구성되었습니다.
+> Isaac Sim 작업 시 `strawberry_harvest/scenes/main_scene.usd`를 사용하세요. 자세한 구조는 `strawberry_harvest/README.md` 참고.
+> (`robot/` 폴더는 검증 완료 전까지 백업으로 유지됩니다.)
+
 ---
 
 ## 1. 개요 및 디렉토리 구조

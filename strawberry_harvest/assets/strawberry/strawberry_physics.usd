@@ -1,0 +1,28 @@
+#usda 1.0
+(
+    "strawberry 개별 물리 속성 레이어 — 질량/콜라이더/물리 파라미터는 이 파일에서만 수정"
+    defaultPrim = "strawberry"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "strawberry" (
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+)
+{
+    float physics:mass = 0.02
+    bool physics:rigidBodyEnabled = 1
+
+    over "geo"
+    {
+        over "fruit"
+        {
+            over "mesh" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+            )
+            {
+                uniform token physics:approximation = "convexHull"
+            }
+        }
+    }
+}

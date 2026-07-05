@@ -1,0 +1,72 @@
+#usda 1.0
+(
+    "딸기를 매다는 화이트보드 — attach_points 아래에 딸기 부착 지점 마커 포함"
+    defaultPrim = "whiteboard"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "whiteboard"
+{
+    def Mesh "board" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        float3[] extent = [(-0.5, -0.5, 0), (0.5, 0.5, 0)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 3, 2]
+        rel material:binding = </whiteboard/Looks/PaperGrid_Mat> (
+            bindMaterialAs = "weakerThanDescendants"
+        )
+        normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [(-0.5, -0.5, 0), (0.5, -0.5, 0), (-0.5, 0.5, 0), (0.5, 0.5, 0)]
+        texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+            interpolation = "faceVarying"
+        )
+        uniform token subdivisionScheme = "none"
+    }
+
+    def Scope "Looks"
+    {
+        def Material "PaperGrid_Mat"
+        {
+            token outputs:mdl:displacement.connect = </whiteboard/Looks/PaperGrid_Mat/Shader.outputs:out>
+            token outputs:mdl:surface.connect = </whiteboard/Looks/PaperGrid_Mat/Shader.outputs:out>
+            token outputs:mdl:volume.connect = </whiteboard/Looks/PaperGrid_Mat/Shader.outputs:out>
+
+            def Shader "Shader"
+            {
+                uniform token info:implementationSource = "sourceAsset"
+                uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
+                uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
+                asset inputs:diffuse_texture = @./textures/paper_grid_custom_bg.png@ (
+                    colorSpace = "auto"
+                )
+                float inputs:reflection_roughness_constant = 1
+                float inputs:specular_level = 0
+                token outputs:out (
+                    renderType = "material"
+                )
+            }
+        }
+    }
+
+    def Scope "attach_points" (
+        "딸기 부착 지점 마커 (보드 로컬 좌표). 씬의 layout_layer가 이 위치와 일치하도록 딸기를 배치"
+    )
+    {
+        def Xform "attach_ripe"
+        {
+            double3 xformOp:translate = (-0.2271414288834906, 0.09184346775642727, -0.01925418733024875)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Xform "attach_unripe"
+        {
+            double3 xformOp:translate = (-0.32325139569842193, -0.16105014128986062, -0.042140212194357596)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+}

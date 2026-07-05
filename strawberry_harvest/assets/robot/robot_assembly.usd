@@ -1,0 +1,47 @@
+#usda 1.0
+(
+    "로봇 조립본 — URDF 임포트 로봇(팔+그리퍼+커스텀파츠 일체형 articulation) + D455 카메라 부착. 원본 robot.usd는 수정 금지, 커스터마이징은 이 파일의 오버라이드로 처리"
+    defaultPrim = "robot_assembly"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "robot_assembly" (
+    prepend references = @./doosan_e0509_rh_p12_rn/robot.usd@
+)
+{
+    over "rh_p12_rn_base"
+    {
+        def "rsd455" (
+            "Intel RealSense D455 — eye-in-hand 캘리브레이션 결과 오프셋 (configs/camera_calibration_to_isaac.py 참고)"
+            prepend payload = @../omniverse_imports/Isaac/Sensors/Intel/RealSense/rsd455.usd@
+        )
+        {
+            quatf xformOp:orient = (0.8374403, -0.008958276, -0.54645485, 0.00077880896)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (-0.08714526760494223, 0.0072940778510038, 0.06341132523372253)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+            over "RSD455"
+            {
+                over "Camera_Pseudo_Depth"
+                {
+                    quatd xformOp:orient = (0.4999999999999997, 0.5000000000000001, 0.5000000000000001, 0.5)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                over "Camera_OmniVision_OV9782_Color"
+                {
+                    float focalLength = 2.3459606
+                    float verticalAperture = 2.922
+                    quatd xformOp:orient = (0.4999999999999997, 0.5000000000000001, 0.5000000000000001, 0.5)
+                    double3 xformOp:scale = (1, 0.9999989867210388, 1)
+                    double3 xformOp:translate = (0, 0.0115, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+            }
+        }
+    }
+}

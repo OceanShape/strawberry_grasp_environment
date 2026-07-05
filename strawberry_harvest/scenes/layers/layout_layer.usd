@@ -1,0 +1,96 @@
+#usda 1.0
+(
+    "배치(transform) 오버라이드 레이어 — 딸기 위치, 로봇 베이스, 초기 관절 포즈 등 반복 실험에서 바뀌는 값을 이 레이어에 모음. domain randomization 스크립트도 이 레이어를 대상으로 작성"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "World"
+{
+    over "robot_assembly"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        over "joints"
+        {
+            over "joint_1"
+            {
+                float drive:angular:physics:targetPosition = 87.98
+                float state:angular:physics:position = 87.98
+            }
+
+            over "joint_2"
+            {
+                float drive:angular:physics:targetPosition = -94.92
+                float state:angular:physics:position = -94.92
+            }
+
+            over "joint_3"
+            {
+                float drive:angular:physics:targetPosition = 129.89
+                float state:angular:physics:position = 129.89
+            }
+
+            over "joint_4"
+            {
+                float drive:angular:physics:targetPosition = 175.94
+                float state:angular:physics:position = 175.94
+            }
+
+            over "joint_5"
+            {
+                float drive:angular:physics:targetPosition = -31.34
+                float state:angular:physics:position = -31.34
+            }
+
+            over "joint_6"
+            {
+                float drive:angular:physics:targetPosition = 93.42
+                float state:angular:physics:position = 93.42
+            }
+
+            over "rh_l1"
+            {
+                float drive:angular:physics:targetPosition = 63
+                float state:angular:physics:position = 63
+            }
+
+            over "rh_l2"
+            {
+                float drive:angular:physics:targetPosition = 57.3
+                float state:angular:physics:position = 57.29
+            }
+
+            over "rh_p12_rn"
+            {
+                float drive:angular:physics:targetPosition = 63
+                float state:angular:physics:position = 63
+            }
+
+            over "rh_r2"
+            {
+                float drive:angular:physics:targetPosition = 57.3
+                float state:angular:physics:position = 57.29
+            }
+        }
+    }
+
+    over "strawberry_ripe"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.5, 0.5, 0.5)
+        double3 xformOp:translate = (-0.19825253830546546, 0.8037297534967913, 0.5874436604724225)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    over "strawberry_unripe"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        float3 xformOp:scale = (0.5, 0.5, 0.5)
+        double3 xformOp:translate = (-0.3040665943771112, 0.7863578007836973, 0.7872296116189899)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+}

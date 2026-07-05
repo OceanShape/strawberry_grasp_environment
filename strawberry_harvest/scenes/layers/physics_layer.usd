@@ -1,0 +1,72 @@
+#usda 1.0
+(
+    "씬 레벨 물리 레이어 — PhysicsScene, 정적 콜라이더, 딸기 줄기(stem) joint. 애셋 고유 물리(딸기 질량 등)는 assets/strawberry/strawberry_physics.usd에서 관리"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "World"
+{
+    def Scope "physics"
+    {
+        def PhysicsScene "physicsScene" (
+            prepend apiSchemas = ["PhysxSceneAPI"]
+        )
+        {
+            vector3f physics:gravityDirection = (0, 0, -1)
+            float physics:gravityMagnitude = 9.81
+        }
+
+        def PhysicsFixedJoint "stem_ripe" (
+            "익은 딸기 줄기 — body0 미지정 = 월드(공중) 고정. breakForce/Torque를 낮추면 수확(분리)이 쉬워짐. 튜닝 대상"
+        )
+        {
+            rel physics:body1 = </World/strawberry_ripe>
+            float physics:breakForce = 2
+            float physics:breakTorque = 1
+            point3f physics:localPos0 = (-0.19825253830546546, 0.8037297534967913, 0.5874436604724225)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_unripe" (
+            "안 익은 딸기 줄기 — 월드 고정 + break force"
+        )
+        {
+            rel physics:body1 = </World/strawberry_unripe>
+            float physics:breakForce = 2
+            float physics:breakTorque = 1
+            point3f physics:localPos0 = (-0.3040665943771112, 0.7863578007836973, 0.7872296116189899)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+    }
+
+    over "lab_environment"
+    {
+        over "table"
+        {
+            over "Cube"
+            {
+                over "Mesh" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                )
+                {
+                    uniform token physics:approximation = "none"
+                }
+            }
+        }
+
+        over "whiteboard"
+        {
+            over "board" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+            )
+            {
+                uniform token physics:approximation = "none"
+            }
+        }
+    }
+}
