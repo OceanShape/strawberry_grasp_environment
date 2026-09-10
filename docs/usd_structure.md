@@ -31,7 +31,7 @@ strawberry_harvest/
 │   │   └── textures/
 │   ├── props/
 │   │   ├── table.usd                      # 테이블 (defaultPrim=table)
-│   │   ├── whiteboard.usd                 # 보드 + attach_points(딸기 부착 지점 마커) 포함
+│   │   ├── whiteboard.usd                 # 보드(격자 텍스처) + highlight(분면 오버레이 4장) + attach_points
 │   │   └── textures/
 │   └── omniverse_imports/                 # Nucleus/클라우드 애셋 로컬 사본 — 직접 네트워크 참조 금지
 │       └── Isaac/
@@ -45,9 +45,14 @@ strawberry_harvest/
 │   │   ├── physics_layer.usd              # PhysicsScene, 정적 콜라이더, 딸기 줄기(stem) fixed joint
 │   │   └── lighting_layer.usd             # DomeLight(studio HDRI) + RectLight 2개
 │   └── textures/studio.hdr
-└── configs/
-    ├── calibration_eye_in_hand.npz        # eye-in-hand 캘리브레이션 원본 데이터
-    └── camera_calibration_to_isaac.py     # OpenCV → Isaac Sim 좌표 변환 스크립트
+├── configs/
+│   ├── calibration_eye_in_hand.npz        # eye-in-hand 캘리브레이션 원본 데이터
+│   └── camera_calibration_to_isaac.py     # OpenCV → Isaac Sim 좌표 변환 스크립트
+└── scripts/                               # Isaac Sim Script Editor에서 실행하는 스크립트
+    ├── isaac_sim_script_editor_bridge.py  # 딸기 좌표 발행 + /joint_command 수신 → 로봇 구동
+    │                                       #   ⚠️ ASCII 전용 (Kit 이 한글을 '?' 로 찍는다)
+    ├── isaac_sim_hud.py                    # 뷰포트 상태 HUD + 보드 분면 하이라이트 (ASCII 전용)
+    └── self_collision_logger_script.py    # 자기 충돌 감지 → log/collision_*.log 기록
 ```
 
 ---
@@ -60,16 +65,36 @@ strawberry_harvest/
 - 로봇 커스터마이징(카메라 부착 위치, 오버라이드 등)은 `robot_assembly.usd`에서만 합니다.
 - 그리퍼 종류를 바꿔가며 실험할 가능성이 있다면 `robot_assembly.usd`에 `variantSet(gripper_type)`을 추가하는 것을 고려하세요.
 
+**`robot_assembly.usd`에 현재 적용된 오버라이드 (2026-07-10 기준):**
+
+| 오버라이드 | 대상 prim | 이유 |
+|---|---|---|
+| `physics:rigidBodyEnabled=False` | `rh_p12_rn_base/rsd455/RSD455` | NVIDIA 순정 D455 애셋은 독립 강체로 설계되어, 그리퍼 링크 밑에 조립하면 "강체 안의 강체"가 되어 articulation 초기화가 실패함 (2026-07-09 수정) |
+| joint drive `stiffness=1e5` / `damping=1e4` | `joints/joint_1`~`joint_6` | URDF 임포트 기본 게인(stiffness 54~2648, damping ≈0)이 너무 물러 팔이 출렁이고 덜덜거림 → 산업용 위치 제어 수준으로 상향 (2026-07-10 수정) |
+| joint drive `stiffness=1e4` / `damping=1e3` | `joints/rh_*` (그리퍼 4관절) | 같은 이유. 파지력 과다 방지를 위해 팔보다 한 단계 낮게 |
+
+⚠️ URDF를 재빌드해서 `doosan_e0509_rh_p12_rn/`이 교체되어도 이 오버라이드들은 assembly 레이어에 남아 있으므로 유지됩니다. 단, 링크/조인트 이름이 바뀌면 오버라이드가 붕 뜨므로(dangling over) 재확인이 필요합니다.
+
 ### 딸기 (`assets/strawberry/`)
 
 - `strawberry.usd`에서 `ripeness` variantSet으로 ripe/unripe를 전환합니다.
+- 씬에는 **딸기 12개**(익은 6 / 안 익은 6)가 보드 4등분 서브셀에 배치되어 있습니다
+  (nw 2/1, ne 1/2, sw 3/0, se 0/3 — 익은 것/안 익은 것). 배치 의도와 제약은
+  [`PORTFOLIO_SPRINT.md`](../PORTFOLIO_SPRINT.md) "씬 구성 메모" 참고.
 - 물리 파라미터(질량, 콜라이더 근사, 마찰)는 `strawberry_physics.usd`에서만 수정합니다.
-- 줄기 분리(picking) 동작은 `scenes/layers/physics_layer.usd`에 정의된 FixedJoint의 `breakForce=2 / breakTorque=1`로 모델링되어 있습니다. 이 값은 임시이므로 수확 테스트하며 튜닝하세요.
+- 줄기 분리(picking) 동작은 `scenes/layers/physics_layer.usd`에 정의된 FixedJoint로 모델링되어 있습니다.
+  초기값 `breakForce=2 / breakTorque=1`은 과실 자중의 10.2배뿐이라 로봇이 스치기만 해도 끊겨 날아갔습니다.
+  **2026-09-07 `breakForce=20 / breakTorque=5`로 상향**(자중의 101.9배).
 
 ### 환경/소품 (`assets/props/`, `scenes/lab_environment.usd`)
 
 - 테이블, 화이트보드는 `lab_environment.usd`에 조립되어 있으며, `main_scene.usd`에서 payload로 불러옵니다.
 - `whiteboard.usd`에는 딸기를 매다는 `attach_points` prim이 정의되어 있습니다.
+- `whiteboard.usd`의 `highlight/{nw,ne,sw,se}` 는 **분면 하이라이트 오버레이**(2026-09-10)입니다.
+  보드와 같은 격자 텍스처에 옅은 주황 tint 를 곱한 판 4장을 보드면 2mm 앞에 둔 것으로,
+  기본은 전부 `invisible` 이고 `scripts/isaac_sim_hud.py` 가 HUD 의 영역 값에 맞춰
+  세션 레이어에서 켭니다 (홈 = 4장 전부, 분면 = 그 한 장). 시각 전용 — 콜라이더 없음.
+  종전의 분면 꼭지점 봉(`cell_markers.usd`)은 시야를 가려 같은 날 제거했습니다.
 
 ### Omniverse 임포트 (`assets/omniverse_imports/`)
 
@@ -84,7 +109,11 @@ strawberry_harvest/
 | `lighting_layer.usd` | DomeLight(studio.hdr) + RectLight 2개 |
 | `layout_layer.usd` | 딸기 위치, 로봇 베이스 위치, 초기 관절 포즈 — 반복 실험 대상 |
 
-sublayer 순서(strength ordering)에 유의하세요. 나중에 추가된 레이어가 opinion을 override합니다.
+sublayer 순서(strength ordering)에 유의하세요. USD의 `subLayers`는 **strongest-first** —
+목록에서 **앞에 있는 레이어가 더 강한 opinion**을 가집니다.
+`main_scene.usd`의 순서는 `layout_layer` → `physics_layer` → `lighting_layer`이므로
+같은 속성을 두 레이어가 건드리면 `layout_layer`가 이깁니다.
+(현재는 세 레이어가 서로 다른 속성만 다루므로 실제 충돌은 없습니다.)
 
 ---
 
@@ -92,11 +121,12 @@ sublayer 순서(strength ordering)에 유의하세요. 나중에 추가된 레�
 
 | 하고 싶은 것 | 수정할 파일 |
 |---|---|
-| 딸기 위치 변경 / domain randomization | `scenes/layers/layout_layer.usd` (줄기 joint의 `localPos0`도 함께 이동) |
+| 딸기 위치 변경 / domain randomization | `scenes/layers/layout_layer.usd` **와** `scenes/layers/physics_layer.usd`(줄기 joint `localPos0`) — ⚠️ 좌표가 두 파일에 중복 보유되므로 **반드시 함께** 고친다. 한쪽만 바꾸면 fixed joint가 딸기를 원래 자리로 끌어당긴다 |
 | 딸기 물리 파라미터 튜닝 (질량, 마찰) | `assets/strawberry/strawberry_physics.usd` |
 | 줄기 분리 강도 튜닝 (breakForce) | `scenes/layers/physics_layer.usd` |
 | 조명 변경 | `scenes/layers/lighting_layer.usd` |
 | 로봇 커스터마이징 (카메라 위치 등) | `assets/robot/robot_assembly.usd`의 오버라이드 |
+| 로봇 관절 강성/감쇠 튜닝 (출렁임·떨림) | `assets/robot/robot_assembly.usd`의 joint drive 오버라이드 (§3 로봇 참고) |
 | 물리 없이 비주얼만 확인 | Layer 창에서 `physics_layer.usd`를 mute |
 | 환경 소품 변경 (테이블, 보드) | `assets/props/`, `scenes/lab_environment.usd` |
 
@@ -114,7 +144,7 @@ sublayer 순서(strength ordering)에 유의하세요. 나중에 추가된 레�
 
 새로 추가된 물리 (기존 씬에 없었음):
 - 딸기: RigidBody + 0.02 kg + convexHull 콜라이더
-- 딸기 줄기: FixedJoint + `breakForce=2 / breakTorque=1` (당기면 분리)
+- 딸기 줄기: FixedJoint + `breakForce=20 / breakTorque=5` (당기면 분리. 초기 2/1은 너무 약해 2026-09-07 상향)
 - 테이블/보드: 정적 콜라이더 (triangle mesh)
 
 ---

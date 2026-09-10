@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" font-family="'Noto Sans CJK KR','Noto Sans KR',sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="900" fill="#FFFFFF"/>
+
+  <text x="60" y="62" font-size="34" font-weight="700" fill="#0F172A">실기 파이프라인 vs 시뮬레이션 파이프라인</text>
+  <text x="60" y="96" font-size="19" fill="#475569">같은 모션 플래너를 양쪽에서 구동한다. 갈리는 곳은 <tspan font-weight="700" fill="#0F172A">양 끝단(비전 입력 · 로봇 제어 출력)</tspan> 뿐이다.</text>
+
+  <!-- 이식 구간 밴드 -->
+  <rect x="552" y="140" width="500" height="600" rx="14" fill="#FFF7ED" stroke="#F59E0B" stroke-width="2" stroke-dasharray="9 6"/>
+  <text x="802" y="172" font-size="18" font-weight="700" fill="#B45309" text-anchor="middle">이식 구간 — 실기 모션 플래너 2노드</text>
+  <text x="802" y="196" font-size="14" fill="#B45309" text-anchor="middle">실기·시뮬 양쪽에서 같은 소스로 동작 — 이식 수정 내역은 PLANNER_CHANGES.md</text>
+
+  <!-- ===== 실기 레인 ===== -->
+  <text x="60" y="252" font-size="22" font-weight="700" fill="#0F172A">실기</text>
+  <text x="60" y="276" font-size="15" fill="#64748B">하드웨어 있음</text>
+
+  <rect x="150" y="230" width="196" height="88" rx="10" fill="#F1F5F9" stroke="#94A3B8" stroke-width="2"/>
+  <text x="248" y="264" font-size="17" font-weight="600" fill="#334155" text-anchor="middle">Realsense D455</text>
+  <text x="248" y="288" font-size="15" fill="#64748B" text-anchor="middle">+ YOLO seg/pose</text>
+
+  <rect x="382" y="230" width="196" height="88" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+  <text x="480" y="264" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">strawberry_</text>
+  <text x="480" y="286" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">fusion_node</text>
+
+  <rect x="614" y="230" width="196" height="88" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+  <text x="712" y="264" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">scan_executor_</text>
+  <text x="712" y="286" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">node</text>
+
+  <rect x="846" y="230" width="196" height="88" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+  <text x="944" y="264" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">curobo_planner_</text>
+  <text x="944" y="286" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">node</text>
+
+  <rect x="1078" y="230" width="196" height="88" rx="10" fill="#F1F5F9" stroke="#94A3B8" stroke-width="2"/>
+  <text x="1176" y="264" font-size="17" font-weight="600" fill="#334155" text-anchor="middle">두산 제어기</text>
+  <text x="1176" y="288" font-size="15" fill="#64748B" text-anchor="middle">dsr_msgs2 서비스</text>
+
+  <rect x="1310" y="230" width="196" height="88" rx="10" fill="#F1F5F9" stroke="#94A3B8" stroke-width="2"/>
+  <text x="1408" y="264" font-size="17" font-weight="600" fill="#334155" text-anchor="middle">실물 e0509</text>
+  <text x="1408" y="288" font-size="15" fill="#64748B" text-anchor="middle">+ RH-P12-RN</text>
+
+  <g stroke="#475569" stroke-width="2" marker-end="url(#ar)">
+    <line x1="346" y1="274" x2="378" y2="274"/>
+    <line x1="578" y1="274" x2="610" y2="274"/>
+    <line x1="810" y1="274" x2="842" y2="274"/>
+    <line x1="1042" y1="274" x2="1074" y2="274"/>
+    <line x1="1274" y1="274" x2="1306" y2="274"/>
+  </g>
+
+  <!-- ===== 시뮬 레인 ===== -->
+  <text x="60" y="602" font-size="22" font-weight="700" fill="#0F172A">시뮬</text>
+  <text x="60" y="626" font-size="15" fill="#64748B">하드웨어 없음</text>
+
+  <rect x="150" y="580" width="196" height="88" rx="10" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+  <text x="248" y="608" font-size="17" font-weight="600" fill="#5B21B6" text-anchor="middle">Isaac Sim USD 씬</text>
+  <text x="248" y="630" font-size="14" fill="#6D28D9" text-anchor="middle">Script Editor 브릿지</text>
+  <text x="248" y="650" font-size="14" fill="#6D28D9" text-anchor="middle">(딸기 prim 좌표 발행)</text>
+
+  <rect x="382" y="580" width="196" height="88" rx="10" fill="#CCFBF1" stroke="#0D9488" stroke-width="2"/>
+  <text x="480" y="614" font-size="16" font-weight="600" fill="#115E59" text-anchor="middle">fake_vision_</text>
+  <text x="480" y="636" font-size="16" font-weight="600" fill="#115E59" text-anchor="middle">node</text>
+
+  <rect x="614" y="580" width="196" height="88" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+  <text x="712" y="614" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">scan_executor_</text>
+  <text x="712" y="636" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">node</text>
+
+  <rect x="846" y="580" width="196" height="88" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+  <text x="944" y="614" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">curobo_planner_</text>
+  <text x="944" y="636" font-size="16" font-weight="600" fill="#92400E" text-anchor="middle">node</text>
+
+  <rect x="1078" y="580" width="196" height="88" rx="10" fill="#CCFBF1" stroke="#0D9488" stroke-width="2"/>
+  <text x="1176" y="608" font-size="16" font-weight="600" fill="#115E59" text-anchor="middle">sim_executor_</text>
+  <text x="1176" y="628" font-size="16" font-weight="600" fill="#115E59" text-anchor="middle">bridge_node</text>
+  <text x="1176" y="650" font-size="14" fill="#0F766E" text-anchor="middle">가상 두산 제어기</text>
+
+  <rect x="1310" y="580" width="196" height="88" rx="10" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+  <text x="1408" y="614" font-size="17" font-weight="600" fill="#5B21B6" text-anchor="middle">Isaac Sim</text>
+  <text x="1408" y="638" font-size="15" fill="#6D28D9" text-anchor="middle">articulation 구동</text>
+
+  <g stroke="#475569" stroke-width="2" marker-end="url(#ar)">
+    <line x1="346" y1="624" x2="378" y2="624"/>
+    <line x1="578" y1="624" x2="610" y2="624"/>
+    <line x1="810" y1="624" x2="842" y2="624"/>
+    <line x1="1042" y1="624" x2="1074" y2="624"/>
+    <line x1="1274" y1="624" x2="1306" y2="624"/>
+  </g>
+
+  <!-- 인터페이스 라벨 -->
+  <text x="480" y="352" font-size="14" fill="#64748B" text-anchor="middle" font-family="'Noto Sans Mono CJK KR',monospace">/strawberry/detection/pick_pose</text>
+  <text x="944" y="352" font-size="14" fill="#64748B" text-anchor="middle" font-family="'Noto Sans Mono CJK KR',monospace">MoveJoint · MoveLine · SafeGrasp</text>
+  <text x="480" y="546" font-size="14" fill="#64748B" text-anchor="middle" font-family="'Noto Sans Mono CJK KR',monospace">/strawberry/detection/pick_pose</text>
+  <text x="944" y="546" font-size="14" fill="#64748B" text-anchor="middle" font-family="'Noto Sans Mono CJK KR',monospace">MoveJoint · MoveLine · SafeGrasp</text>
+  <text x="1408" y="546" font-size="14" fill="#64748B" text-anchor="middle" font-family="'Noto Sans Mono CJK KR',monospace">/joint_command</text>
+
+  <!-- 대응 관계 점선 -->
+  <g stroke="#94A3B8" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arw)" marker-start="url(#arw)">
+    <line x1="248" y1="322" x2="248" y2="576"/>
+    <line x1="1176" y1="322" x2="1176" y2="576"/>
+  </g>
+  <text x="268" y="452" font-size="15" fill="#475569">입력단 대체</text>
+  <text x="1196" y="452" font-size="15" fill="#475569">출력단 대체</text>
+
+  <!-- 하단 요지 -->
+  <rect x="60" y="742" width="1480" height="106" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="86" y="778" font-size="18" font-weight="700" fill="#0F172A">설계 요지 — 경계는 ROS 2 인터페이스 계약이다</text>
+  <text x="86" y="806" font-size="16" fill="#334155">토픽·서비스·액션의 이름과 타입, QoS를 실기와 동일하게 맞추면 플래너는 상대가 실물인지 시뮬인지 알 수 없다.</text>
+  <text x="86" y="832" font-size="16" fill="#334155">따라서 하드웨어 없이도 실기 제어 스택을 구동해 시퀀스·궤적·통신을 검증할 수 있다.</text>
+
+  <!-- 범례 -->
+  <g font-size="15">
+    <rect x="1120" y="60" width="18" height="18" rx="4" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+    <text x="1146" y="75" fill="#334155">실기 팀 코드 (이식)</text>
+    <rect x="1120" y="88" width="18" height="18" rx="4" fill="#CCFBF1" stroke="#0D9488" stroke-width="2"/>
+    <text x="1146" y="103" fill="#334155">본인 구현 (가상 제어기 계층)</text>
+    <rect x="1370" y="60" width="18" height="18" rx="4" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+    <text x="1396" y="75" fill="#334155">Isaac Sim</text>
+    <rect x="1370" y="88" width="18" height="18" rx="4" fill="#F1F5F9" stroke="#94A3B8" stroke-width="2"/>
+    <text x="1396" y="103" fill="#334155">하드웨어</text>
+  </g>
+</svg>

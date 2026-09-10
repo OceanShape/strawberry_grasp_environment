@@ -38,25 +38,21 @@
 
 `src/doosan_robot2`와 `src/RH-P12-RN`은 용량 문제로 `.gitignore`에 등록되어 있습니다. 저장소를 클론한 경우 해당 공식 패키지를 `src/` 안에 별도로 배치해야 합니다.
 
-### 빌드 실행 전 주의사항
-
-`build_urdf.sh` 내 경로가 `/home/sun/`으로 하드코딩되어 있습니다. 실행 전에 현재 사용자 홈 디렉토리로 수정해야 합니다.
-
-```bash
-# build_urdf.sh 안의 /home/sun/ 을 실제 경로로 일괄 교체
-sed -i 's|/home/sun/|/home/oceanshape/|g' build_urdf.sh
-```
-
-또한 현재 스크립트는 xacro 출력을 `robot_export.urdf`로 쓰고, 절대경로 치환은 `robot.urdf`에 적용합니다. 두 파일이 분리된 상태이므로, 빌드 후에는 `robot_export.urdf`를 `robot.urdf`로 복사하거나 스크립트의 출력 파일명을 일치시켜야 합니다.
-
 ### 빌드 실행
 
 ```bash
-cd /home/oceanshape/바탕화면/strawberry_grasp_environment
+cd /home/oceanshape/strawberry_grasp_environment
 ./build_urdf.sh
 ```
 
-정상 실행 시 `robot_export.urdf`(raw xacro 결과)와 `robot.urdf`(Isaac Sim용 절대경로 치환본)가 갱신됩니다.
+스크립트가 수행하는 작업:
+1. xacro 렌더링 → `robot.urdf` 생성
+2. `package://` 경로를 Isaac Sim용 절대경로로 치환
+3. 그리퍼 색상 커스터마이징 (grey → black)
+
+정상 실행 시 `robot.urdf`(Isaac Sim용 절대경로 치환본) 하나가 갱신됩니다.
+
+> **참고**: 스크립트 상단의 `PROJECT` 변수가 이 프로젝트의 절대경로로 설정되어 있습니다. 다른 PC로 옮기면 이 변수만 수정하면 됩니다. 또한 스크립트가 `/opt/ros/humble/setup.bash`를 소싱하는데, ROS 2 미설치 환경에서도 pip으로 설치된 xacro(`~/.local/bin/xacro`)가 있으면 빌드는 동작합니다.
 
 ---
 

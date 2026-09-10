@@ -1,0 +1,260 @@
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/B_e0509_gripper_description/config/curobo/e0509_gripper.urdf src/e0509_gripper_description/config/curobo/e0509_gripper.urdf
+--- _baseline/B_e0509_gripper_description/config/curobo/e0509_gripper.urdf	2026-09-05 09:47:36.447894605 +0900
++++ src/e0509_gripper_description/config/curobo/e0509_gripper.urdf	2026-09-08 05:42:42.282176771 +0900
+@@ -1,4 +1,4 @@
+-<?xml version='1.0' encoding='us-ascii'?>
++<?xml version='1.0' encoding='utf-8'?>
+ <robot name="e0509_with_gripper">
+   <material name="black">
+     <color rgba="0.0 0.0 0.0 1.0" />
+@@ -484,4 +484,44 @@
+     <parent link="link_6" />
+     <child link="gripper_rh_p12_rn_base" />
+   </joint>
+-  </robot>
+\ No newline at end of file
++  
++
++  <!-- ==========================================================
++       [2026-09-07] Custom 3D-printed gripper parts (the actual grasping tip).
++
++       Present in robot.urdf (the sim USD import source) but missing from this
++       cuRobo planning URDF.  The planner therefore believed the tool ended at
++       the RH-P12-RN body and never saw the 150 mm extension that actually
++       reaches the fruit and the board, so it planned trajectories straight
++       through both.
++
++       Measured (gripper_parts.stl + FK, gripper fully open = lock_joints 0.0):
++         flange -> custom part tip = 233.3 mm   (RH-P12-RN alone: 116.5 mm)
++         gripper closed (1.0 rad)  = 261.8 mm
++       Joint origins/orientation match l2_to_left_custom_part /
++       r2_to_right_custom_part in robot.urdf.
++
++       No <visual>/<collision> geometry here on purpose: cuRobo uses only the
++       spheres in e0509_spheres.yml for collision, so the link frame is enough.
++
++       NOTE: keep this file ASCII-only.  cuRobo re-reads the robot yml/urdf
++       with an ASCII codec on the non-zero lock_joints path and a non-ASCII
++       byte raises UnicodeDecodeError at load time.  Rationale in Korean lives
++       in docs/run_guide.md.
++       ========================================================== -->
++  <joint name="l2_to_left_custom_part" type="fixed">
++    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0.02090 0.00498 0.00058" />
++    <parent link="gripper_rh_p12_rn_l2" />
++    <child link="gripper_left_custom_part" />
++  </joint>
++
++  <link name="gripper_left_custom_part" />
++
++  <joint name="r2_to_right_custom_part" type="fixed">
++    <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="-0.02090 -0.00499 0.00058" />
++    <parent link="gripper_rh_p12_rn_r2" />
++    <child link="gripper_right_custom_part" />
++  </joint>
++
++  <link name="gripper_right_custom_part" />
++</robot>
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/B_e0509_gripper_description/config/curobo/e0509_gripper.yml src/e0509_gripper_description/config/curobo/e0509_gripper.yml
+--- _baseline/B_e0509_gripper_description/config/curobo/e0509_gripper.yml	2026-09-05 09:47:36.447894605 +0900
++++ src/e0509_gripper_description/config/curobo/e0509_gripper.yml	2026-09-08 10:25:22.710206705 +0900
+@@ -17,6 +17,12 @@
+         "gripper_rh_p12_rn_base",
+         "gripper_rh_p12_rn_r1",
+         "gripper_rh_p12_rn_l1",
++        # [2026-09-07] Custom 3D-printed parts: the geometry that actually
++        # reaches the fruit and the board first.  Without these the planner
++        # models the tool as ending at the RH-P12-RN (116.5mm) and plans
++        # straight through fruit and wall.  Keep this file ASCII-only.
++        "gripper_left_custom_part",
++        "gripper_right_custom_part",
+         "attached_object",
+       ]
+     collision_spheres: "e0509_spheres.yml"
+@@ -30,11 +36,13 @@
+         "link_2": ["link_3", "link_4"],
+         "link_3": ["link_4", "link_5"],
+         "link_4": ["link_5", "link_6"],
+-        "link_5": ["link_6", "gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1"],
+-        "link_6": ["gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "attached_object"],
+-        "gripper_rh_p12_rn_base": ["gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "attached_object"],
+-        "gripper_rh_p12_rn_r1": ["gripper_rh_p12_rn_l1", "attached_object"],
+-        "gripper_rh_p12_rn_l1": ["attached_object"],
++        "link_5": ["link_6", "gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part"],
++        "link_6": ["gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_rh_p12_rn_base": ["gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_rh_p12_rn_r1": ["gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_rh_p12_rn_l1": ["gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_left_custom_part": ["gripper_right_custom_part", "attached_object"],
++        "gripper_right_custom_part": ["attached_object"],
+       }
+     self_collision_buffer:
+       {
+@@ -48,11 +56,20 @@
+         "gripper_rh_p12_rn_base": 0.02,
+         "gripper_rh_p12_rn_r1": 0.01,
+         "gripper_rh_p12_rn_l1": 0.01,
++        "gripper_left_custom_part": 0.0,
++        "gripper_right_custom_part": 0.0,
+         "attached_object": 0.0,
+       }
++    # [2026-09-07] Plan with the gripper at the APPROACH opening, not wide open.
++    # The planner commands set_position(GRIPPER_APPROACH_POS=600) before the
++    # horizontal approach and holds it until the close.  stroke -> joint angle
++    # is stroke/700 rad (gripper_joint_publisher.py), so 600 -> 0.857 rad.
++    # Planning at 0.0 (wide open) under-modelled the tool by 27.5mm: the custom
++    # part tip sits at flange+233.3mm when open but flange+260.8mm at stroke
++    # 600, and that difference went straight into board penetration.
+     lock_joints:
+       {
+-        "gripper_rh_r1": 0.0,
++        "gripper_rh_r1": 0.857,
+       }
+     extra_links:
+       {
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/B_e0509_gripper_description/config/curobo/e0509_gripper_measured_tcp.yml src/e0509_gripper_description/config/curobo/e0509_gripper_measured_tcp.yml
+--- _baseline/B_e0509_gripper_description/config/curobo/e0509_gripper_measured_tcp.yml	2026-09-05 09:47:36.447894605 +0900
++++ src/e0509_gripper_description/config/curobo/e0509_gripper_measured_tcp.yml	2026-09-08 10:25:22.710206705 +0900
+@@ -31,6 +31,12 @@
+         "gripper_rh_p12_rn_base",
+         "gripper_rh_p12_rn_r1",
+         "gripper_rh_p12_rn_l1",
++        # [2026-09-07] Custom 3D-printed parts: the geometry that actually
++        # reaches the fruit and the board first.  Without these the planner
++        # models the tool as ending at the RH-P12-RN (116.5mm) and plans
++        # straight through fruit and wall.  Keep this file ASCII-only.
++        "gripper_left_custom_part",
++        "gripper_right_custom_part",
+         "attached_object",
+       ]
+     collision_spheres: "e0509_spheres.yml"
+@@ -44,11 +50,13 @@
+         "link_2": ["link_3", "link_4"],
+         "link_3": ["link_4", "link_5"],
+         "link_4": ["link_5", "link_6"],
+-        "link_5": ["link_6", "gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1"],
+-        "link_6": ["gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "attached_object"],
+-        "gripper_rh_p12_rn_base": ["gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "attached_object"],
+-        "gripper_rh_p12_rn_r1": ["gripper_rh_p12_rn_l1", "attached_object"],
+-        "gripper_rh_p12_rn_l1": ["attached_object"],
++        "link_5": ["link_6", "gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part"],
++        "link_6": ["gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_rh_p12_rn_base": ["gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_rh_p12_rn_r1": ["gripper_rh_p12_rn_l1", "gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_rh_p12_rn_l1": ["gripper_left_custom_part", "gripper_right_custom_part", "attached_object"],
++        "gripper_left_custom_part": ["gripper_right_custom_part", "attached_object"],
++        "gripper_right_custom_part": ["attached_object"],
+       }
+     self_collision_buffer:
+       {
+@@ -62,11 +70,20 @@
+         "gripper_rh_p12_rn_base": 0.02,
+         "gripper_rh_p12_rn_r1": 0.01,
+         "gripper_rh_p12_rn_l1": 0.01,
++        "gripper_left_custom_part": 0.0,
++        "gripper_right_custom_part": 0.0,
+         "attached_object": 0.0,
+       }
++    # [2026-09-07] Plan with the gripper at the APPROACH opening, not wide open.
++    # The planner commands set_position(GRIPPER_APPROACH_POS=600) before the
++    # horizontal approach and holds it until the close.  stroke -> joint angle
++    # is stroke/700 rad (gripper_joint_publisher.py), so 600 -> 0.857 rad.
++    # Planning at 0.0 (wide open) under-modelled the tool by 27.5mm: the custom
++    # part tip sits at flange+233.3mm when open but flange+260.8mm at stroke
++    # 600, and that difference went straight into board penetration.
+     lock_joints:
+       {
+-        "gripper_rh_r1": 0.0,
++        "gripper_rh_r1": 0.857,
+       }
+     extra_links:
+       {
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/B_e0509_gripper_description/config/curobo/e0509_spheres.yml src/e0509_gripper_description/config/curobo/e0509_spheres.yml
+--- _baseline/B_e0509_gripper_description/config/curobo/e0509_spheres.yml	2026-09-05 09:47:36.447894605 +0900
++++ src/e0509_gripper_description/config/curobo/e0509_spheres.yml	2026-09-08 03:06:27.065887962 +0900
+@@ -50,6 +50,33 @@
+     - {"center": [0.0, 0.0, 0.02], "radius": 0.015}
+     - {"center": [0.0, 0.0, 0.05], "radius": 0.012}
+ 
++  # [2026-09-07] Custom 3D-printed parts: the geometry that reaches the fruit
++  # and the board first.  Their absence from the collision model is why the
++  # planner produced trajectories through the fruit and the wall.
++  # Fitted by slicing gripper_parts.stl into 9 bands along the link axis and
++  # taking a minimal enclosing sphere per band.
++  # Max sphere reach = flange +235.2mm (true part tip 233.3mm, +1.9mm over).
++  # Keep this file ASCII-only (cuRobo ASCII reader on lock_joints path).
++  gripper_left_custom_part:
++    - {"center": [0.0019, -0.1490, -0.0209], "radius": 0.0102}
++    - {"center": [-0.0004, -0.1325, -0.0209], "radius": 0.0106}
++    - {"center": [0.0120, -0.0983, -0.0209], "radius": 0.0079}
++    - {"center": [0.0129, -0.0849, -0.0209], "radius": 0.0109}
++    - {"center": [0.0154, -0.0673, -0.0209], "radius": 0.0124}
++    - {"center": [0.0104, -0.0448, -0.0209], "radius": 0.0181}
++    - {"center": [0.0026, -0.0310, -0.0209], "radius": 0.0070}
++    - {"center": [0.0125, -0.0124, -0.0209], "radius": 0.0197}
++
++  gripper_right_custom_part:
++    - {"center": [0.0125, 0.0124, 0.0209], "radius": 0.0197}
++    - {"center": [0.0026, 0.0310, 0.0209], "radius": 0.0070}
++    - {"center": [0.0104, 0.0448, 0.0209], "radius": 0.0181}
++    - {"center": [0.0154, 0.0673, 0.0209], "radius": 0.0124}
++    - {"center": [0.0129, 0.0849, 0.0209], "radius": 0.0109}
++    - {"center": [0.0120, 0.0983, 0.0209], "radius": 0.0079}
++    - {"center": [-0.0004, 0.1325, 0.0209], "radius": 0.0106}
++    - {"center": [0.0019, 0.1490, 0.0209], "radius": 0.0102}
++
+   attached_object:
+     - {"center": [0.0, 0.0, 0.0], "radius": 0.02}
+     - {"center": [0.0, 0.0, 0.04], "radius": 0.02}
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/B_e0509_gripper_description/config/environment.yaml src/e0509_gripper_description/config/environment.yaml
+--- _baseline/B_e0509_gripper_description/config/environment.yaml	2026-09-05 09:47:36.447894605 +0900
++++ src/e0509_gripper_description/config/environment.yaml	2026-09-09 04:28:10.235579208 +0900
+@@ -1,9 +1,43 @@
+-# Mock Environment to override hardcoded static:table in curobo_planner_node.py
+-# By providing at least one dummy object, the planner will not append the default table at Z=-0.02
+-# which was causing INVALID_START_STATE_WORLD_COLLISION for the legacy profile.
++# cuRobo static collision world.
++#
++# ASCII only: the planner and cuRobo may read these files with an ASCII codec
++# (a non-ASCII byte raised UnicodeDecodeError on the lock_joints path,
++# 2026-09-07).  Korean rationale lives in docs/run_guide.md.
++#
++# History: this file used to hold a single dummy cuboid 10 m away.  That was to
++# suppress the default table cuboid at z=-0.02 that load_environment_cuboids()
++# appends when the list is empty, which caused
++# INVALID_START_STATE_WORLD_COLLISION on the legacy profile.  The side effect
++# was an effectively EMPTY collision world, so the planner happily produced
++# trajectories straight through the whiteboard.  The board is now declared here
++# so it is rejected at plan time.
++#
++# Scene reference (measured from strawberry_harvest/scenes/layers/layout_layer.usd):
++#   board plane  y = 810.0 mm, uniform across x (no tilt)
++#                  = harvest_motion_params.WALL_SURFACE_Y_M
++#   board extent x in [-495, +595] mm, z in [265, 1055] mm
++# The cuboid puts its front face exactly at y = 810.0 mm and is 200 mm thick
++# toward the back (center.y = 0.810 + 0.200/2 = 0.910).  The thickness stops the
++# planner from routing around behind a paper-thin plate.
++#
++# When the board moves, update all of these together:
++#   - strawberry_harvest/scenes/layers/layout_layer.usd   (whiteboard translate,
++#                                                          board_guard, 12 berries)
++#   - strawberry_harvest/scenes/layers/physics_layer.usd   (stem joint localPos0)
++#   - strawberry_harvest/assets/props/cell_markers.usd     (9 boundary rods)
++#   - src/strawberry_sim_core/.../fake_vision_node.py      (board_surface_y_m param)
++#   - src/strawberry_motion/scripts/harvest_motion_params.py:62 WALL_SURFACE_Y_M
++#   - src/strawberry_motion/.../scan_executor_node.py BOARD_SURFACE_Y_M
++#   - src/strawberry_motion/config/scan_collision_world.yaml
++# [2026-09-09] The collision body is the WHITEBOARD (1500x900mm, the physical
++# panel record), not the 1100x800mm paper panel, and it is extended down to the
++# floor so the arm cannot sweep UNDER the board.  Front face stays at y=810.0mm.
++#   x [-700, +800] mm   y [810, 1010] mm   z [0, 1110] mm
++# Verified: none of the taught scan poses, the traversal sweeps, or the tray place
++# pose lose any clearance versus the old 1.09x0.79 box (tray 332.8 -> 327.9 mm).
+ objects:
+-  - name: "dummy_far_away"
++  - name: "whiteboard"
+     type: "cuboid"
+     enabled: true
+-    pose: [10.0, 10.0, -10.0, 1.0, 0.0, 0.0, 0.0]
+-    dims: [0.1, 0.1, 0.1]
++    pose: [0.05, 0.91, 0.555, 1.0, 0.0, 0.0, 0.0]
++    dims: [1.50, 0.20, 1.11]

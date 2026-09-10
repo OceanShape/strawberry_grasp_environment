@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 980" width="1600" height="980" font-family="'Noto Sans CJK KR','Noto Sans KR',sans-serif">
+<rect width="1600" height="980" fill="#FFFFFF"/>
+<text x="60" y="58" font-size="34" font-weight="700" fill="#0F172A">통합 테스트에서 잡은 문제 4건 — Before / After</text>
+<text x="60" y="92" font-size="19" fill="#475569">모든 수치는 실행 로그 또는 USD·URDF 실측에서 나온 값이다. 출처를 각 패널에 적었다.</text>
+<rect x="60" y="130" width="730" height="390" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="82" y="168" font-size="21" font-weight="700" fill="#0F172A">① 접근 오차 — 그리퍼가 딸기 앞에서 멈춤</text>
+<text x="82" y="190" font-size="12.5" fill="#94A3B8" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">log/m1/curobo_planner.log:14  →  log/m2_5/curobo_planner.log</text>
+<rect x="78" y="204" width="694" height="118" rx="9" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+<text x="94" y="230" font-size="15" font-weight="700" fill="#B91C1C">BEFORE</text>
+<text x="178" y="230" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">[WARN] Detection Y=804mm &gt; wall surface 672mm</text>
+<text x="178" y="250" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">       (FK calibration drift) — clamped to 672mm</text>
+<text x="94" y="280" font-size="15" fill="#334155">플래너가 딸기 좌표를 벽 모델(672mm)로 clamp →</text>
+<text x="94" y="302" font-size="15" fill="#334155">그리퍼가 목표 131.7mm 앞에서 정지</text>
+<rect x="78" y="334" width="694" height="118" rx="9" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+<text x="94" y="360" font-size="15" font-weight="700" fill="#15803D">AFTER</text>
+<text x="178" y="360" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">=== PICK 딸기 raw=(-250,645,500)mm  det_y=645mm ===</text>
+<text x="178" y="380" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">(clamp WARN 0건)</text>
+<text x="94" y="410" font-size="15" fill="#334155">원인은 FK 드리프트가 아니라 씬 배치였다.</text>
+<text x="94" y="432" font-size="15" fill="#334155">씬 기하와 벽 모델을 한 값으로 정합 · 6개 출처를 check_params.py 로 대조</text>
+<rect x="78" y="458" width="694" height="36" rx="8" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+<text x="94" y="482" font-size="16.5" font-weight="700" fill="#1D4ED8">131.7 mm 불일치 규명  →  clamp WARN 0건</text>
+<rect x="820" y="130" width="730" height="390" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="842" y="168" font-size="21" font-weight="700" fill="#0F172A">② IK elbow-flip 다이브 — 45mm 이동에 팔 전체가 휘둘림</text>
+<text x="842" y="190" font-size="12.5" fill="#94A3B8" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">src/strawberry_sim_core/…/sim_executor_bridge_node.py  ·  log/m1·m2_5/sim_executor_bridge.log</text>
+<rect x="838" y="204" width="694" height="118" rx="9" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+<text x="854" y="230" font-size="15" font-weight="700" fill="#B91C1C">BEFORE</text>
+<text x="938" y="230" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">MoveLine → IK 첫 해를 그대로 실행</text>
+<text x="938" y="250" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">(실패해도 success=True — fail-open)</text>
+<text x="854" y="280" font-size="15" fill="#334155">cuRobo IK가 반대 브랜치(elbow-flip) 해를 반환.</text>
+<text x="854" y="302" font-size="15" fill="#334155">미세 직선 이동인데 로봇이 바닥으로 다이브</text>
+<rect x="838" y="334" width="694" height="118" rx="9" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+<text x="854" y="360" font-size="15" font-weight="700" fill="#15803D">AFTER</text>
+<text x="938" y="360" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">MoveLine IK ok (max joint delta 5.1deg)</text>
+<text x="938" y="380" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">MoveLine IK Failed! (near-branch 해 없음, best delta=176.1deg)</text>
+<text x="854" y="410" font-size="15" fill="#334155">seed 8개 중 현재 관절 최근접 해 선택 + 45° 상한 가드.</text>
+<text x="854" y="432" font-size="15" fill="#334155">가드 탈락 시 success=False 로 정직하게 실패(fail-closed)</text>
+<rect x="838" y="458" width="694" height="36" rx="8" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+<text x="854" y="482" font-size="16.5" font-weight="700" fill="#1D4ED8">실행된 해 ≤ 34.6°   ·   176.1° 해는 거부</text>
+<rect x="60" y="540" width="730" height="390" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="82" y="578" font-size="21" font-weight="700" fill="#0F172A">③ 파지 판정 — 잡아도 항상 '빈손'</text>
+<text x="82" y="600" font-size="12.5" fill="#94A3B8" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">log/m1/curobo_planner.log:45  →  log/m2_5/sim_executor_bridge.log</text>
+<rect x="78" y="614" width="694" height="118" rx="9" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+<text x="94" y="640" font-size="15" font-weight="700" fill="#B91C1C">BEFORE</text>
+<text x="178" y="640" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">VERIFY_GRASP: GRASP_EMPTY present_pos=700</text>
+<text x="178" y="660" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">PLACE_GATE_BLOCKED (GRASP_EMPTY)</text>
+<text x="94" y="690" font-size="15" fill="#334155">mock이 SetPosition 명령값(700)을 그대로 리드백 →</text>
+<text x="94" y="712" font-size="15" fill="#334155">700 ≥ 695(빈손 임계) → 배치 게이트가 늘 차단</text>
+<rect x="78" y="744" width="694" height="118" rx="9" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+<text x="94" y="770" font-size="15" font-weight="700" fill="#15803D">AFTER</text>
+<text x="178" y="770" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">GRASP_JUDGE d_tcp=14.8mm radius=35.0mm -&gt; CONTACT</text>
+<text x="178" y="790" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">VERIFY_GRASP: GRASP_CONTACT_DETECTED present_pos=670</text>
+<text x="94" y="820" font-size="15" fill="#334155">TCP↔딸기 실제 거리로 판정하도록 가상 제어기를 교체.</text>
+<text x="94" y="842" font-size="15" fill="#334155">'접근이 틀리면 파지도 실패' 가 시뮬에서도 참이 됨</text>
+<rect x="78" y="868" width="694" height="36" rx="8" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+<text x="94" y="892" font-size="16.5" font-weight="700" fill="#1D4ED8">배치(place) 완주  0건  →  4건</text>
+<rect x="820" y="540" width="730" height="390" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="842" y="578" font-size="21" font-weight="700" fill="#0F172A">④ 툴 길이 모델 — 딸기·보드 관통</text>
+<text x="842" y="600" font-size="12.5" fill="#94A3B8" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">PLANNER_CHANGES.md 2026-09-07  ·  기하 실측 (USD·URDF)</text>
+<rect x="838" y="614" width="694" height="118" rx="9" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+<text x="854" y="640" font-size="15" font-weight="700" fill="#B91C1C">BEFORE</text>
+<text x="938" y="640" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">TOOL_GEOMETRY_LEGACY: planner offset=160mm,</text>
+<text x="938" y="660" font-size="13.5" fill="#7F1D1D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">   measured grasp center=260mm (shortfall=100mm)</text>
+<text x="854" y="690" font-size="15" fill="#334155">ee_link가 플랜지와 같은 자리인데 TCP를 +160mm로 가정.</text>
+<text x="854" y="712" font-size="15" fill="#334155">실제 파지부는 +233.3mm → pre-approach부터 과실 속 35.5mm</text>
+<rect x="838" y="744" width="694" height="118" rx="9" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5"/>
+<text x="854" y="770" font-size="15" font-weight="700" fill="#15803D">AFTER</text>
+<text x="938" y="770" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">EE_TO_TCP_OFFSET_OVERRIDE: 160mm -&gt; 208mm</text>
+<text x="938" y="790" font-size="13.5" fill="#14532D" font-family="'Noto Sans Mono CJK KR','DejaVu Sans Mono',monospace">+ 커스텀 파츠를 cuRobo 충돌 모델에 추가 · 보드 큐보이드 등록</text>
+<text x="854" y="820" font-size="15" fill="#334155">툴 오프셋을 ROS 파라미터로 분리(실기 기본값은 유지).</text>
+<text x="854" y="842" font-size="15" fill="#334155">계획 단계에서 보드·과실이 비로소 '보이는' 상태가 됨</text>
+<rect x="838" y="868" width="694" height="36" rx="8" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+<text x="854" y="892" font-size="16.5" font-weight="700" fill="#1D4ED8">grasp 툴 끝  703.1 mm(보드 관통)  →  655.1 mm</text>
+<text x="1516" y="892" font-size="13" fill="#92400E" text-anchor="end">⚠ 기하 검증 완료 · 실행 검증 대기</text>
+</svg>

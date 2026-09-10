@@ -1,0 +1,1169 @@
+Only in _baseline/A_strawberry_motion/scripts: backup_strawberry_project_artifacts.sh
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/check_harvest_logging.py src/strawberry_motion/scripts/check_harvest_logging.py
+--- _baseline/A_strawberry_motion/scripts/check_harvest_logging.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/check_harvest_logging.py	2026-07-09 02:55:02.742291152 +0900
+@@ -7,7 +7,7 @@
+ from pathlib import Path
+ 
+ 
+-REPO_ROOT = Path(os.path.expanduser("~/doosan_ws/src/e0509_gripper_description"))
++REPO_ROOT = Path(os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description"))
+ 
+ 
+ def main():
+Only in _baseline/A_strawberry_motion/scripts: clean_gripper_runtime.sh
+Only in _baseline/A_strawberry_motion/scripts: clean_robot_runtime.sh
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/collect_gripper_feedback.py src/strawberry_motion/scripts/collect_gripper_feedback.py
+--- _baseline/A_strawberry_motion/scripts/collect_gripper_feedback.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/collect_gripper_feedback.py	2026-07-09 02:55:02.742291152 +0900
+@@ -13,7 +13,7 @@
+ 
+ 
+ DEFAULT_ROOT = os.path.expanduser(
+-    "~/doosan_ws/src/e0509_gripper_description/logs/gripper_calibration")
++    "~/strawberry_grasp_environment/src/e0509_gripper_description/logs/gripper_calibration")
+ 
+ 
+ class FeedbackCollector(Node):
+Only in src/strawberry_motion/scripts: compute_subcell_scan_poses.py
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/curobo_planner_node.py src/strawberry_motion/scripts/curobo_planner_node.py
+--- _baseline/A_strawberry_motion/scripts/curobo_planner_node.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/curobo_planner_node.py	2026-09-09 14:08:56.439412886 +0900
+@@ -54,7 +54,7 @@
+ 
+ def resolve_environment_yaml():
+     candidates = [
+-        os.path.expanduser("~/doosan_ws/src/e0509_gripper_description/config/environment.yaml"),
++        os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description/config/environment.yaml"),
+         os.path.join(
+             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+             "config", "environment.yaml",
+@@ -123,6 +123,12 @@
+             measured_tcp_plan_only=self._measured_tcp_plan_only,
+             ee_to_tcp_offset_m=self._ee_to_tcp_offset_m,
+             legacy_ee_to_tcp_offset_m=LEGACY_EE_TO_TCP_OFFSET_M,
++            open_stem_descent_enabled=self._enable_open_stem_descent,
++            straight_reverse_retreat_enabled=self._enable_straight_reverse_retreat,
++            ee_to_tcp_offset_overridden=bool(
++                abs(self._ee_to_tcp_offset_m
++                    - (0.0 if self._measured_tcp_model
++                       else LEGACY_EE_TO_TCP_OFFSET_M)) > 1e-9),
+             measured_flange_to_gripper_m=MEASURED_FLANGE_TO_GRIPPER_M,
+             measured_flange_to_part_tip_m=MEASURED_FLANGE_TO_PART_TIP_M,
+             measured_flange_to_grasp_center_m=MEASURED_FLANGE_TO_GRASP_CENTER_M,
+@@ -212,6 +218,9 @@
+             f"release={self._execute_marker_place_release} "
+             f"taught_slot0_reference={self._use_taught_slot0_place_reference} "
+             f"hold_after_slot0={self._hold_after_taught_slot0_place} "
++            f"hold_on_failure={self._hold_on_place_failure} "
++            f"open_stem_descent={self._enable_open_stem_descent} "
++            f"straight_reverse_retreat={self._enable_straight_reverse_retreat} "
+             f"slot_sequence={self._taught_slot_sequence or 'auto'} "
+             f"slot_step={self._taught_slot_index_step} "
+             f"skip_row2={self._skip_row2_place_slots} "
+@@ -238,6 +247,8 @@
+         self.runtime_log = RuntimeJsonlLogger(self.get_name())
+         self.service_cb_group = rclpy.callback_groups.ReentrantCallbackGroup()
+         self.current_joints = None
++        # 이번 pick 이 시작된 세부영역 scan pose (rad). abort 복귀 목표로 쓴다.
++        self.pick_start_joints = None
+         self._pick_busy = False
+         self._pending_pick_pose = None
+         self._sequence_hold_reason = None
+@@ -258,9 +269,34 @@
+             raise ValueError(
+                 "tool_model_profile must be measured_tcp_260mm or legacy_160mm")
+         self._measured_tcp_model = self._tool_model_profile == "measured_tcp_260mm"
+-        self._ee_to_tcp_offset_m = (
++        # 프로파일이 정하는 기본 오프셋. 실기 동작은 이 값을 그대로 쓴다.
++        profile_ee_to_tcp_offset_m = (
+             0.0 if self._measured_tcp_model else LEGACY_EE_TO_TCP_OFFSET_M
+         )
++        # [2026-09-07] 시뮬 전용 오버라이드 파라미터.
++        #
++        # legacy 프로파일의 160mm 는 "플랜지 -> 그리퍼 베이스" 거리라고 적혀 있지만,
++        # e0509_gripper.urdf 의 gripper_attach_joint 오리진은 xyz="0 0 0" 이라
++        # 그리퍼 베이스는 플랜지와 같은 자리다. 실제 파지부(커스텀 3D 프린팅 파츠)는
++        # 그리퍼 열림 기준 플랜지 +233.3mm 까지 뻗는다. 즉 160mm 모델은 73mm 짧고,
++        # 그래서 파지 목표가 과실을 뚫고 보드까지 들어갔다.
++        #
++        # 시뮬 씬 기준 권장값 0.208 (근거: 딸기 중심 782.8mm, 보드 810.0mm (2026-09-09 갱신),
++        # 커스텀 파츠 구체 도달 235.2mm + collision_sphere_buffer 5mm):
++        #   pre-approach → 팁이 과실 앞면보다 12.5mm 앞  (기존엔 과실 속 35.5mm)
++        #   grasp        → 팁이 과실 중심을 10.3mm 지남, 보드까지 10.0mm 여유
++        #
++        # 기본값을 프로파일 값으로 두어 실기 경로의 동작은 바뀌지 않는다.
++        # 시뮬에서는 실행 시 -p ee_to_tcp_offset_m:=0.208 로 넘긴다.
++        self.declare_parameter("ee_to_tcp_offset_m", float(profile_ee_to_tcp_offset_m))
++        self._ee_to_tcp_offset_m = float(
++            self.get_parameter("ee_to_tcp_offset_m").value)
++        if abs(self._ee_to_tcp_offset_m - profile_ee_to_tcp_offset_m) > 1e-9:
++            self.get_logger().warn(
++                "EE_TO_TCP_OFFSET_OVERRIDE: "
++                f"{profile_ee_to_tcp_offset_m*1000:.0f}mm "
++                f"-> {self._ee_to_tcp_offset_m*1000:.0f}mm "
++                f"(profile={self._tool_model_profile})")
+         self.declare_parameter("measured_tcp_plan_only", True)
+         self._measured_tcp_plan_only = bool(
+             self.get_parameter("measured_tcp_plan_only").value)
+@@ -450,6 +486,9 @@
+             execute_marker_place_release=self._execute_marker_place_release,
+             use_taught_slot0_place_reference=self._use_taught_slot0_place_reference,
+             hold_after_taught_slot0_place=self._hold_after_taught_slot0_place,
++            hold_on_place_failure=self._hold_on_place_failure,
++            open_stem_descent_enabled=self._enable_open_stem_descent,
++            straight_reverse_retreat_enabled=self._enable_straight_reverse_retreat,
+         )
+         self.planning_adapter = CuroboPlanningAdapter(
+             node=self,
+@@ -483,6 +522,12 @@
+         self._gripper_init_done = False
+         self.create_timer(2.0, self._init_gripper_once)
+ 
++        try:    # ── HUD 계측 (제거: 이 4줄만 지우면 된다) ──
++            import sys, os; sys.path.append(os.path.expanduser(os.environ.get(
++                "HARVEST_HUD_DIR", "~/strawberry_grasp_environment/strawberry_harvest/scripts/hud")))
++            import harvest_probe; harvest_probe.attach("planner", self)
++        except Exception: pass
++
+     @property
+     def static_cuboids(self):
+         return self.scene_manager.static_cuboids
+@@ -515,11 +560,46 @@
+         return self.gripper_client.set_position(position, timeout_sec)
+ 
+     def _abort_pick_with_complete(self, reset_gripper: bool = True):
++        """중단 시에도 **세부영역 scan pose 로 복귀한 뒤** 다음 타겟으로 넘긴다.
++
++        [FIX 2026-09-09] 종전에는 장애물만 지우고 그리퍼를 열고 pick_complete 를
++        발행했다 — 로봇은 중단된 그 자리(보드 앞 접근 도중)에 그대로 서 있었다.
++        scan_executor 는 pick_complete 를 받는 즉시 다음 타겟을 쏘므로
++        (scan_executor_node.py:950), 다음 딸기의 경로가 **보드 코앞에서** 계획됐다.
++
++        쿼드트리 스캔 설계의 전제는 "성공/실패와 무관하게 모든 pick 은 세부영역
++        scan pose 에서 시작한다" 이다. 거기서 시작하면 보드와 y 로 충분히 떨어져
++        있어 직전 시도가 다음 시도에 영향을 주지 않는다. 정상 종료 경로
++        (return_to_pick_start_and_complete)는 이 전제를 지키고 있었는데
++        **중단 경로만 빠져 있었다.**
++        """
+         self._clear_neighbor_obstacles()
+         if reset_gripper:
+             self._reset_gripper()
++        self._return_to_pick_start_scan_pose("abort")
+         self.pick_complete_pub.publish(Empty())
+ 
++    def _return_to_pick_start_scan_pose(self, why: str) -> bool:
++        start = self.pick_start_joints
++        if start is None or self.current_joints is None:
++            self.get_logger().warn(
++                f"RETURN_TO_SCAN_SKIPPED ({why}): pick 시작 자세를 모른다")
++            return False
++        target_deg = self._nearest_equivalent_joints(np.rad2deg(start).tolist())
++        ok, _ = self.plan_to_fixed_joints_pose(
++            list(self.current_joints),
++            target_deg,
++            f"pick-start scan pose after {why}",
++            skip_swing_check=True,
++        )
++        if ok:
++            self.get_logger().info(
++                f"RETURN_TO_SCAN_OK ({why}) -> [{' '.join('%.1f' % v for v in target_deg)}]deg")
++        else:
++            self.get_logger().error(
++                f"RETURN_TO_SCAN_FAILED ({why}): 보드 근처에 멈춘 채로 다음 타겟이 계획된다")
++        return ok
++
+     # ── 콜백 ──────────────────────────────────────────────────────────────────
+ 
+     def joint_state_cb(self, msg: JointState):
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/environment_visualizer.py src/strawberry_motion/scripts/environment_visualizer.py
+--- _baseline/A_strawberry_motion/scripts/environment_visualizer.py	2026-09-05 09:47:36.421894170 +0900
++++ src/strawberry_motion/scripts/environment_visualizer.py	2026-07-09 02:55:02.745291223 +0900
+@@ -23,7 +23,7 @@
+ 
+ def resolve_environment_yaml():
+     candidates = [
+-        os.path.expanduser("~/doosan_ws/src/e0509_gripper_description/config/environment.yaml"),
++        os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description/config/environment.yaml"),
+         os.path.join(
+             get_package_share_directory("e0509_gripper_description"),
+             "config",
+@@ -38,7 +38,7 @@
+ 
+ def resolve_place_slots_yaml():
+     candidates = [
+-        os.path.expanduser("~/doosan_ws/src/e0509_gripper_description/config/place_slots.yaml"),
++        os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description/config/place_slots.yaml"),
+         os.path.join(
+             get_package_share_directory("e0509_gripper_description"),
+             "config",
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/fusion_bootstrap.py src/strawberry_motion/scripts/fusion_bootstrap.py
+--- _baseline/A_strawberry_motion/scripts/fusion_bootstrap.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/fusion_bootstrap.py	2026-07-09 02:55:02.745291223 +0900
+@@ -29,7 +29,7 @@
+         "~/Downloads/share_yolo/share_yolo/strawberry_pose_best.pt")
+     node.declare_parameter(
+         "calib_npz",
+-        "~/doosan_ws/src/e0509_gripper_description/config/calibration_eye_in_hand_1.npz")
++        "~/strawberry_grasp_environment/src/e0509_gripper_description/config/calibration_eye_in_hand_1.npz")
+     node.declare_parameter("yolo_conf",    0.25)
+     node.declare_parameter("kp_conf_min",  0.40)   # keypoint visibility threshold
+     node.declare_parameter("pick_kp_conf_min", 0.60)
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/generate_harvest_kpi_report.py src/strawberry_motion/scripts/generate_harvest_kpi_report.py
+--- _baseline/A_strawberry_motion/scripts/generate_harvest_kpi_report.py	2026-09-05 09:47:36.421894170 +0900
++++ src/strawberry_motion/scripts/generate_harvest_kpi_report.py	2026-07-09 02:55:02.746291247 +0900
+@@ -14,7 +14,7 @@
+ from matplotlib import font_manager
+ 
+ 
+-REPO_ROOT = Path(os.path.expanduser("~/doosan_ws/src/e0509_gripper_description"))
++REPO_ROOT = Path(os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description"))
+ RUNTIME_GLOB = str(REPO_ROOT / "logs/runtime/*/curobo_planner_node_*.jsonl")
+ LABEL_GLOB = str(REPO_ROOT / "logs/human_labels/*/harvest_attempt_labels.jsonl")
+ TERMINAL_EVENTS = {
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/grasp_candidate_policy.py src/strawberry_motion/scripts/grasp_candidate_policy.py
+--- _baseline/A_strawberry_motion/scripts/grasp_candidate_policy.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/grasp_candidate_policy.py	2026-09-09 10:48:22.219423579 +0900
+@@ -81,14 +81,41 @@
+         self.grasp_ee_pos = grasp_ee_pos.copy()
+ 
+ 
++def _exact_first(offsets):
++    """[REVERTED 2026-09-10] 0.0 을 앞에 붙이던 것을 되돌린다 — **도달 불가능한 값**이었다.
++
++    2026-09-09 에 "TCP 를 목표점에 정확히 세운다"며 0.0 을 맨 앞에 넣었는데,
++    실측해 보니 6개 딸기 전부 0.0 에서 IK 가 0/20 으로 막혔다. 이유는 툴 기하다:
++
++        ee -> 파츠 시작   112.5mm
++        ee -> 파츠 끝     262.5mm   <- **실제 손끝**
++        ee -> 플래너 TCP  236.0mm   (손끝보다 26.5mm 뒤)
++
++    즉 TCP 를 딸기(보드면 -27.2mm)에 맞추면 손끝이 보드면에서 **0.7mm** 까지
++    들어간다. 콜리전 스피어까지 감안하면 확실히 관통이다.
++    오프셋 15mm 가 사실상 기구학적 최소값이며, 그때 조우의 무는 구간
++    (ee+230.5~262.5mm)이 딸기 평면을 **-20mm ~ +9mm 로 감싼다** — 목표는
++    조우 사이에 정확히 들어온다. 화면상 TCP 마커가 15mm 앞서 보일 뿐이다.
++
++    이 함수는 이력을 남기기 위해 남겨두고, 지금은 입력을 그대로 돌려준다.
++    """
++    return list(offsets)
++
++
+ def grasp_offsets_for_target(straw, measured_tcp_model: bool):
+     if measured_tcp_model:
+         return [MEASURED_TCP_FINAL_STANDOFF_M]
+     if straw[0] > 0.25:
+-        return [-0.03, 0.0]
++        # [2026-09-07] 뒤에 표준 사다리를 덧붙인다 (기존 두 후보의 순서·값은 그대로).
++        # -30mm 는 과실 중심을 30mm 지나 파지하라는 뜻인데, 이는 툴 모델이 100mm
++        # 짧던 시절 오른쪽 타겟에서 리치를 벌충하려고 넣은 실기 보정이다.
++        # 툴 모델을 바로잡고 보드를 충돌 월드에 넣은 뒤로는 -30/0 이 둘 다 보드에
++        # 막혀 ripe_03(x=+350mm) 이 후보 소진으로 통째로 실패했다.
++        # 앞의 두 개를 먼저 시도하는 실기 동작은 유지하면서 폴백만 확보한다.
++        return _exact_first([-0.03, 0.0] + GRASP_RETRY_OFFSETS)
+     if straw[0] < -0.30:
+-        return LEFTMOST_GRASP_RETRY_OFFSETS
+-    return GRASP_RETRY_OFFSETS
++        return _exact_first(LEFTMOST_GRASP_RETRY_OFFSETS)
++    return _exact_first(GRASP_RETRY_OFFSETS)
+ 
+ 
+ def grasp_quat_variants_for_target(measured_tcp_model: bool,
+@@ -108,7 +135,7 @@
+ 
+ 
+ def grasp_variant_pose(variant, straw, ee_to_tcp_offset_m: float,
+-                       measured_tcp_model: bool,
++                       apply_crane_offset: bool,
+                        crane_z_offset_m: float):
+     """Return `(q_retry, approach_dir, ee_pre)` for one grasp variant."""
+     quat_frame, axis, quat_deg = variant
+@@ -125,17 +152,30 @@
+     ee_pre = np.array(straw, dtype=float) - (
+         PRE_APPROACH_OFFSET + float(ee_to_tcp_offset_m)
+     ) * approach_dir
+-    if measured_tcp_model and crane_z_offset_m > 0:
++    # [Stage2 2026-09-07] 종전 게이트는 `measured_tcp_model and crane>0` 이었다.
++    # crane offset 은 "줄기 위로 올라가 수평 진입한 뒤 열린 채로 내려온다"는
++    # open-stem descent 시퀀스의 앞 절반이고, 툴 모델 종류와는 무관하다.
++    # 호출자가 플래그로 결정하게 바꿔 legacy 프로파일에서도 켤 수 있게 한다.
++    if apply_crane_offset and crane_z_offset_m > 0:
+         ee_pre = ee_pre + np.array([0.0, 0.0, float(crane_z_offset_m)])
+     return q_retry, approach_dir, ee_pre
+ 
+ 
+ def legacy_grasp_endpoint(straw, grasp_offset_m: float,
+-                          ee_to_tcp_offset_m: float, approach_dir):
+-    """Return legacy final grasp ee endpoint for a grasp offset."""
++                          ee_to_tcp_offset_m: float, approach_dir,
++                          crane_z_offset_m: float = 0.0):
++    """Return legacy final grasp ee endpoint for a grasp offset.
++
++    [Stage2 2026-09-07] `crane_z_offset_m` must match whatever was added to
++    ee_pre in grasp_variant_pose(). Without it the pre->grasp leg becomes a
++    diagonal (forward AND down) instead of the intended horizontal entry, and
++    the following open-stem descent would then drop a second time, landing the
++    jaws one crane offset too low.
++    """
+     return np.array(straw, dtype=float) - (
+         float(grasp_offset_m) + float(ee_to_tcp_offset_m)
+-    ) * np.array(approach_dir, dtype=float)
++    ) * np.array(approach_dir, dtype=float) + np.array(
++        [0.0, 0.0, float(crane_z_offset_m)])
+ 
+ 
+ def measured_tcp_probe_depths(requested_depth_m: float, is_nw_high_target: bool,
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/grasp_search_executor.py src/strawberry_motion/scripts/grasp_search_executor.py
+--- _baseline/A_strawberry_motion/scripts/grasp_search_executor.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/grasp_search_executor.py	2026-09-08 03:10:01.417128821 +0900
+@@ -139,7 +139,8 @@
+ 
+     def try_legacy_grasp_offsets(self, grasp_retry_offsets, straw, approach_dir,
+                                  q_retry, pre_joints, r_pre_for_variant, variant,
+-                                 ee_pre, grasp_search: GraspSearchResult):
++                                 ee_pre, grasp_search: GraspSearchResult,
++                                 crane_z_offset_m: float = 0.0):
+         """Try legacy grasp_retry_offsets for one grasp_quat_variant.
+ 
+         Mutates `grasp_search` in place via select_legacy_grasp() on the
+@@ -159,6 +160,7 @@
+                 grasp_offset,
+                 self._ee_to_tcp_offset_m,
+                 approach_dir,
++                crane_z_offset_m,
+             )
+             r_grasp = self._plan(pre_joints, ee_g_try.tolist(), q_retry, num_ik_seeds=32)
+             if r_grasp is None:
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/harvest_motion_params.py src/strawberry_motion/scripts/harvest_motion_params.py
+--- _baseline/A_strawberry_motion/scripts/harvest_motion_params.py	2026-09-05 09:47:36.414894053 +0900
++++ src/strawberry_motion/scripts/harvest_motion_params.py	2026-09-09 12:59:59.249733497 +0900
+@@ -9,10 +9,23 @@
+ import os
+ 
+ 
+-GRASP_RETRY_OFFSETS = [0.015, 0.030, 0.040, 0.050, 0.070]
++# [FIX 2026-09-10] 사다리 상한을 **조우가 실제로 무는 구간**으로 자른다.
++#
++# 실측 파츠 기하: 조우가 무는 구간은 ee+230.5~262.5mm, 플래너 TCP 는 ee+236mm.
++# 즉 TCP 기준 -5.5 ~ **+26.5mm** 안에 줄기가 들어와야 물린다.
++# 오프셋은 TCP 를 목표점에서 그만큼 뒤로 물리는 값이므로, 오프셋 > 26.5mm 는
++# **물리적으로 파지가 불가능**하다 — 조우가 줄기보다 앞에서 닫힌다.
++#
++# 실측 (2026-09-09 런): ripe_02 / ripe_03 이 15mm·30mm 에서 IK_FAIL 하고
++# **40mm 로 밀려** 파지된 것처럼 진행됐다 (along +42.9 / +42.5mm).
++# 종전 사다리는 40/50/70mm 를 "성공"으로 받아들여 이걸 감췄다.
++# 이제 도달 못 하면 정직하게 ABORT 하고 scan pose 로 복귀한다.
++GRASP_RETRY_OFFSETS = [0.015, 0.020, 0.025]
+ MEASURED_TCP_FINAL_STANDOFF_M = -0.120
+ Y_DETECTION_BIAS_M = 0.000
+-LEFTMOST_GRASP_RETRY_OFFSETS = [0.030, 0.035, 0.040, 0.045, 0.050, 0.070]
++# [FIX 2026-09-10] 종전 값 [30,35,40,45,50,70]mm 은 **전부 물림 구간(+26.5mm) 밖**이라
++# 레거시 툴에서는 하나도 파지가 안 된다. 구간 안으로 자른다.
++LEFTMOST_GRASP_RETRY_OFFSETS = [0.015, 0.020, 0.025]
+ LEFTMOST_GRASP_X_CORR_M = 0.005
+ # Keep per-target approach geometry uniform by default. Extra advance is a
+ # manual experiment parameter, not part of the normal harvest policy.
+@@ -59,7 +72,11 @@
+ TCP_MODEL_SHORTFALL_M = (
+     MEASURED_FLANGE_TO_GRASP_CENTER_M - LEGACY_EE_TO_TCP_OFFSET_M
+ )
+-WALL_SURFACE_Y_M = 0.672
++# [2026-09-09] 0.672 -> 0.810. 1차 출처는 씬 에셋이었다:
++# strawberry_harvest/scenes/lab_environment.usd (df0165f) translate.y = 0.81.
++# 보드는 두께 0 평면이라 translate.y 가 곧 표면 = 810.0mm.
++# 이 값은 파지 목표 y 의 상한 클램프이므로 딸기(782.8mm)보다 뒤에 있어야 한다.
++WALL_SURFACE_Y_M = 0.810
+ WALL_QUAT_WXYZ = [0.497, -0.497, 0.503, 0.503]
+ 
+ GRASP_QUAT_RETRY_VARIANTS = [
+@@ -126,18 +143,49 @@
+ DEFAULT_TRAY_CELLS_GLOB = os.path.expanduser(
+     "~/Downloads/share_tray/output/tray_cells_*.json")
+ 
++# [FIX 2026-09-08] J6 운용 한계 ±225 -> ±360 (robot.urdf 의 실제 한계와 동일).
++#
++# 파지에 성공하고도 트레이 이송이 `spline_jump` 로 거부돼 보드 앞에서 과실을 놓는
++# 일이 반복됐다. 원인은 손목 롤의 랩(wrap) 이다: cuRobo 가 J6=273.7deg 해를 내면
++# normalize_equivalents 가 ±360 등가값 중 **운용 한계 안에 있는 것**만 고를 수 있어
++# −86.3deg 를 택하고, 176.6deg 에서 −86.3deg 로 가는 263deg 점프가 되어 가드가 거부한다.
++# 273.7deg 를 그대로 쓸 수 있으면 연속 경로가 된다.
++# robot.urdf 의 joint_6 한계는 lower/upper = ∓6.2832 rad = **∓360deg** 이므로
++# 기구적으로 문제 없다. ±225 는 보수적으로 잡아둔 프로젝트 값이었다.
++# J1 도 URDF 상 ±360 이지만 지금 문제되지 않으므로 건드리지 않는다.
+ OPERATIONAL_JOINT_LIMITS_DEG = [
+     (-225.0, 225.0),
+     (-95.0, 95.0),
+     (-135.0, 135.0),
+     (-360.0, 360.0),
+     (-130.0, 130.0),
+-    (-225.0, 225.0),
++    (-360.0, 360.0),
+ ]
+ WRAP_EQUIVALENT_JOINT_IDX = {3, 5}
+-MAX_HARVEST_JOINT_DELTA_DEG = [75.0, 90.0, 120.0, 150.0, 130.0, 120.0]
++# [FIX 2026-09-08] J1 상한 75 -> 95도.
++# ripe_03(x=+350mm)이 이 가드 때문에 통째로 수확 불가였다. 실측 런:
++#   Cartesian plan rejected: J1 swing 86.9deg > 75.0deg (start=119.9 -> end=206.7)
++# 목표 J1=206.7도 는 OPERATIONAL_JOINT_LIMITS_DEG[0]=(-225,225) 안이라 기구적으로
++# 안전하고, 막고 있던 것은 "한 픽에서 허용하는 이동량" 가드뿐이었다.
++# 보드가 이제 충돌 월드에 있으므로 큰 스윙이 보드를 지나가면 계획 단계에서 거부된다.
++MAX_HARVEST_JOINT_DELTA_DEG = [95.0, 90.0, 120.0, 150.0, 130.0, 120.0]
++# [FIX 2026-09-08] J3 상한 120 -> 175도.
++# 파지에 성공해도 트레이 이송이 여기서 막혀 과실을 그 자리(보드 앞)에 놓아버렸다. 실측 런:
++#   Cartesian plan rejected: J3 swing 162.8deg > 120.0deg (start=38.9 -> end=-123.9)
++#   TAUGHT_TRAY_SLOT0_PLACE_BLOCKED: above plan failed; holding fruit
++#   PICK_SEQUENCE_CONTINUE place_status=failed: released fruit here
++# 목표 J3=-123.9도 는 OPERATIONAL_JOINT_LIMITS_DEG[2]=(-135,135) 안이다.
++# 보드 앞(z=880mm)에서 트레이 위(z=186mm)로 가려면 큰 J3 이동이 불가피하다.
++# [FIX 2026-09-10] J2 상한 100 -> 130도.
++# 파지에 성공하고 분리까지 끝냈는데 트레이 이송이 여기서 막혀 과실을 보드 앞에
++# 놓아버리는 일이 잦았다. 실측(보드 810mm 복원 후, 파지 자세 -> 트레이 above):
++#   ripe_01 J2 114도 > 100  /  ripe_02 J2 113도 > 100   -> TAUGHT_TRAY_SLOT0_PLACE_BLOCKED
++#   나머지 4개는 J2 6~22도로 여유
++# 보드가 뒤로 138mm 물러나면서 위쪽(nw) 딸기를 잡을 때 팔이 더 펴져 J2 스윙이 커졌다.
++# 목표 J2 는 OPERATIONAL_JOINT_LIMITS_DEG[1]=(-95,95) 안이고, 경로는 보드가 든
++# 충돌 월드에서 cuRobo 가 계획하므로 스윙 상한만 풀면 된다 (J3 를 120->175 로 푼 것과 같은 건).
+ MAX_TAUGHT_PLACE_TRANSFER_JOINT_DELTA_DEG = [
+-    170.0, 100.0, 120.0, 150.0, 130.0, 180.0,
++    170.0, 130.0, 175.0, 150.0, 130.0, 180.0,
+ ]
+ 
+ MAX_SPLINE_POINTS = 12
+@@ -147,4 +195,7 @@
+ SPLINE_ACC_DEG_S2 = 180.0
+ 
+ USE_CUROBO_SELF_COLLISION = False
++# cuRobo 충돌 활성거리(m). 실기 제어기는 벽이 월드에 없어 여유 0 이었다.
++# 시뮬은 보드 큐보이드를 두므로 명시해야 한다 — 기본값 25mm 는 벽 앞 파지를 막는다.
++COLLISION_ACTIVATION_DISTANCE_M = 0.005
+ DEBUG_START_COLLISION = True
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/label_harvest_attempt.py src/strawberry_motion/scripts/label_harvest_attempt.py
+--- _baseline/A_strawberry_motion/scripts/label_harvest_attempt.py	2026-09-05 09:47:36.421894170 +0900
++++ src/strawberry_motion/scripts/label_harvest_attempt.py	2026-07-09 02:55:02.750291342 +0900
+@@ -9,7 +9,7 @@
+ from datetime import datetime
+ 
+ 
+-REPO_ROOT = os.path.expanduser("~/doosan_ws/src/e0509_gripper_description")
++REPO_ROOT = os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description")
+ RUNTIME_GLOB = os.path.join(REPO_ROOT, "logs/runtime/*/curobo_planner_node_*.jsonl")
+ LABEL_ROOT = os.path.join(REPO_ROOT, "logs/human_labels")
+ 
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/marker_tracking_node.py src/strawberry_motion/scripts/marker_tracking_node.py
+--- _baseline/A_strawberry_motion/scripts/marker_tracking_node.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/marker_tracking_node.py	2026-07-09 02:55:02.751291366 +0900
+@@ -18,7 +18,7 @@
+     # 파라미터 지정
+     ros2 run e0509_gripper_description marker_tracking_node.py \
+         --ros-args \
+-        -p calibration_path:=~/doosan_ws/src/e0509_gripper_description/config/calibration_eye_in_hand__1_.npz \
++        -p calibration_path:=~/strawberry_grasp_environment/src/e0509_gripper_description/config/calibration_eye_in_hand__1_.npz \
+         -p marker_id:=0 \
+         -p marker_size:=0.1 \
+         -p safe_z_offset:=0.15
+@@ -87,7 +87,7 @@
+         self.declare_parameter(
+             "calibration_path",
+             os.path.expanduser(
+-                "~/doosan_ws/src/e0509_gripper_description/config/calibration_eye_in_hand__1_.npz"
++                "~/strawberry_grasp_environment/src/e0509_gripper_description/config/calibration_eye_in_hand__1_.npz"
+             ),
+             ParameterDescriptor(description="Path to calibration .npz file"))
+         self.declare_parameter("marker_id", 0,
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/object_tracking_node.py src/strawberry_motion/scripts/object_tracking_node.py
+--- _baseline/A_strawberry_motion/scripts/object_tracking_node.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/object_tracking_node.py	2026-07-09 02:55:02.752291390 +0900
+@@ -42,7 +42,7 @@
+         self.declare_parameter("prompt", "red block . green block . yellow block",
+             ParameterDescriptor(description="Text prompt for object detection"))
+         self.declare_parameter("calibration_path",
+-            os.path.expanduser("~/doosan_ws/src/e0509_gripper_description/config/calibration/calibration_eye_in_hand.npz"),
++            os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description/config/calibration/calibration_eye_in_hand.npz"),
+             ParameterDescriptor(description="Calibration file path"))
+         self.declare_parameter("box_threshold", 0.3,
+             ParameterDescriptor(description="Detection confidence threshold"))
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/pick_sequence_executor.py src/strawberry_motion/scripts/pick_sequence_executor.py
+--- _baseline/A_strawberry_motion/scripts/pick_sequence_executor.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/pick_sequence_executor.py	2026-09-09 13:30:31.013013888 +0900
+@@ -90,7 +90,10 @@
+                  enable_marker_place: bool,
+                  execute_marker_place_release: bool,
+                  use_taught_slot0_place_reference: bool,
+-                 hold_after_taught_slot0_place: bool):
++                 hold_after_taught_slot0_place: bool,
++                 hold_on_place_failure: bool = False,
++                 open_stem_descent_enabled: bool = False,
++                 straight_reverse_retreat_enabled: bool = False):
+         self.node = node
+         self.runtime_log = runtime_log
+         self._gripper_client = gripper_client
+@@ -139,21 +142,59 @@
+         self._execute_marker_place_release = execute_marker_place_release
+         self._use_taught_slot0_place_reference = use_taught_slot0_place_reference
+         self._hold_after_taught_slot0_place = hold_after_taught_slot0_place
++        self._hold_on_place_failure = hold_on_place_failure
++        # [Stage2 2026-09-07] open-stem descent 활성화 플래그.
++        # 종전에는 measured_tcp 프로파일에 묶여 있어서, 실행에 쓰는
++        # legacy_160mm 에서는 "위로 올라가 수평 진입 -> 열린 채 하강 -> 닫기"
++        # 시퀀스가 통째로 건너뛰어졌다. 툴 모델 종류와 무관한 동작이므로
++        # 별도 파라미터로 분리한다. 기본 False = 실기 legacy 동작 그대로.
++        self._open_stem_descent_enabled = open_stem_descent_enabled
++        self._straight_reverse_retreat_enabled = straight_reverse_retreat_enabled
+ 
+     def _log(self):
+         return self.node.get_logger()
+ 
++    def _crane_offset_active(self) -> bool:
++        """crane z offset / open-stem descent 를 이번 런에서 쓰는가.
++
++        measured_tcp 프로파일은 종전대로 항상 사용하고, legacy 프로파일은
++        open_stem_descent_enabled 파라미터로 켠다.
++        """
++        return bool(self._measured_tcp_model or self._open_stem_descent_enabled)
++
+     def execute_open_stem_descent_if_needed(self, crane_z_offset_m: float,
+                                              straw_z_m: float,
+                                              used_grasp_ee_pos,
+-                                             used_grasp_variant) -> bool:
+-        if not self._measured_tcp_model or crane_z_offset_m <= 0:
++                                             used_grasp_variant,
++                                             used_approach_dir=None) -> bool:
++        if not self._crane_offset_active() or crane_z_offset_m <= 0:
+             return True
+ 
++        # [FIX 2026-09-08] reached_z 는 **TCP 의 z** 여야 한다.
++        #
++        # compute_open_stem_descent_m 은 (reached_z - kp1_z) 를 하강량으로 쓴다.
++        # kp1_z 는 딸기 z 인데, used_grasp_ee_pos 는 **ee_link 의 z** 다.
++        # measured_tcp 프로파일은 ee_link 가 곧 TCP(ee_to_tcp_offset=0)라 둘이 같았지만,
++        # legacy 는 ee_link 가 플랜지라 `ee_to_tcp_offset · approach_dir_z` 만큼 어긋난다.
++        # 게다가 파지 변형(GRASP_QUAT_RETRY_VARIANTS)이 접근을 ±10° 기울여
++        # approach_dir 에 무시할 수 없는 z 성분을 만든다 (-10° -> adir_z = -0.174).
++        #
++        # 실측(2026-09-08 런): kp1_z=500mm 에 reached_z=574mm 이 들어가 하강 74mm.
++        # 그 결과 툴 끝이 과실보다 **46mm 아래**로 내려갔고, 이어지는 detach 40mm 까지
++        # 더해 86mm 아래에서 조우를 닫아 전 타겟이 GRASP_EMPTY 였다.
++        # TCP 로 보정하면 하강 32.6mm, 툴 끝이 과실 대비 -4.3mm 로 들어온다.
++        reached_z_m = None
++        if used_grasp_ee_pos is not None:
++            reached_z_m = float(used_grasp_ee_pos[2])
++            if used_approach_dir is not None:
++                reached_z_m += (
++                    float(self._ee_to_tcp_offset_m)
++                    * float(np.asarray(used_approach_dir, dtype=float)[2])
++                )
+         open_stem_descent_m, descent_info = compute_open_stem_descent_m(
+             crane_z_offset_m,
+             float(straw_z_m),
+-            None if used_grasp_ee_pos is None else float(used_grasp_ee_pos[2]),
++            reached_z_m,
+             self._nw_high_target_descent_extra_below_kp1_m,
+         )
+         if descent_info["mode"] == "dynamic":
+@@ -238,6 +279,9 @@
+         self._clear_neighbor_obstacles_fn()
+         if retreat_ok:
+             self._reset_gripper_fn()
++            # [FIX 2026-09-09] 직선 후퇴만으로는 보드 앞을 벗어나지 못한다.
++            # 다음 pick 은 반드시 세부영역 scan pose 에서 시작해야 한다.
++            self.node._return_to_pick_start_scan_pose("gripper close failed")
+             self._publish_pick_complete_fn()
+         else:
+             self._hold_pick_sequence_fn("gripper_close_failed_retreat_failed")
+@@ -256,8 +300,18 @@
+         # 실측 TCP 모델은 cuRobo가 pre-approach까지만 계획하므로 최종 MoveLine
+         # 전체를 역진한다. Legacy 모델은 기존 검증 baseline대로 extra advance만
+         # 역진하고 이후 joint-space 복귀를 사용한다.
++        # [FIX 2026-09-10] 설계 시퀀스 5단계 — 진입 경로의 역순으로 후퇴.
++        #
++        # 원래 조건은 `if self._measured_tcp_model:` 뿐이었다. legacy 에서는
++        # reverse_distance = extra_advance(기본 0) 라 build_straight_retreat_steps
++        # 가 빈 리스트를 돌려주고 **역진이 통째로 생략**된다 (실측: DETACH_PULL_DOWN
++        # 다음에 바로 배치로 넘어감). 실기 영상의 "분리 후 진입 방향 반대로 살짝
++        # 수평 이동" 이 이 단계다.
++        # legacy 에서 켜면 build_straight_retreat_steps 가 TOOL -Z MoveLine 한 스텝을
++        # 돌려주므로, 진입(TOOL +Z 45mm)을 그대로 되짚는다. 시뮬 좌표로는 -y 후퇴다.
++        # 기본 False = 실기 legacy 동작 불변.
+         reverse_distance_m = extra_advance_m
+-        if self._measured_tcp_model:
++        if self._measured_tcp_model or self._straight_reverse_retreat_enabled:
+             reverse_distance_m += final_approach_distance - tool_finish_executed_m
+         reverse_ok = self._execute_retreat_steps_fn(
+             build_straight_retreat_steps(
+@@ -284,6 +338,26 @@
+             else grasp_joints
+         )
+ 
++    def _release_and_continue_after_place_failure(self, label: str, joints):
++        """place 실패/차단 시 시퀀스를 잠그지 않고 다음 타겟으로 넘어간다.
++
++        과실을 쥔 채로 다음 pick을 시작하면 다음 사이클 1단계의 gripper
++        reset(600)이 스캔 포즈에서 과실을 떨어뜨린다. 그래서 실패한 그 자리에서
++        먼저 연다. 호출자는 (place_handled=False)를 받아 평소처럼 scan pose로
++        복귀하고 pick_complete를 발행하므로 scan_executor가 다음 딸기로 진행한다.
++        """
++        self._clear_neighbor_obstacles_fn()
++        self._reset_gripper_fn()
++        self._log().warn(
++            f"{label}: released fruit here and continuing to the next target "
++            "(hold_on_place_failure=false)")
++        self.runtime_log.log(
++            "place_failure_continue",
++            label=label,
++            current_joints_rad=self._current_joints(),
++        )
++        return False, joints
++
+     def maybe_execute_place_after_retreat(self, grasp_result: str,
+                                            retreat_joints):
+         # Place 게이트 기본값은 fail-closed다. 센서 판독이 불가능한 실험에서만
+@@ -302,6 +376,9 @@
+                 reason=place_block_reason,
+             )
+             if self._enable_marker_place:
++                if not self._hold_on_place_failure:
++                    return self._release_and_continue_after_place_failure(
++                        "PLACE_GATE_BLOCKED_CONTINUE", retreat_joints)
+                 self._clear_neighbor_obstacles_fn()
+                 self._log().warn(
+                     "PICK_SEQUENCE_HOLD place gate blocked while place is enabled; "
+@@ -362,6 +439,9 @@
+             # place가 켜진 상태에서 tray/taught target이 없으면 scan pose로
+             # 돌아가며 gripper reset(600)을 실행하지 않는다. 실제 과실을 들고
+             # 있으면 scan pose에서 떨어뜨리는 사고가 된다.
++            if not self._hold_on_place_failure:
++                return self._release_and_continue_after_place_failure(
++                    "PLACE_SKIPPED_CONTINUE", return_start_joints)
+             self._clear_neighbor_obstacles_fn()
+             self._log().warn(
+                 "PLACE_SKIPPED: tray unavailable while place is enabled; "
+@@ -372,6 +452,10 @@
+             return True, return_start_joints
+ 
+         # 로봇이 이미 움직인 뒤 실패 or preview hold → latch
++        if not self._hold_on_place_failure:
++            return self._release_and_continue_after_place_failure(
++                f"PICK_SEQUENCE_CONTINUE place_status={place_status}",
++                place_joints)
+         self._clear_neighbor_obstacles_fn()
+         self.runtime_log.log(
+             "pick_sequence_stopped",
+@@ -645,7 +729,7 @@
+                 (quat_frame, axis, quat_deg),
+                 straw,
+                 self._ee_to_tcp_offset_m,
+-                self._measured_tcp_model,
++                self._crane_offset_active(),
+                 crane_z_offset_m,
+             )
+             r_pre_for_variant = self._plan(
+@@ -692,6 +776,7 @@
+                 (quat_frame, axis, quat_deg),
+                 ee_pre,
+                 grasp_search,
++                crane_z_offset_m if self._crane_offset_active() else 0.0,
+             )
+             if grasp_search.found:
+                 break
+@@ -721,6 +806,9 @@
+         # 같은 셀의 다음 target을 계속 처리할 수 있도록 이번 pick이 시작된
+         # taught scan pose를 저장한다. overview 복귀는 scan_executor가 담당한다.
+         pick_start_joints = list(self._current_joints())
++        # 중단 경로(_abort_pick_with_complete)도 같은 자세로 복귀해야 하므로
++        # 노드에 남긴다. [FIX 2026-09-09]
++        self.node.pick_start_joints = list(pick_start_joints)
+         self.runtime_log.log(
+             "pick_sequence_start",
+             input_frame=msg.header.frame_id,
+@@ -768,7 +856,15 @@
+         # 파지 파츠를 600으로 명시적으로 열어 둔다.
+         self._gripper_client.open_for_stem_descent()
+ 
+-        self._register_neighbor_obstacles_fn(straw)
++        # ★ [FIX 2026-09-10] **raw_straw** 를 넘긴다 (종전 straw).
++        # straw 는 pick_target_z_bias_m(35mm) 이 더해진 파지 목표라, 이웃 등록의
++        # 자기-제외 판정 `norm(pos - target_pos) < 0.035` 에서 거리가 **정확히 0.035**
++        # 가 되어 부동소수점 끝자리로 갈렸다. 실측: 익은 딸기 6개 중 5개가
++        # 0.035000000000000031 로 나와 **자기 자신이 반경 30mm 장애물로 등록**됐다.
++        # 그러면 오프셋 0.0 의 파지 종점이 그 구에 막혀 계획이 실패하고, 사다리가
++        # 15mm 로 물러난다 -> '파지점보다 앞에서 닫힌다' + 두 번째 딸기부터 파지 실패.
++        # raw_straw 를 쓰면 자기 자신과의 거리가 0 이라 항상 정확히 제외된다.
++        self._register_neighbor_obstacles_fn(raw_straw)
+         self._motion_gen.detach_object_from_robot()
+ 
+         if raw_straw[0] < -0.30 and not self._measured_tcp_model:
+@@ -909,7 +1005,8 @@
+ 
+         # 수평 진입 완료 후 열린 그리퍼로 줄기를 따라 KP1까지 하강한다.
+         if not self.execute_open_stem_descent_if_needed(
+-                crane_z_offset_m, float(straw[2]), used_grasp_ee_pos, used_grasp_variant):
++                crane_z_offset_m, float(straw[2]), used_grasp_ee_pos,
++                used_grasp_variant, used_approach_dir):
+             return
+ 
+         if not self.execute_nw_base_y_nudge_if_needed(
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/planner_bootstrap.py src/strawberry_motion/scripts/planner_bootstrap.py
+--- _baseline/A_strawberry_motion/scripts/planner_bootstrap.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/planner_bootstrap.py	2026-09-09 13:30:31.013013888 +0900
+@@ -18,6 +18,7 @@
+ from curobo.wrap.reacher.motion_gen import MotionGen, MotionGenConfig
+ 
+ from harvest_motion_params import (
++    COLLISION_ACTIVATION_DISTANCE_M,
+     DIRECT_CUROBO_FINAL_APPROACH_FOR_MEASURED_TCP,
+     GRASP_Z_BIAS,
+     LEFTMOST_EXTRA_ADVANCE_REQUEST_M,
+@@ -67,6 +68,21 @@
+         use_cuda_graph=False,
+         self_collision_check=USE_CUROBO_SELF_COLLISION,
+         self_collision_opt=USE_CUROBO_SELF_COLLISION,
++        # [FIX 2026-09-10] 충돌 활성거리를 명시한다 (cuRobo 기본은 trajopt 25mm /
++        # particle_ik 35~50mm).
++        #
++        # 실기 제어기의 cuRobo 월드는 10m 밖 더미 큐브 하나 — **벽이 없었다**
++        # (_baseline/B_e0509_gripper_description/config/environment.yaml).
++        # 벽 회피는 전부 WALL_SURFACE_Y_M 클램프 + pre-approach + 오프셋 사다리였다.
++        # 즉 실기 플래너의 벽 여유는 0 이었고, 그래서 벽에 붙은 딸기를 잡을 수 있었다.
++        #
++        # 시뮬은 이송·배치 중 관통을 막으려고 보드 큐보이드를 넣었다(시뮬 측 안전망).
++        # 그런데 기본 활성거리 25mm 가 같이 따라와, 오프셋 15mm 파지(손끝~벽 약 10mm)를
++        # 실기에는 없던 이유로 IK_FAIL 시켰다. 실측: ripe_02/ripe_03 이 40mm 로 밀림.
++        #
++        # 5mm 는 실기(0)보다 엄격하고, collision_sphere_buffer 5mm 는 별도로 유지된다.
++        # 딸기는 실험실 그대로 벽에 붙여 두고, 시뮬 측 여유만 실기 쪽으로 되돌린 것이다.
++        collision_activation_distance=COLLISION_ACTIVATION_DISTANCE_M,
+     )
+     motion_gen = MotionGen(motion_gen_cfg)
+     motion_gen.warmup(warmup_js_trajopt=False)
+@@ -82,6 +98,23 @@
+     node.declare_parameter("execute_marker_place_release", False)
+     node.declare_parameter("use_taught_slot0_place_reference", False)
+     node.declare_parameter("hold_after_taught_slot0_place", True)
++    # place가 실패/차단됐을 때 시퀀스 전체를 잠글지. False면 그 자리에서
++    # 과실을 놓고 다음 타겟으로 계속한다 (시뮬 완주 영상용 기본값).
++    node.declare_parameter("hold_on_place_failure", False)
++    # [Stage2 2026-09-07] open-stem descent (crane z offset + 열린 채 하강).
++    # 설계 시퀀스: 줄기 위로 crane_z_offset 만큼 올라가 수평 진입 -> 열린 조우로
++    # BASE -Z 하강해 KP1 정렬 -> 닫기 -> BASE -Z 당겨 분리.
++    # 종전에는 measured_tcp 프로파일에 묶여 있었는데 그 프로파일은 ee_link
++    # "grasp_tcp_link" 가 URDF 에 없어 로드 자체가 안 된다. 그래서 실행에 쓰는
++    # legacy_160mm 에서는 이 단계가 통째로 죽어 있었다.
++    # 기본 False = 실기 legacy 동작 불변. 시뮬은 true 로 켠다.
++    node.declare_parameter("enable_open_stem_descent", False)
++    # [2026-09-10] 설계 시퀀스 5단계 "진입 경로의 역순(-Z)으로 이동".
++    # 실기 코드(execute_detach_and_retreat / build_straight_retreat_steps)는
++    # 제대로 구현돼 있지만 measured_tcp 프로파일에만 걸려 있다. legacy 는
++    # reverse_distance = extra_advance(기본 0) 라 역진 스텝이 빈 리스트가 된다.
++    # 기본 False = 실기 legacy 동작 불변. 시뮬은 true 로 켠다.
++    node.declare_parameter("enable_straight_reverse_retreat", False)
+     node.declare_parameter("initial_place_slot_index", 0)
+     node.declare_parameter("taught_slot_sequence", "")
+     node.declare_parameter("taught_slot_index_step", 1)
+@@ -150,6 +183,12 @@
+         node.get_parameter("use_taught_slot0_place_reference").value)
+     node._hold_after_taught_slot0_place = bool(
+         node.get_parameter("hold_after_taught_slot0_place").value)
++    node._hold_on_place_failure = bool(
++        node.get_parameter("hold_on_place_failure").value)
++    node._enable_open_stem_descent = bool(
++        node.get_parameter("enable_open_stem_descent").value)
++    node._enable_straight_reverse_retreat = bool(
++        node.get_parameter("enable_straight_reverse_retreat").value)
+     node._marker_place_slot_idx = int(
+         node.get_parameter("initial_place_slot_index").value)
+     taught_slot_sequence_raw = str(
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/prepare_harvest_label_sheet.py src/strawberry_motion/scripts/prepare_harvest_label_sheet.py
+--- _baseline/A_strawberry_motion/scripts/prepare_harvest_label_sheet.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/prepare_harvest_label_sheet.py	2026-07-09 02:55:02.755291461 +0900
+@@ -10,7 +10,7 @@
+ from pathlib import Path
+ 
+ 
+-REPO_ROOT = Path(os.path.expanduser("~/doosan_ws/src/e0509_gripper_description"))
++REPO_ROOT = Path(os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description"))
+ RUNTIME_GLOB = str(REPO_ROOT / "logs/runtime/*/curobo_planner_node_*.jsonl")
+ TERMINALS = {
+     "pick_sequence_complete", "pick_sequence_stopped", "pick_sequence_hold_latched"}
+Only in _baseline/A_strawberry_motion/scripts: restart_gripper_drl_then_start.sh
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/run_safe_grasp_trial.py src/strawberry_motion/scripts/run_safe_grasp_trial.py
+--- _baseline/A_strawberry_motion/scripts/run_safe_grasp_trial.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/run_safe_grasp_trial.py	2026-07-09 02:55:02.757291509 +0900
+@@ -16,7 +16,7 @@
+ 
+ 
+ LOG_ROOT = Path(os.path.expanduser(
+-    "~/doosan_ws/src/e0509_gripper_description/logs/gripper_calibration"))
++    "~/strawberry_grasp_environment/src/e0509_gripper_description/logs/gripper_calibration"))
+ 
+ 
+ def _state_dict(state):
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/runtime_jsonl_logger.py src/strawberry_motion/scripts/runtime_jsonl_logger.py
+--- _baseline/A_strawberry_motion/scripts/runtime_jsonl_logger.py	2026-09-05 09:47:36.421894170 +0900
++++ src/strawberry_motion/scripts/runtime_jsonl_logger.py	2026-07-09 02:55:02.758291533 +0900
+@@ -15,7 +15,7 @@
+ 
+ SCHEMA_VERSION = "strawberry_runtime_event.v1"
+ DEFAULT_EXPERIMENT_CONTEXT = os.path.expanduser(
+-    "~/doosan_ws/src/e0509_gripper_description/logs/experiment_context.json")
++    "~/strawberry_grasp_environment/src/e0509_gripper_description/logs/experiment_context.json")
+ 
+ 
+ def _json_safe(value):
+@@ -44,13 +44,13 @@
+     if configured:
+         return os.path.expanduser(configured)
+     source_root = os.path.expanduser(
+-        "~/doosan_ws/src/e0509_gripper_description/logs/runtime")
++        "~/strawberry_grasp_environment/src/e0509_gripper_description/logs/runtime")
+     return source_root
+ 
+ 
+ def _git_commit():
+     try:
+-        repo = os.path.expanduser("~/doosan_ws/src/e0509_gripper_description")
++        repo = os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description")
+         return subprocess.check_output(
+             ["git", "-C", repo, "rev-parse", "--short", "HEAD"],
+             text=True,
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/scene_obstacle_manager.py src/strawberry_motion/scripts/scene_obstacle_manager.py
+--- _baseline/A_strawberry_motion/scripts/scene_obstacle_manager.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/scene_obstacle_manager.py	2026-09-09 10:03:59.607045369 +0900
+@@ -74,8 +74,15 @@
+     def register_neighbor_obstacles(self, target_pos: np.ndarray) -> None:
+         spheres = []
+         registered_positions = []
++        # [FIX 2026-09-10] 자기-제외 임계를 여유 있게. 호출자가 raw 검출 좌표를
++        # 넘기면 거리가 0 이라 원래 안전하지만, bias 가 붙은 좌표가 들어와도
++        # 경계에서 갈리지 않도록 z bias(35mm)+여유까지 덮는다.
++        # 이웃 딸기는 최소 60mm 떨어뜨려 배치하므로 50mm 임계는 이웃을 지우지 않는다.
++        self_exclude_m = 0.050
++        skipped = 0
+         for i, pos in enumerate(self.scene_positions):
+-            if np.linalg.norm(pos - target_pos) < 0.035:
++            if np.linalg.norm(pos - target_pos) < self_exclude_m:
++                skipped += 1
+                 continue
+             spheres.append(Sphere(
+                 name=f"neighbor_{i}",
+@@ -86,7 +93,9 @@
+         self.neighbor_spheres = spheres
+         self.registered_neighbor_positions = registered_positions
+         self.update_curobo_world("neighbor obstacles registered")
+-        self._log().info(f"Registered {len(spheres)} neighbor sphere obstacle(s)")
++        self._log().info(
++            f"Registered {len(spheres)} neighbor sphere obstacle(s); "
++            f"self-excluded {skipped} within {self_exclude_m*1000:.0f}mm of target")
+ 
+     def clear_neighbor_obstacles(self) -> None:
+         had_neighbors = bool(self.neighbor_spheres or self.registered_neighbor_positions)
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/set_experiment_context.py src/strawberry_motion/scripts/set_experiment_context.py
+--- _baseline/A_strawberry_motion/scripts/set_experiment_context.py	2026-09-05 09:47:36.421894170 +0900
++++ src/strawberry_motion/scripts/set_experiment_context.py	2026-07-09 02:55:02.759291556 +0900
+@@ -8,7 +8,7 @@
+ 
+ 
+ DEFAULT_OUTPUT = os.path.expanduser(
+-    "~/doosan_ws/src/e0509_gripper_description/logs/experiment_context.json")
++    "~/strawberry_grasp_environment/src/e0509_gripper_description/logs/experiment_context.json")
+ 
+ 
+ def main():
+Only in _baseline/A_strawberry_motion/scripts: start_gripper_service_stable.sh
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/strawberry_yolo_node.py src/strawberry_motion/scripts/strawberry_yolo_node.py
+--- _baseline/A_strawberry_motion/scripts/strawberry_yolo_node.py	2026-09-05 09:47:36.421894170 +0900
++++ src/strawberry_motion/scripts/strawberry_yolo_node.py	2026-07-09 02:55:02.760291580 +0900
+@@ -50,10 +50,10 @@
+     "~/Downloads/share_yolo/share_yolo/strawberry_seg_best.pt"
+ )
+ CALIB_NPZ = os.path.expanduser(
+-    "~/doosan_ws/src/e0509_gripper_description/config/calibration_eye_in_hand_1.npz"
++    "~/strawberry_grasp_environment/src/e0509_gripper_description/config/calibration_eye_in_hand_1.npz"
+ )
+ LOG_ROOT = os.path.expanduser(
+-    "~/doosan_ws/src/e0509_gripper_description/logs/pick_attempts"
++    "~/strawberry_grasp_environment/src/e0509_gripper_description/logs/pick_attempts"
+ )
+ 
+ # ── E0509 FK (캘리브레이션 코드와 동일) ───────────────────────────────────────
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/summarize_harvest_kpis.py src/strawberry_motion/scripts/summarize_harvest_kpis.py
+--- _baseline/A_strawberry_motion/scripts/summarize_harvest_kpis.py	2026-09-05 09:47:36.414894053 +0900
++++ src/strawberry_motion/scripts/summarize_harvest_kpis.py	2026-07-09 02:55:02.761291604 +0900
+@@ -8,7 +8,7 @@
+ import statistics
+ 
+ 
+-REPO_ROOT = os.path.expanduser("~/doosan_ws/src/e0509_gripper_description")
++REPO_ROOT = os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description")
+ DEFAULT_GLOB = os.path.join(
+     REPO_ROOT, "logs/human_labels/*/harvest_attempt_labels.jsonl")
+ 
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/summarize_runtime_kpis.py src/strawberry_motion/scripts/summarize_runtime_kpis.py
+--- _baseline/A_strawberry_motion/scripts/summarize_runtime_kpis.py	2026-09-05 09:47:36.419894137 +0900
++++ src/strawberry_motion/scripts/summarize_runtime_kpis.py	2026-07-09 02:55:02.761291604 +0900
+@@ -9,7 +9,7 @@
+ import statistics
+ 
+ 
+-REPO_ROOT = os.path.expanduser("~/doosan_ws/src/e0509_gripper_description")
++REPO_ROOT = os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description")
+ DEFAULT_GLOB = os.path.join(
+     REPO_ROOT, "logs/runtime/*/curobo_planner_node_*.jsonl")
+ TERMINAL_EVENTS = {
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/teach_place_slots.py src/strawberry_motion/scripts/teach_place_slots.py
+--- _baseline/A_strawberry_motion/scripts/teach_place_slots.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/teach_place_slots.py	2026-07-09 02:55:02.762291628 +0900
+@@ -33,7 +33,7 @@
+ def resolve_config_path():
+     """개발 중에는 install 복사본보다 src/config를 단일 진실로 사용한다."""
+     candidates = [
+-        os.path.expanduser("~/doosan_ws/src/e0509_gripper_description/config/place_slots.yaml"),
++        os.path.expanduser("~/strawberry_grasp_environment/src/e0509_gripper_description/config/place_slots.yaml"),
+         os.path.join(
+             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+             "config", "place_slots.yaml",
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/scripts/validate_runtime_jsonl.py src/strawberry_motion/scripts/validate_runtime_jsonl.py
+--- _baseline/A_strawberry_motion/scripts/validate_runtime_jsonl.py	2026-09-05 09:47:36.420894153 +0900
++++ src/strawberry_motion/scripts/validate_runtime_jsonl.py	2026-07-09 02:55:02.763291651 +0900
+@@ -17,7 +17,7 @@
+         "paths",
+         nargs="*",
+         default=[os.path.expanduser(
+-            "~/doosan_ws/src/e0509_gripper_description/logs/runtime/**/*.jsonl")],
++            "~/strawberry_grasp_environment/src/e0509_gripper_description/logs/runtime/**/*.jsonl")],
+     )
+     args = parser.parse_args()
+ 
+Only in src/strawberry_motion/strawberry_motion/execution: cell_traversal.py
+diff -ru '--exclude=__pycache__' '--exclude=*.pyc' _baseline/A_strawberry_motion/execution/scan_executor_node.py src/strawberry_motion/strawberry_motion/execution/scan_executor_node.py
+--- _baseline/A_strawberry_motion/execution/scan_executor_node.py	2026-09-05 09:47:36.426894253 +0900
++++ src/strawberry_motion/strawberry_motion/execution/scan_executor_node.py	2026-09-09 14:08:56.439412886 +0900
+@@ -52,13 +52,15 @@
+ from curobo.types.robot import JointState as CuroboJointState, RobotConfig
+ from curobo.wrap.reacher.motion_gen import MotionGen, MotionGenConfig, MotionGenPlanConfig
+ 
++from strawberry_motion.execution.cell_traversal import resolve_traversal_order
++from strawberry_motion.execution.scan_transit import plan_joint_space
+ from strawberry_motion.execution.scan_safety import (
+     joints_within_tolerance_deg,
+     motion_start_allowed,
+     single_cell_request_allowed,
+ )
+ 
+-_CUROBO_DIR = Path("/home/user/doosan_ws/src/e0509_gripper_description/config/curobo")
++_CUROBO_DIR = Path("/home/oceanshape/strawberry_grasp_environment/src/e0509_gripper_description/config/curobo")
+ _URDF_PATH = _CUROBO_DIR / "e0509_gripper.urdf"
+ _ROBOT_YML = _CUROBO_DIR / "e0509_gripper.yml"
+ _SPHERES_PATH = _CUROBO_DIR / "e0509_spheres.yml"
+@@ -66,6 +68,26 @@
+ _COLLISION_WORLD_FNAME = "scan_collision_world.yaml"
+ _JOINT_NAMES = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
+ 
++# [FIX 2026-09-08] 서브셀 격자는 **보드 기준 고정 좌표**다.
++#
++# 종전 _group_poses_by_subcell 은 탐지된 딸기들의 bbox 중점을
++#   x_mid = (max(xs)+min(xs))/2 ,  z_mid = (max(zs)+min(zs))/2
++# 로 매번 다시 계산했다. 그래서 딸기를 하나씩 수확·블랙리스트할 때마다 남은
++# 것들의 bbox 가 줄며 **경계선이 움직였고**, 같은 딸기가 패스마다 다른 서브셀로
++# 분류됐다. 보드는 로봇 원점 기준 절대 좌표에 고정돼 있으므로 격자도 거기서
++# 나와야 한다. 딸기 배치와는 무관해야 한다.
++#
++# 값의 출처 (합성 USD 실측, /World/lab_environment/whiteboard/board):
++#   x [-495.0, +595.0]mm -> 중심 +50.0mm
++#   z [ 265.0, 1055.0]mm -> 중심 +660.0mm
++#   (로봇 base_link 는 월드 원점, 보드는 (50, 810, 660)mm — 2026-09-09)
++# 보드를 옮기면 layout_layer.usd 와 함께 이 두 값도 고쳐야 한다.
++# 보드 앞면 y (m). harvest_motion_params.WALL_SURFACE_Y_M 과 **같은 값이어야 한다.**
++# scripts/ 는 이 모듈의 import 경로에 없으므로 상수를 여기 둔다 (BOARD_SUBCELL_* 과 같은 이유).
++BOARD_SURFACE_Y_M = 0.810
++BOARD_SUBCELL_X_MID_M = 0.050
++BOARD_SUBCELL_Z_MID_M = 0.660
++
+ # Single-cell test gate — all 4 cells validated (RUN-20260527-012)
+ _INITIAL_SINGLE_CELL_CANDIDATES = [
+     "root/nw",
+@@ -74,9 +96,11 @@
+     "root/se",
+     "root/sw",
+ ]
+-# Full traversal order for demo capture: start from the stable SW branch,
+-# then move through the more difficult occluded/clustered cells.
+-_ALL_CELLS_ZORDER = ["root/sw", "root/nw_flat", "root/ne", "root/se"]
++# [2026-09-09] 실기 순회 순서로 되돌림.
++# 종전 값 ["root/sw", "root/nw_flat", "root/ne", "root/se"] 는 데모 촬영용으로
++# SW 부터 돌게 바꾼 것이었다. 실기 기록(민1 STEP 6)의 순서는 아래이고,
++# overview 를 경유하지 않는 INTER_CELL_DIRECT 로 검증됐다.
++_ALL_CELLS_ZORDER = ["root/nw", "root/ne", "root/se", "root/sw"]
+ 
+ _MAX_SPLINE_PTS = 12
+ _SPLINE_TIME_SCALE = 0.75
+@@ -84,10 +108,12 @@
+ _DEFAULT_SCAN_DWELL_SEC = 12.0
+ _GRIPPER_APPROACH_POS = 600   # 스캔 이동 중 그리퍼 pre-close 개도 (0=완전열림, 700=완전닫힘)
+ _OVERVIEW_TOLERANCE_DEG = 1.0
+-_DEFAULT_SCAN_MOVEJ_VEL_DEG_S = 60.0
+-_DEFAULT_SCAN_MOVEJ_ACC_DEG_S2 = 90.0
+-_DEFAULT_OVERVIEW_RETURN_VEL_DEG_S = 60.0
+-_DEFAULT_OVERVIEW_RETURN_ACC_DEG_S2 = 90.0
++# [SPEED 2026-09-09] 60/90 -> 120/180. 실기는 테이블 흔들림 때문에 낮췄지만
++# (민1 STEP 7) 시뮬에는 그 제약이 없다. 실기 값으로 돌리려면 파라미터로 지정한다.
++_DEFAULT_SCAN_MOVEJ_VEL_DEG_S = 120.0
++_DEFAULT_SCAN_MOVEJ_ACC_DEG_S2 = 180.0
++_DEFAULT_OVERVIEW_RETURN_VEL_DEG_S = 120.0
++_DEFAULT_OVERVIEW_RETURN_ACC_DEG_S2 = 180.0
+ _DEFAULT_MOVEJ_SERVICE_TIMEOUT_SEC = 30.0
+ # True: _init_motion_gen loads robot spheres + whiteboard cuboid + self-collision
+ # (validated in RUN-20260527-012). Motion is still gated by use_for_automated_motion
+@@ -161,10 +187,12 @@
+         )
+         self.declare_parameter("enable_pick_integration", True)
+         self.declare_parameter("max_total_picks", 0)  # 0 = unlimited
++        # 셀 간 이동을 cuRobo 로 계획할지. false 면 실기와 동일한 순수 MoveJoint.
++        self.declare_parameter("plan_scan_transit", True)
+         self.declare_parameter("collect_then_pick", False)
+         self.declare_parameter("collect_pick_ready_cell", "")
+         self.declare_parameter("pick_complete_settle_sec", 1.0)
+-        self.declare_parameter("pick_timeout_sec", 120.0)
++        self.declare_parameter("pick_timeout_sec", 60.0)
+         self.declare_parameter("attempted_target_blacklist_radius_m", 0.025)
+         self.declare_parameter("scan_dwell_sec", _DEFAULT_SCAN_DWELL_SEC)
+         self.declare_parameter("return_to_overview_at_end", True)
+@@ -190,6 +218,8 @@
+             self.get_parameter("enable_pick_integration").value
+         )
+         self._max_total_picks = int(self.get_parameter("max_total_picks").value)
++        self._plan_scan_transit = _as_bool(
++            self.get_parameter("plan_scan_transit").value)
+         self._collect_then_pick = _as_bool(
+             self.get_parameter("collect_then_pick").value
+         )
+@@ -329,6 +359,12 @@
+             "scan_executor_node ready; explicit /strawberry/scan/start required"
+         )
+ 
++        try:    # ── HUD 계측 (제거: 이 4줄만 지우면 된다) ──
++            import sys, os; sys.path.append(os.path.expanduser(os.environ.get(
++                "HARVEST_HUD_DIR", "~/strawberry_grasp_environment/strawberry_harvest/scripts/hud")))
++            import harvest_probe; harvest_probe.attach("scan", self)
++        except Exception: pass
++
+     def _init_motion_gen(self) -> None:
+         if self._mg is not None:
+             return
+@@ -420,9 +456,21 @@
+             return response
+         self._started = True
+         self._pub_status("START_ACCEPTED explicit request; initial pose verified")
+-        threading.Thread(target=self._scan_sequence, daemon=True).start()
++        threading.Thread(target=self._scan_sequence_run, daemon=True).start()
+         return response
+ 
++    def _scan_sequence_run(self) -> None:
++        # [PLANNER-FIX #002] _started는 스캔 중복 시작을 막는 진행중 플래그인데
++        # 시퀀스가 끝나도 해제되지 않아 프로세스당 단 1회만 스캔이 가능했다.
++        # 실기에서도 수확 1사이클 후 재트리거가 "scan already started"로 거부되어
++        # 노드를 재시작해야 하므로 실기 결함이다. 종료 시 해제한다.
++        # 시작 게이트 6단계는 매 트리거마다 그대로 평가되므로 완화되는 안전 조건은 없다.
++        try:
++            self._scan_sequence()
++        finally:
++            self._started = False
++            self._pub_status("READY_FOR_NEXT_START")
++
+     # ── helpers ───────────────────────────────────────────────────────────────
+ 
+     def _pub_state(self, cell_id: str, state: str) -> None:
+@@ -738,18 +786,13 @@
+         """
+         if not poses:
+             return [(subcell, []) for subcell in ("sw", "se", "nw", "ne")]
+-        if len(poses) == 1:
+-            return [
+-                ("sw", poses),
+-                ("se", []),
+-                ("nw", []),
+-                ("ne", []),
+-            ]
+ 
+-        xs = [p.pose.position.x for p in poses]
+-        zs = [p.pose.position.z for p in poses]
+-        x_mid = (max(xs) + min(xs)) / 2.0
+-        z_mid = (max(zs) + min(zs)) / 2.0
++        # [FIX 2026-09-08] 보드 고정 격자. 탐지 결과에 의존하지 않는다.
++        # 종전에는 탐지 bbox 중점을 썼고 (그리고 1개일 때는 무조건 sw 로 몰았다),
++        # 수확이 진행돼 남은 딸기가 줄면 경계가 움직여 같은 딸기가 패스마다
++        # 다른 서브셀로 분류됐다.
++        x_mid = BOARD_SUBCELL_X_MID_M
++        z_mid = BOARD_SUBCELL_Z_MID_M
+         groups: Dict[str, List[PoseStamped]] = {
+             "nw": [],
+             "ne": [],
+@@ -810,7 +853,9 @@
+             xz_dist = float(np.hypot(dx, dz))
+             # Keep Y as a weak tie-breaker only. Perception Y can drift and the
+             # planner clamps to the wall surface, so do not over-weight it.
+-            y_offset = abs(float(p.pose.position.y) - 0.672)
++            # [FIX 2026-09-09] 보드 y 하드코딩 제거. 672 로 굳어 있어서 보드를
++            # 810 으로 옮긴 뒤에도 옛 평면 기준으로 순위를 매겼다.
++            y_offset = abs(float(p.pose.position.y) - BOARD_SURFACE_Y_M)
+             return (xz_dist, y_offset, p.pose.position.x)
+ 
+         ranked = sorted(poses, key=_score)
+@@ -852,7 +897,7 @@
+         self,
+         cell_id: str,
+         poses: List[PoseStamped],
+-        pick_timeout_sec: float = 120.0,
++        pick_timeout_sec: float = 60.0,
+         poses_are_ranked: bool = False,
+     ) -> int:
+         """Publish poses to curobo_planner one at a time; return attempted count.
+@@ -1166,8 +1211,20 @@
+ 
+     def _compute_scan_order(self) -> List[str]:
+         if self._target_cell == "all":
+-            scan_order = [c for c in _ALL_CELLS_ZORDER if c in self._targets]
+-            self._pub_status("TRAVERSAL_SCAN_STARTED cells=%s" % scan_order)
++            # [FIX 2026-09-09] 종전: [c for c in _ALL_CELLS_ZORDER if c in self._targets]
++            # _ALL_CELLS_ZORDER 의 'root/nw_flat' 이 YAML 에 없어 **NW 가 조용히 빠지고
++            # 3분면만** 돌았다 (원안 6단계 "4개 영역 전부"에 위배). 별칭 해석 + 누락 경고.
++            scan_order, missing_quadrants = resolve_traversal_order(
++                _ALL_CELLS_ZORDER, self._targets)
++            if missing_quadrants:
++                self._pub_status(
++                    "TRAVERSAL_QUADRANT_MISSING %s — 해당 분면의 scan pose 가 YAML 에 없다"
++                    % ",".join(missing_quadrants)
++                )
++            self._pub_status(
++                "TRAVERSAL_SCAN_STARTED cells=%s (%d/4 quadrants)"
++                % (scan_order, 4 - len(missing_quadrants))
++            )
+         else:
+             # If sub-cells exist in YAML, scan in canonical visual order.
+             # Target filtering should happen in candidate selection, not by
+@@ -1209,7 +1266,24 @@
+         _gmsg.data = _GRIPPER_APPROACH_POS
+         self._gripper_pos_pub.publish(_gmsg)
+ 
+-        if not self._movej(
++        # [FIX 2026-09-09] 분면마다 scan pose 가 달라지면서 관절공간 직선이
++        # 보드를 관통하게 됐다 (sw->nw -3mm, nw->ne -23mm 실측).
++        # 보드가 든 MotionGen 으로 먼저 계획하고, 실패하면 종전 MoveJoint 로 간다.
++        transit_deg = self._shortest_equivalent_joints(endpoint_deg)
++        planned = None
++        # plan_scan_transit=false 면 실기와 동일하게 순수 MoveJoint 로만 간다.
++        # v12 티칭 자세에서는 관절공간 직선도 보드여유 최소 43.4mm 로 안전하다
++        # (제가 IK 로 만들었던 ee y=400mm 자세에서는 -23mm 로 관통했다).
++        if (self._plan_scan_transit
++                and self._mg is not None and self._current_joints is not None):
++            planned = plan_joint_space(
++                self._mg, _JOINT_NAMES, list(self._current_joints),
++                np.deg2rad(transit_deg).tolist(), self.get_logger())
++        if planned is not None and self._exec_spline(
++                planned, vel=self._scan_movej_vel, min_time=1.2):
++            self._last_movej_command_deg = list(transit_deg)
++            self._pub_status("MOVING_TO %s — cuRobo 경유 (보드 회피)" % cell_id)
++        elif not self._movej(
+             endpoint_deg, vel=self._scan_movej_vel, acc=self._scan_movej_acc
+         ):
+             self._pub_status("EXEC_FAIL %s MoveJoint failed — aborting scan sequence" % cell_id)
+Only in src/strawberry_motion/strawberry_motion/execution: scan_transit.py
