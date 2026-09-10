@@ -283,4 +283,99 @@ over "World"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
 
+    # [T3 2026-09-10] 정적 덩굴 12개 — 시각 전용. 조립은 main_scene.usd 의 Scope "vines".
+    #
+    # translate 는 **같은 딸기의 translate 와 같은 값**이다. vine.usd 의 원점이 과실
+    # 중심이기 때문이다 — 딸기를 옮기면 여기 덩굴도 같은 값으로 따라 옮기면 된다.
+    # 나머지는 vine.usd 헤더에 있다(형상, 파지점 +35mm / 하강 시작 +65mm 와의 관계, 색).
+    #
+    # ⚠️ scale 을 주지 않는다. 딸기의 (0.5,0.5,0.5) 는 애셋 원본 배율이고 덩굴에는 없다.
+    # ⚠️ 배치를 바꾸면 덩굴-이웃과실 간격을 다시 본다. 현재 최소 vine_ripe_06 vs
+    #    strawberry_ripe_04 = +1.4mm (관통 아님, 여유는 얇다).
+    over "vines"
+    {
+        over "vine_ripe_01"   # ripe / 보드 nw
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (-0.25, 0.7828, 0.74)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_ripe_02"   # ripe / 보드 nw
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (-0.12, 0.7828, 0.76)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_ripe_03"   # ripe / 보드 ne
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (0.2, 0.7828, 0.74)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_ripe_04"   # ripe / 보드 sw
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (-0.22, 0.7828, 0.56)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_ripe_05"   # ripe / 보드 sw
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (-0.1, 0.7828, 0.44)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_ripe_06"   # ripe / 보드 sw
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (-0.25, 0.7828, 0.5)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_unripe_01"   # unripe / 보드 nw
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (-0.38, 0.7828, 0.72)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_unripe_02"   # unripe / 보드 ne
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (0.15, 0.7828, 0.9)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_unripe_03"   # unripe / 보드 ne
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (0.28, 0.7828, 0.7)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_unripe_04"   # unripe / 보드 se
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (0.12, 0.7828, 0.56)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_unripe_05"   # unripe / 보드 se
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (0.25, 0.7828, 0.48)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+
+        over "vine_unripe_06"   # unripe / 보드 se
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:translate = (0.18, 0.7828, 0.38)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+        }
+    }
 }

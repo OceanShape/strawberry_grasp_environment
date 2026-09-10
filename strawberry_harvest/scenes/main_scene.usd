@@ -145,4 +145,92 @@ def Xform "World"
     )
     {
     }
+
+    # [T3 2026-09-10] 정적 덩굴 12개 — 보드에서 각 딸기 줄기 끝까지.
+    #   딸기가 보드 앞 27.2mm 허공에 떠 있던 화면을 고치는 **시각 작업**이다.
+    #   T2 로 과실이 그리퍼를 따라 움직이게 되면서, 붙잡고 있던 것이 화면에 없다는 점이
+    #   그대로 드러났다. 덩굴이 있으면 "덩굴 끝에서 과실이 떨어져 나가는" 것으로 읽힌다.
+    #
+    #   프로토타입 1개(assets/props/vine.usd)를 12번 참조한다 — 딸기 12개가 모두
+    #   같은 y(0.7828), 같은 orient(항등), 같은 scale 이라 덩굴 형상이 전부 동일하다.
+    #   배치는 layers/layout_layer.usd (딸기와 **같은 translate 값**을 쓴다).
+    #
+    #   ⚠️ 스케일을 주지 않는다. vine.usd 는 이미 월드 치수로 만들어져 있다
+    #      (딸기의 scale 0.5 는 애셋 원본이 100배라서 붙은 값이고, 덩굴에는 해당 없음).
+    #   물리 없음 — physics_layer.usd 는 이 프림을 건드리지 않는다. 이름에
+    #   "strawberry" 가 없어 브릿지의 좌표 발행 필터에도 걸리지 않는다.
+    def Scope "vines"
+    {
+        def "vine_ripe_01" (          # ripe / 보드 nw
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_ripe_02" (          # ripe / 보드 nw
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_ripe_03" (          # ripe / 보드 ne
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_ripe_04" (          # ripe / 보드 sw
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_ripe_05" (          # ripe / 보드 sw
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_ripe_06" (          # ripe / 보드 sw
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_unripe_01" (          # unripe / 보드 nw
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_unripe_02" (          # unripe / 보드 ne
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_unripe_03" (          # unripe / 보드 ne
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_unripe_04" (          # unripe / 보드 se
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_unripe_05" (          # unripe / 보드 se
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+
+        def "vine_unripe_06" (          # unripe / 보드 se
+            prepend references = @../assets/props/vine.usd@
+        )
+        {
+        }
+    }
 }
