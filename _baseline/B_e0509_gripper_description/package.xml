@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>e0509_gripper_description</name>
+  <version>0.1.0</version>
+  <description>cuRobo robot config for Doosan e0509 + RH-P12-RN gripper (data-only package)</description>
+  <maintainer email="gjxosdid1@gmail.com">OceanShape</maintainer>
+  <license>TODO</license>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

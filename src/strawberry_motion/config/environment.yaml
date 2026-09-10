@@ -1,0 +1,43 @@
+# cuRobo static collision world.
+#
+# ASCII only: the planner and cuRobo may read these files with an ASCII codec
+# (a non-ASCII byte raised UnicodeDecodeError on the lock_joints path,
+# 2026-09-07).  Korean rationale lives in docs/run_guide.md.
+#
+# History: this file used to hold a single dummy cuboid 10 m away.  That was to
+# suppress the default table cuboid at z=-0.02 that load_environment_cuboids()
+# appends when the list is empty, which caused
+# INVALID_START_STATE_WORLD_COLLISION on the legacy profile.  The side effect
+# was an effectively EMPTY collision world, so the planner happily produced
+# trajectories straight through the whiteboard.  The board is now declared here
+# so it is rejected at plan time.
+#
+# Scene reference (measured from strawberry_harvest/scenes/layers/layout_layer.usd):
+#   board plane  y = 810.0 mm, uniform across x (no tilt)
+#                  = harvest_motion_params.WALL_SURFACE_Y_M
+#   board extent x in [-495, +595] mm, z in [265, 1055] mm
+# The cuboid puts its front face exactly at y = 810.0 mm and is 200 mm thick
+# toward the back (center.y = 0.810 + 0.200/2 = 0.910).  The thickness stops the
+# planner from routing around behind a paper-thin plate.
+#
+# When the board moves, update all of these together:
+#   - strawberry_harvest/scenes/layers/layout_layer.usd   (whiteboard translate,
+#                                                          board_guard, 12 berries)
+#   - strawberry_harvest/scenes/layers/physics_layer.usd   (stem joint localPos0)
+#   - strawberry_harvest/assets/props/cell_markers.usd     (9 boundary rods)
+#   - src/strawberry_sim_core/.../fake_vision_node.py      (board_surface_y_m param)
+#   - src/strawberry_motion/scripts/harvest_motion_params.py:62 WALL_SURFACE_Y_M
+#   - src/strawberry_motion/.../scan_executor_node.py BOARD_SURFACE_Y_M
+#   - src/strawberry_motion/config/scan_collision_world.yaml
+# [2026-09-09] The collision body is the WHITEBOARD (1500x900mm, the physical
+# panel record), not the 1100x800mm paper panel, and it is extended down to the
+# floor so the arm cannot sweep UNDER the board.  Front face stays at y=810.0mm.
+#   x [-700, +800] mm   y [810, 1010] mm   z [0, 1110] mm
+# Verified: none of the taught scan poses, the traversal sweeps, or the tray place
+# pose lose any clearance versus the old 1.09x0.79 box (tray 332.8 -> 327.9 mm).
+objects:
+  - name: "whiteboard"
+    type: "cuboid"
+    enabled: true
+    pose: [0.05, 0.91, 0.555, 1.0, 0.0, 0.0, 0.0]
+    dims: [1.50, 0.20, 1.11]

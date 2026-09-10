@@ -1,0 +1,84 @@
+## Collision spheres for Doosan E0509 + RH-P12-RN-A gripper
+## Format: {"center": [x, y, z], "radius": r} relative to link frame
+
+collision_spheres:
+  base_link:
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.06}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.06}
+
+  link_1:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.06}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.055}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.05}
+
+  link_2:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.05}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.045}
+    - {"center": [0.0, 0.0, 0.2], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.3], "radius": 0.04}
+
+  link_3:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.045}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.04}
+
+  link_4:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.15], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.2], "radius": 0.035}
+
+  link_5:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.035}
+
+  link_6:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.03], "radius": 0.03}
+
+  gripper_rh_p12_rn_base:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.03], "radius": 0.03}
+    - {"center": [0.0, 0.0, 0.06], "radius": 0.025}
+
+  gripper_rh_p12_rn_r1:
+    - {"center": [0.0, 0.0, 0.02], "radius": 0.015}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.012}
+
+  gripper_rh_p12_rn_l1:
+    - {"center": [0.0, 0.0, 0.02], "radius": 0.015}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.012}
+
+  # [2026-09-07] Custom 3D-printed parts: the geometry that reaches the fruit
+  # and the board first.  Their absence from the collision model is why the
+  # planner produced trajectories through the fruit and the wall.
+  # Fitted by slicing gripper_parts.stl into 9 bands along the link axis and
+  # taking a minimal enclosing sphere per band.
+  # Max sphere reach = flange +235.2mm (true part tip 233.3mm, +1.9mm over).
+  # Keep this file ASCII-only (cuRobo ASCII reader on lock_joints path).
+  gripper_left_custom_part:
+    - {"center": [0.0019, -0.1490, -0.0209], "radius": 0.0102}
+    - {"center": [-0.0004, -0.1325, -0.0209], "radius": 0.0106}
+    - {"center": [0.0120, -0.0983, -0.0209], "radius": 0.0079}
+    - {"center": [0.0129, -0.0849, -0.0209], "radius": 0.0109}
+    - {"center": [0.0154, -0.0673, -0.0209], "radius": 0.0124}
+    - {"center": [0.0104, -0.0448, -0.0209], "radius": 0.0181}
+    - {"center": [0.0026, -0.0310, -0.0209], "radius": 0.0070}
+    - {"center": [0.0125, -0.0124, -0.0209], "radius": 0.0197}
+
+  gripper_right_custom_part:
+    - {"center": [0.0125, 0.0124, 0.0209], "radius": 0.0197}
+    - {"center": [0.0026, 0.0310, 0.0209], "radius": 0.0070}
+    - {"center": [0.0104, 0.0448, 0.0209], "radius": 0.0181}
+    - {"center": [0.0154, 0.0673, 0.0209], "radius": 0.0124}
+    - {"center": [0.0129, 0.0849, 0.0209], "radius": 0.0109}
+    - {"center": [0.0120, 0.0983, 0.0209], "radius": 0.0079}
+    - {"center": [-0.0004, 0.1325, 0.0209], "radius": 0.0106}
+    - {"center": [0.0019, 0.1490, 0.0209], "radius": 0.0102}
+
+  attached_object:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.02}
+    - {"center": [0.0, 0.0, 0.04], "radius": 0.02}
+    - {"center": [0.0, 0.0, 0.08], "radius": 0.02}
+    - {"center": [0.0, 0.0, 0.12], "radius": 0.02}

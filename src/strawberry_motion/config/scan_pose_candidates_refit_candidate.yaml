@@ -1,0 +1,48 @@
+# Quadtree scan poses - v12_gripper_centered_manual_teach
+# status: gripper_centered_scan_poses_taught_traversal_validated
+#
+# [2026-09-09] Restored from the real robot's DART manual teaching record.
+#
+# History
+#   - The four quadrant entries used to carry the SAME six numbers as
+#     curobo_start_joints_deg, so the robot never moved between sub-cells and
+#     PROJECT_GOAL.md section 1-2 steps 2/5 could not happen.
+#   - A first attempt re-derived them by IK on an ee y = 400 mm plane.  That put
+#     the fingertip only 56 mm from the board - the gripper touched the fruit at
+#     the scan pose and drove into the board during the pick.  Discarded.
+#   - These are the ACTUAL taught poses (v12, gripper-centered manual teach).
+#     Forward kinematics reproduces the recorded TCP of all five poses to within
+#     0.07 mm, which also proves the record's "TCP" is the gripper base
+#     (gripper_rh_p12_rn_base), NOT a 236 mm tool point.
+#
+# Verified against the simulation board (environment.yaml, front face y=672.0mm):
+#   pose static clearance   nw 64.2  ne 123.9  se 100.9  sw 86.0 mm
+#   fingertip to board      nw 97.1  ne 156.3  se 133.4  sw 119.0 mm
+#   joint-space MoveJoint sweeps between cells: min 43.4 mm, no penetration
+#
+# J4/J6 are kept in the raw taught representation (J4=-238.52, J6=-190.82 ...).
+# scan_executor_node._shortest_equivalent_joints rewrites them at run time to
+# the nearest 360-degree equivalent, exactly as the real robot logged:
+#   J4 -238.5 -> 121.5 / J6 -190.8 -> 169.2 / J4 -97.8 -> 262.2
+scan_pose_candidates:
+  version: v12_gripper_centered_manual_teach
+  curobo_start_joints_deg: [87.98, -94.92, 129.89, 175.94, -31.34, 93.42]
+  use_for_automated_motion: true
+  collision_world_validated_for_motion: true
+  targets:
+    - cell_id: "root/nw"
+      tcp_transform_base: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      endpoint_joints_deg: [144.09, 22.90, -1.00, -238.52, -75.31, 108.68]
+      # taught TCP(=gripper base) = (-225.46, 338.93, 902.31)mm  fingertip gap 97mm
+    - cell_id: "root/ne"
+      tcp_transform_base: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      endpoint_joints_deg: [18.91, 25.97, 1.00, 74.58, 78.17, -115.61]
+      # taught TCP = (314.90, 279.89, 883.40)mm  fingertip gap 156mm
+    - cell_id: "root/se"
+      tcp_transform_base: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      endpoint_joints_deg: [22.71, -4.60, 103.56, 97.69, 68.16, -190.82]
+      # taught TCP = (312.61, 302.83, 529.32)mm  fingertip gap 133mm
+    - cell_id: "root/sw"
+      tcp_transform_base: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      endpoint_joints_deg: [150.27, -11.92, 109.11, -97.81, 63.33, 10.46]
+      # taught TCP = (-247.70, 317.34, 533.88)mm  fingertip gap 119mm

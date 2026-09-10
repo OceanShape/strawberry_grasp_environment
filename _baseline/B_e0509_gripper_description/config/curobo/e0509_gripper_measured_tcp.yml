@@ -1,0 +1,104 @@
+# cuRobo robot config for Doosan E0509 + RH-P12-RN-A gripper
+# with measured TCP (grasp center at flange + 260mm).
+#
+# WARNING: This file was auto-generated based on physical measurements
+# documented in curobo_planner_node.py. The TCP offset (100mm from
+# gripper_rh_p12_rn_base along +Z) must be verified against the actual
+# hardware setup by the real-robot team before production use.
+#
+# Measurements (from curobo_planner_node.py):
+#   flange -> gripper base:   160mm  (URDF gripper_attach_joint)
+#   flange -> part tips:      270mm
+#   flange -> grasp center:   260mm  (MEASURED_FLANGE_TO_GRASP_CENTER_M)
+#   gripper_base -> grasp center: 260 - 160 = 100mm along gripper +Z
+
+robot_cfg:
+  kinematics:
+    use_usd_kinematics: False
+    urdf_path: "e0509_gripper.urdf"
+    asset_root_path: ""
+    base_link: "base_link"
+    ee_link: "grasp_tcp_link"
+    collision_link_names:
+      [
+        "base_link",
+        "link_1",
+        "link_2",
+        "link_3",
+        "link_4",
+        "link_5",
+        "link_6",
+        "gripper_rh_p12_rn_base",
+        "gripper_rh_p12_rn_r1",
+        "gripper_rh_p12_rn_l1",
+        "attached_object",
+      ]
+    collision_spheres: "e0509_spheres.yml"
+    collision_sphere_buffer: 0.005
+    extra_collision_spheres: {"attached_object": 4}
+    use_global_cumul: True
+    self_collision_ignore:
+      {
+        "base_link": ["link_1", "link_2"],
+        "link_1": ["link_2", "link_3"],
+        "link_2": ["link_3", "link_4"],
+        "link_3": ["link_4", "link_5"],
+        "link_4": ["link_5", "link_6"],
+        "link_5": ["link_6", "gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1"],
+        "link_6": ["gripper_rh_p12_rn_base", "gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "attached_object"],
+        "gripper_rh_p12_rn_base": ["gripper_rh_p12_rn_r1", "gripper_rh_p12_rn_l1", "attached_object"],
+        "gripper_rh_p12_rn_r1": ["gripper_rh_p12_rn_l1", "attached_object"],
+        "gripper_rh_p12_rn_l1": ["attached_object"],
+      }
+    self_collision_buffer:
+      {
+        "base_link": 0.08,
+        "link_1": 0.05,
+        "link_2": 0.0,
+        "link_3": 0.0,
+        "link_4": 0.0,
+        "link_5": 0.0,
+        "link_6": 0.0,
+        "gripper_rh_p12_rn_base": 0.02,
+        "gripper_rh_p12_rn_r1": 0.01,
+        "gripper_rh_p12_rn_l1": 0.01,
+        "attached_object": 0.0,
+      }
+    lock_joints:
+      {
+        "gripper_rh_r1": 0.0,
+      }
+    extra_links:
+      {
+        "grasp_tcp_link":
+          {
+            "parent_link_name": "gripper_rh_p12_rn_base",
+            "link_name": "grasp_tcp_link",
+            "fixed_transform": [0, 0, 0.1, 1, 0, 0, 0],
+            "joint_type": "FIXED",
+            "joint_name": "grasp_tcp_joint",
+          },
+        "attached_object":
+          {
+            "parent_link_name": "grasp_tcp_link",
+            "link_name": "attached_object",
+            "fixed_transform": [0, 0, 0.0, 1, 0, 0, 0],
+            "joint_type": "FIXED",
+            "joint_name": "attach_joint",
+          },
+      }
+    cspace:
+      joint_names:
+        [
+          "joint_1",
+          "joint_2",
+          "joint_3",
+          "joint_4",
+          "joint_5",
+          "joint_6",
+        ]
+      retract_config: [0.0, 0.0, 1.5708, 0.0, 1.5708, 0.0]
+      null_space_weight: [1, 1, 1, 1, 1, 1]
+      cspace_distance_weight: [1, 1, 1, 1, 1, 1]
+      max_acceleration: 10.0
+      max_jerk: 500.0

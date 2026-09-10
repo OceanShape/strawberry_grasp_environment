@@ -1,0 +1,11 @@
+int32 target_position
+int32 max_current
+int32 current_delta_threshold
+float64 timeout_sec
+---
+bool success
+int32 final_position
+int32 final_current
+string reason
+---
+int32 current_position

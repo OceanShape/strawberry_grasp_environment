@@ -1,0 +1,21 @@
+# Collision world for scan_executor_node's own cuRobo MotionGen.
+#
+# ASCII only (see environment.yaml header).
+#
+# This was "objects: []", so the board was not an obstacle during scan motions
+# either.  Same board as config/environment.yaml, but note the DIFFERENT schema:
+# pose_wxyz / dims_m instead of pose / dims.
+#
+# Board plane y = 672.0 mm; the cuboid front face sits exactly there and is
+# 200 mm thick toward the back.  x in [-495, +595] mm, z in [265, 1055] mm.
+#
+# scan_executor_node reads this from the INSTALLED share directory, so run
+# colcon build after editing (or copy into install/ as well).
+scan_collision_world:
+  objects:
+    - name: "whiteboard"
+      type: "cuboid"
+      enabled: true
+      # [2026-09-09] whiteboard 1500x900 + floor-to-top guard (see environment.yaml)
+      pose_wxyz: [0.05, 0.91, 0.555, 1.0, 0.0, 0.0, 0.0]
+      dims_m: [1.50, 0.20, 1.11]

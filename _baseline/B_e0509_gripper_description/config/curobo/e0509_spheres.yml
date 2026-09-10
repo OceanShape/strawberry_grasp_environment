@@ -1,0 +1,57 @@
+## Collision spheres for Doosan E0509 + RH-P12-RN-A gripper
+## Format: {"center": [x, y, z], "radius": r} relative to link frame
+
+collision_spheres:
+  base_link:
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.06}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.06}
+
+  link_1:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.06}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.055}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.05}
+
+  link_2:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.05}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.045}
+    - {"center": [0.0, 0.0, 0.2], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.3], "radius": 0.04}
+
+  link_3:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.045}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.04}
+
+  link_4:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.04}
+    - {"center": [0.0, 0.0, 0.1], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.15], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.2], "radius": 0.035}
+
+  link_5:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.035}
+
+  link_6:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.03], "radius": 0.03}
+
+  gripper_rh_p12_rn_base:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.035}
+    - {"center": [0.0, 0.0, 0.03], "radius": 0.03}
+    - {"center": [0.0, 0.0, 0.06], "radius": 0.025}
+
+  gripper_rh_p12_rn_r1:
+    - {"center": [0.0, 0.0, 0.02], "radius": 0.015}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.012}
+
+  gripper_rh_p12_rn_l1:
+    - {"center": [0.0, 0.0, 0.02], "radius": 0.015}
+    - {"center": [0.0, 0.0, 0.05], "radius": 0.012}
+
+  attached_object:
+    - {"center": [0.0, 0.0, 0.0], "radius": 0.02}
+    - {"center": [0.0, 0.0, 0.04], "radius": 0.02}
+    - {"center": [0.0, 0.0, 0.08], "radius": 0.02}
+    - {"center": [0.0, 0.0, 0.12], "radius": 0.02}

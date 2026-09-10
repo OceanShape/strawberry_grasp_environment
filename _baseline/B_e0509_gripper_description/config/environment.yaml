@@ -1,0 +1,9 @@
+# Mock Environment to override hardcoded static:table in curobo_planner_node.py
+# By providing at least one dummy object, the planner will not append the default table at Z=-0.02
+# which was causing INVALID_START_STATE_WORLD_COLLISION for the legacy profile.
+objects:
+  - name: "dummy_far_away"
+    type: "cuboid"
+    enabled: true
+    pose: [10.0, 10.0, -10.0, 1.0, 0.0, 0.0, 0.0]
+    dims: [0.1, 0.1, 0.1]

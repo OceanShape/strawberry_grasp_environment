@@ -1,0 +1,6 @@
+int32 present_position
+int32 present_current
+int32 goal_position
+string status_text
+bool grasp_detected
+bool object_lost
