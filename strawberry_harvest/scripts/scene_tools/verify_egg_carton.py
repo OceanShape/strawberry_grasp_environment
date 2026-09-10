@@ -1,10 +1,10 @@
-"""T4-3 검증 — 조립된 씬에서 계란판과 런 7 과실 정지 위치를 대조한다.
+"""T4-3 검증 (2차) — 조립된 씬에서 계란판의 규칙성과 런 7 과실의 착지를 대조한다.
 
     python3 strawberry_harvest/scripts/scene_tools/verify_egg_carton.py   (리포 루트에서)
 
-(1) 물리 스키마 0건·브릿지 발행 필터 무관 (2) 과실 6개가 각자 컵 안에 앉는가 —
-림 아래 과실 표면점이 전부 컵 벽 안쪽인지(타원 그릇 정확 판정), 밑끝이 컵 바닥 위인지
-(3) 컵 중심 대비 치우침. 배치 슬롯이나 과실 위치가 바뀌면 다시 돌린다.
+게이트: (1) 물리 스키마 0건·브릿지 발행 필터 무관 (2) 배치값 = fit 값 (3) 컨테이너 규칙성 — 수평, 직교,
+컵 15개 동일 (4) 과실 6개가 각자 **자기 셀** 안에 있다. 컵 중심 치우침·림/벽 겹침 깊이는 **정보로만** 출력한다 —
+그것이 티칭 오차의 눈에 보이는 크기이고, 컨테이너를 거기에 맞추지 않기로 했다.
 """
 import os
 import sys
@@ -27,79 +27,82 @@ def chk(c, m):
     ok = ok and bool(c)
 
 
-def world_pts(path):
-    p = st.GetPrimAtPath(path)
-    M = np.array(UsdGeom.Xformable(p).ComputeLocalToWorldTransform(0))
-    P = np.array(UsdGeom.Mesh(p).GetPointsAttr().Get())
-    return (np.hstack([P, np.ones((len(P), 1))]) @ M)[:, :3]
-
-
 print("[1] 플래너 입출력 불변")
 pub = [p.GetName() for p in st.Traverse() if "strawberry" in p.GetName().lower()
        and "robot" not in p.GetName().lower() and "unripe" not in p.GetName().lower()]
-chk(len(pub) == 6 and "egg" not in "".join(pub), "브릿지 발행 대상 6개 (계란판 무관)")
+chk(len(pub) == 6, "브릿지 발행 대상 6개 (계란판 무관)")
 carton = st.GetPrimAtPath("/World/egg_carton")
 chk(carton and carton.IsValid(), "/World/egg_carton 존재")
-phys = [(q.GetPath().pathString, a) for q in Usd.PrimRange(carton) for a in q.GetAppliedSchemas() if "Physics" in a]
+phys = [a for q in Usd.PrimRange(carton) for a in q.GetAppliedSchemas() if "Physics" in a]
 chk(not phys, "물리 스키마 0건")
 
-print("[2] 원점·격자")
-F0 = np.array(UsdGeom.Xformable(carton).ComputeLocalToWorldTransform(0))[3, :3]
-chk(np.allclose(F0, G.fit_origin_m(), atol=5e-4), "translate = fit 원점 %s mm" % np.round(F0 * 1000, 1).tolist())
+print("[2] 배치 = fit")
+M = np.array(UsdGeom.Xformable(carton).ComputeLocalToWorldTransform(0))
+t_scene = M[3, :3]; yaw_scene = float(np.arctan2(M[0, 1], M[0, 0]))
+t_fit, yaw_fit, res = G.fit_pose()
+chk(np.allclose(t_scene, t_fit, atol=5e-4) and abs(yaw_scene - yaw_fit) < 1e-3,
+    "translate %s mm, yaw %+.2f° (fit 과 일치)" % (np.round(t_scene * 1000, 1).tolist(), np.degrees(yaw_scene)))
 
-print("[3] 과실 6개가 컵 안에 앉는가 (런 %s)" % G.RUN_ID)
-fruit_local = np.array(UsdGeom.Mesh(st.GetPrimAtPath("/World/strawberry_ripe_01/geo/fruit/mesh")).GetPointsAttr().Get()) * 0.005
-Rf = R.from_euler("z", -81.5, degrees=True)      # 파지 자세 → 배치 자세 (툴 +Z: +y → +x 방향)
-fp = Rf.apply(fruit_local)
-def cup_radii_at(rings, z_local):
-    """컵 링 목록에서 높이 z_local 의 (rx, ry) — 링 사이 선형보간. 바닥 아래는 None."""
-    if z_local >= rings[0][0]:
-        return rings[0][1], rings[0][2]
-    for (z1, x1, y1), (z2, x2, y2) in zip(rings, rings[1:]):
-        if z2 <= z_local <= z1:
-            t = (z1 - z_local) / (z1 - z2)
-            return x1 + t * (x2 - x1), y1 + t * (y2 - y1)
-    return None
+print("[3] 컨테이너 규칙성 (애셋 프레임)")
+shell = st.GetPrimAtPath("/World/egg_carton/shell")
+P = np.array(UsdGeom.Mesh(shell).GetPointsAttr().Get())
+rim_z = P[np.isclose(P[:, 2], G.PLATE_TOP_Z_M)][:, 2]
+chk(len(rim_z) > 0 and np.ptp(rim_z) < 1e-6, "판 윗면 수평 (z = %.1fmm 단일값)" % (G.PLATE_TOP_Z_M * 1000))
+floor_z = P[np.isclose(P[:, 2], G.CUP_FLOOR_Z_M)][:, 2]
+chk(len(floor_z) == 15 * G.CUP_SIDES * 2, "컵 바닥 15개 같은 높이 z=%.1fmm (테이블 상판 위)" % (G.CUP_FLOOR_Z_M * 1000))
+centers = np.array([G.cup_center_asset_m(s)[:2] for s in range(15)])
+dcol = centers[1] - centers[0]; drow = centers[3] - centers[0]
+chk(abs(dcol @ drow) < 1e-12 and abs(np.linalg.norm(dcol) - G.PITCH_COL_M) < 1e-9 and abs(np.linalg.norm(drow) - G.PITCH_ROW_M) < 1e-9,
+    "직교 격자, 피치 %.1f × %.1f mm" % (G.PITCH_COL_M * 1000, G.PITCH_ROW_M * 1000))
+# 컵 동일성: 각 컵의 판 아래 점(벽 링·바닥)을 컵 중심 기준으로 모아 기대 점집합과 행 단위로 비교
+def _ring(rx, ry, z, n=G.CUP_SIDES):
+    a = np.linspace(0.0, 2 * np.pi, n, endpoint=False)
+    return np.stack([rx * np.cos(a), ry * np.sin(a), np.full(n, z)], 1)
+_r = [_ring(rx, ry, z) for z, rx, ry in G.CUP_RINGS_M[1:]]            # 판 아래 링 3개
+expected = np.vstack([_r[0], _r[0], _r[1], _r[1], _r[2], _r[2]])        # 띠 2장 + 바닥에 각 2회 등장
+def _canon(a):
+    a = np.round(a, 6) + 0.0
+    return a[np.lexsort((a[:, 2], a[:, 1], a[:, 0]))]
+exp_c = _canon(expected)
+same, worst = True, 0.0
+for s in range(15):
+    c = G.cup_center_asset_m(s)
+    pts = P[(np.abs(P[:, 0] - c[0]) < G.PITCH_COL_M / 2) & (np.abs(P[:, 1] - c[1]) < G.PITCH_ROW_M / 2)
+            & (P[:, 2] < G.PLATE_TOP_Z_M - 1e-6) & (P[:, 2] > G.SKIRT_BOTTOM_Z_M + 1e-6)] - c
+    if pts.shape != expected.shape:
+        same = False; print("     slot %2d 점 수 %d ≠ 기대 %d" % (s, len(pts), len(expected))); continue
+    dmax = float(np.abs(_canon(pts) - exp_c).max()); worst = max(worst, dmax)
+    same &= dmax < 1e-5
+chk(same, "컵 15개 형상 동일 (컵당 %d점, 기대 점집합과 최대 차 %.2e m)" % (len(expected), worst))
+chk(P[:, 2].min() >= G.SKIRT_BOTTOM_Z_M - 1e-9, "쉘 최저점 = 스커트 %.0fmm (컵이 그보다 내려가지 않음)" % (G.SKIRT_BOTTOM_Z_M * 1000))
 
-
-worst_off, worst_pen, worst_sink = 0.0, 0.0, 0.0
+print("[4] 과실 6개 착지 (런 %s) — 컨테이너를 과실에 맞추지 않았으므로 치우침은 정보" % G.RUN_ID)
+fl = np.array(UsdGeom.Mesh(st.GetPrimAtPath("/World/strawberry_ripe_01/geo/fruit/mesh")).GetPointsAttr().Get()) * 0.005
+fp_world = R.from_euler("z", -81.5, degrees=True).apply(fl)          # 파지→배치 회전 (world)
+hx, hy = G.PITCH_COL_M / 2, G.PITCH_ROW_M / 2
+in_cell = True; worst_clip = 0.0
 for slot, f in sorted(G.FRUIT_REST_M.items()):
-    c = F0 + G.cup_used_center_local_m(slot, F0)
-    rings = G.cup_rings_local_m(slot, F0)
-    floor_world = rings[-1][0] + F0[2]
-    off = f - c                                   # 점유 컵은 실측에 맞췄으므로 xy 는 0 이어야 한다
-    worst_off = max(worst_off, np.hypot(*off[:2]) * 1000)
-    P = fp + f
-    below = P[P[:, 2] < rings[0][0] + F0[2]]
-    pen, sink = 0.0, 0.0
+    fa = G.world_to_asset(f, t_scene, yaw_scene)
+    c = G.cup_center_asset_m(slot)
+    off = (fa - c)[:2] * 1000
+    inside = abs(off[0]) < hx * 1000 and abs(off[1]) < hy * 1000
+    in_cell &= inside
+    # 표면점을 애셋 프레임으로: 회전 부분만 (평행이동은 fa 로)
+    Ra = R.from_euler("z", -yaw_scene).as_matrix()
+    surf = (fp_world @ Ra.T) + fa
+    below = surf[surf[:, 2] < G.PLATE_TOP_Z_M]
+    clip = 0.0
     for q in below:
-        rr = cup_radii_at(rings, q[2] - F0[2])
-        if rr is None:                      # 컵 바닥보다 아래 = 바닥판·테이블 안, 보이지 않는다
-            sink = max(sink, (floor_world - q[2]) * 1000)
+        rr = G.cup_radii_at_z(q[2])
+        if rr is None:
             continue
-        s = np.hypot((q[0] - c[0]) / rr[0], (q[1] - c[1]) / rr[1])   # <1 이면 벽 안쪽
-        if s > 1.0:
-            pen = max(pen, (s - 1.0) * min(rr) * 1000)
-    worst_pen = max(worst_pen, pen); worst_sink = max(worst_sink, sink)
-    print("     slot %2d  치우침 (%+.1f, %+.1f) mm  림 아래 표면점 %3d개 벽 관통 %.1fmm  바닥(world %+.1fmm) 아래로 잠김 %.1fmm"
-          % (slot, off[0] * 1000, off[1] * 1000, len(below), pen, floor_world * 1000, sink))
-chk(worst_pen == 0.0, "과실 표면이 컵 **벽**을 뚫지 않는다 (최대 관통 %.1fmm)" % worst_pen)
-chk(worst_off < 0.1, "점유 컵 6개는 실측 과실 위치에 정렬 (xy 치우침 최대 %.2fmm)" % worst_off)
-shifts = [np.hypot(*G.cup_shift_local_m(s, F0)[:2]) * 1000 for s in G.FRUIT_REST_M]
-print("     격자 대비 컵 이동량 %.1f~%.1fmm (분면별 매달린 깊이 차)" % (min(shifts), max(shifts)))
-floors = [G.cup_rings_local_m(s, F0)[-1][0] + F0[2] for s in range(15)]
-chk(min(floors) >= G.CUP_FLOOR_MIN_WORLD_Z_M - 1e-6,
-    "컵 바닥 15개 전부 테이블 상판 위 (최저 %+.1fmm) — 빈 컵에 테이블이 비치지 않는다" % (min(floors) * 1000))
-print("     과실 밑끝이 바닥 아래로 잠기는 최대 %.1fmm — 바닥판·테이블 안이라 보이지 않음 (과실 위치는 런 실측 그대로)" % worst_sink)
-
-print("[4] 컵 15개 · 스커트 · 테이블")
-shell = world_pts("/World/egg_carton/shell")
-skirt_bottom = shell[-4:, 2]            # 생성기가 마지막에 붙이는 스커트 아랫변 4점
-chk(np.allclose(skirt_bottom, G.SKIRT_BOTTOM_WORLD_Z_M, atol=1e-4),
-    "스커트 밑면 z=%.1fmm = 설정값 (테이블 상판 0 아래로 앉힘)" % (skirt_bottom.mean() * 1000))
-chk(abs(shell[:, 2].min() - G.SKIRT_BOTTOM_WORLD_Z_M) < 1e-4, "쉘 최저점 = 스커트 밑면 (%.1fmm) — 컵이 그보다 아래로 내려가지 않는다" % (shell[:, 2].min() * 1000))
-tops = [(F0 + G.cup_center_local_m(s))[2] + G.CUP_RIM_DZ_M for s in range(15)]
-print("     판 윗면 z 범위 %.1f ~ %.1f mm (격자 z 기울기 반영)" % (min(tops) * 1000, max(tops) * 1000))
-print("     바운딩 x %.0f~%.0f  y %.0f~%.0f mm" % (shell[:, 0].min() * 1000, shell[:, 0].max() * 1000, shell[:, 1].min() * 1000, shell[:, 1].max() * 1000))
+        sdist = np.hypot((q[0] - c[0]) / rr[0], (q[1] - c[1]) / rr[1])
+        if sdist > 1.0:
+            clip = max(clip, (sdist - 1.0) * min(rr) * 1000)
+    worst_clip = max(worst_clip, clip)
+    print("     slot %2d  컵 중심 치우침 (%+5.1f, %+5.1f) mm  %s  림/벽 겹침 %.1fmm  밑끝 z %+.1fmm"
+          % (slot, off[0], off[1], "셀 안" if inside else "셀 밖!", clip, (f[2] - G.FRUIT_BOTTOM_BELOW_CENTER_M) * 1000))
+chk(in_cell, "과실 6개 전부 자기 셀 안 (반폭 %.1f × %.1f mm)" % (hx * 1000, hy * 1000))
+print("     림/벽 겹침 최대 %.1fmm — 티칭 격자 왜곡(84.26°)·분면별 매달린 깊이의 눈에 보이는 크기. 콜라이더 없음" % worst_clip)
 print("\n" + ("T4-3 검증 통과" if ok else "T4-3 검증 실패"))
 sys.exit(0 if ok else 1)

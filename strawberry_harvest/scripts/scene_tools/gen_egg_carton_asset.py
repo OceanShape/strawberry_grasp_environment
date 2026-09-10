@@ -1,10 +1,11 @@
-"""assets/props/egg_carton.usd 생성기 (T4-3 계란판 시각 메쉬).
+"""assets/props/egg_carton.usd 생성기 (T4-3 계란판 시각 메쉬, 2차).
 
     python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py \
         [strawberry_harvest/assets/props/egg_carton.usd]
 
-일반 python3 + numpy 로 돈다 (Isaac 불필요). 형상·좌표는 전부 egg_carton_geom.py.
+일반 python3 + numpy (Isaac 불필요). 형상·좌표·fit 은 전부 egg_carton_geom.py.
 물리·콜라이더 없음 — 시각 전용 (SUBMISSION_PLAN §2 게이트: 플래너 입출력 불변).
+씬 배치값(translate, orient)을 같이 출력한다 → layout_layer.usd 에 옮긴다.
 """
 import os
 import sys
@@ -20,93 +21,58 @@ def ellipse_ring(cx, rx, ry, z, n):
     return np.stack([cx[0] + rx * np.cos(a), cx[1] + ry * np.sin(a), np.full(n, z)], 1)
 
 
-def project_to_parallelogram(origin, dirs, cell_center, hv, hh):
-    """origin 에서 dirs 방향 반직선이 cell_center 중심 평행사변형(±hv, ±hh) 경계와 만나는 점."""
-    M = np.stack([hv[:2], hh[:2]], 1)
-    o = np.linalg.solve(M, (origin - cell_center)[:2])     # origin 의 (a,b) 좌표
+def project_to_rect(center, dirs, hx, hy):
+    """center 에서 dirs 방향 반직선이 반폭 (hx, hy) 직사각형 경계와 만나는 점."""
     out = []
     for d in dirs:
-        dd = np.linalg.solve(M, d[:2])
-        ts = []
-        for k in range(2):
-            if abs(dd[k]) > 1e-12:
-                for lim in (-1.0, 1.0):
-                    tt = (lim - o[k]) / dd[k]
-                    if tt > 0:
-                        ts.append(tt)
+        ts = [hx / abs(d[0]) if abs(d[0]) > 1e-12 else np.inf, hy / abs(d[1]) if abs(d[1]) > 1e-12 else np.inf]
         t = min(ts)
-        ab = o + t * dd
-        out.append(cell_center + ab[0] * hv + ab[1] * hh)
+        out.append(center + t * np.array([d[0], d[1], 0.0]))
     return np.array(out)
 
 
 def build():
-    F0 = G.fit_origin_m()
     verts, counts, idx = [], [], []
 
     def add_poly(vs, reverse=False):
-        base = len(verts)
-        verts.extend(vs)
-        order = list(range(len(vs)))
-        if reverse:
-            order = order[::-1]
-        counts.append(len(vs))
-        idx.extend(base + o for o in order)
+        base = len(verts); verts.extend(vs)
+        order = list(range(len(vs)))[::-1] if reverse else list(range(len(vs)))
+        counts.append(len(vs)); idx.extend(base + o for o in order)
 
     def add_strip(ring_a, ring_b, flip=False):
-        """두 링(같은 점 수) 사이 사각형 띠."""
-        n = len(ring_a)
-        base = len(verts)
-        verts.extend(ring_a)
-        verts.extend(ring_b)
+        n = len(ring_a); base = len(verts)
+        verts.extend(ring_a); verts.extend(ring_b)
         for i in range(n):
             j = (i + 1) % n
             quad = [base + i, base + j, base + n + j, base + n + i]
-            if flip:
-                quad = quad[::-1]
-            counts.append(4)
-            idx.extend(quad)
+            counts.append(4); idx.extend(quad[::-1] if flip else quad)
 
-    hv, hh = G.V_COL / 2.0, G.H_ROW / 2.0
+    hx, hy = G.PITCH_COL_M / 2.0, G.PITCH_ROW_M / 2.0
     n = G.CUP_SIDES
     for slot in range(G.ROWS * G.COLS):
-        cg = G.cup_center_local_m(slot)                # 셀(격자) 중심
-        c = G.cup_used_center_local_m(slot, F0)         # 컵 중심 (점유 컵은 실측 과실 위치)
-        rings = [ellipse_ring(c, rx, ry, z, n) for z, rx, ry in G.cup_rings_local_m(slot, F0)]
-        rim, bot = rings[0], rings[-1]
-        # 컵 벽: 안쪽에서 보이므로 법선이 안쪽(위)을 향하게 — 밖에서 볼 때는 판이 가린다
+        c = G.cup_center_asset_m(slot)
+        rings = [ellipse_ring(c, rx, ry, z, n) for z, rx, ry in G.CUP_RINGS_M]
         for a, b in zip(rings, rings[1:]):
-            add_strip(a, b, flip=True)
-        add_poly(list(bot), reverse=False)          # 바닥 (위를 향함)
-        # 판: 셀 경계(평행사변형) ↔ 림 사이 고리. 평면은 컵마다 z 가 다르므로 셀 z 로.
-        dirs = rim - c
-        outer = project_to_parallelogram(c, dirs, cg, hv, hh)
-        outer[:, 2] = cg[2] + G.CUP_RIM_DZ_M
-        add_strip(outer, rim, flip=False)           # 위를 향하는 고리
+            add_strip(a, b, flip=True)               # 컵 벽 (안쪽을 향함)
+        add_poly(list(rings[-1]))                    # 바닥
+        rim = rings[0]
+        outer = project_to_rect(c, rim - c, hx, hy)
+        outer[:, 2] = G.PLATE_TOP_Z_M
+        add_strip(outer, rim)                        # 판 고리 (셀 직사각형 ↔ 림)
 
-    # 겉 테두리 + 스커트: 전체 평행사변형 (마진 포함), 위 = 판 평면, 아래 = 테이블 밑
+    # 겉 테두리(마진) + 스커트 — 직사각형
     m = G.PLATE_MARGIN_M
-    ev = G.V_COL / np.linalg.norm(G.V_COL); eh = G.H_ROW / np.linalg.norm(G.H_ROW)
-    corners_rc = [(-0.5, -0.5), (-0.5, G.COLS - 0.5), (G.ROWS - 0.5, G.COLS - 0.5), (G.ROWS - 0.5, -0.5)]
-    top = []
-    for r, cc in corners_rc:
-        p = r * G.H_ROW + cc * G.V_COL
-        p = p + m * (np.sign(cc + 0.5 - G.COLS / 2.0 + 1e-9) * ev + np.sign(r + 0.5 - G.ROWS / 2.0 + 1e-9) * eh)
-        p[2] = (r * G.H_ROW + cc * G.V_COL)[2] + G.CUP_RIM_DZ_M
-        top.append(p)
-    top = np.array(top)
-    # 마진 띠 (셀 바깥 ~ 테두리) — 셀 경계선을 따라 얇은 고리 4장
-    inner = np.array([(r * G.H_ROW + cc * G.V_COL) + [0, 0, G.CUP_RIM_DZ_M] for r, cc in corners_rc])
+    x0, x1 = -(G.COLS - 1) * G.PITCH_COL_M - hx, hx
+    y0, y1 = -(G.ROWS - 1) * G.PITCH_ROW_M - hy, hy
+    inner = np.array([[x0, y0, G.PLATE_TOP_Z_M], [x1, y0, G.PLATE_TOP_Z_M], [x1, y1, G.PLATE_TOP_Z_M], [x0, y1, G.PLATE_TOP_Z_M]])
+    outer = np.array([[x0 - m, y0 - m, G.PLATE_TOP_Z_M], [x1 + m, y0 - m, G.PLATE_TOP_Z_M],
+                      [x1 + m, y1 + m, G.PLATE_TOP_Z_M], [x0 - m, y1 + m, G.PLATE_TOP_Z_M]])
     for k in range(4):
-        a, b = inner[k], inner[(k + 1) % 4]
-        A, B = top[k], top[(k + 1) % 4]
-        add_poly([a, b, B, A])
-    bottom = top.copy()
-    bottom[:, 2] = G.SKIRT_BOTTOM_WORLD_Z_M - F0[2]
-    add_strip(top, bottom, flip=False)               # 스커트 (바깥을 향하도록)
-
-    V = np.array(verts)
-    return F0, V, np.array(counts), np.array(idx)
+        add_poly([inner[k], inner[(k + 1) % 4], outer[(k + 1) % 4], outer[k]])
+    bottom = outer.copy(); bottom[:, 2] = G.SKIRT_BOTTOM_Z_M
+    add_strip(outer, bottom)                         # 스커트
+    add_poly(list(bottom), reverse=True)             # 밑면 (아래를 향함)
+    return np.array(verts), np.array(counts), np.array(idx)
 
 
 def vec3(a):
@@ -116,42 +82,37 @@ def vec3(a):
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "..", "assets", "props", "egg_carton.usd")
-    F0, V, counts, idx = build()
-    res = G.fit_residuals_mm()
+    V, counts, idx = build()
+    t, yaw, res = G.fit_pose()
     lo, hi = V.min(0), V.max(0)
-    ang = np.degrees(np.arccos(G.V_COL[:2] @ G.H_ROW[:2] / np.linalg.norm(G.V_COL[:2]) / np.linalg.norm(G.H_ROW[:2])))
+    q = (float(np.cos(yaw / 2)), 0.0, 0.0, float(np.sin(yaw / 2)))
     header = f'''#usda 1.0
 (
-    "계란판 시각 메쉬 — 5x3 컵. 격자는 플래너 티칭 상수, 원점은 런 7 과실 정지 위치 fit. 물리 없음"
+    "계란판 시각 메쉬 — 수평·직사각·컵 15개 동일. 피치만 플래너 티칭 상수, 자세는 씬 배치(layout_layer)에서. 물리 없음"
     defaultPrim = "egg_carton"
     metersPerUnit = 1
     upAxis = "Z"
 )
 
-# [T4-3 2026-09-11] 계란판 — **시각 전용**. 생성기: scripts/scene_tools/gen_egg_carton_asset.py
+# [T4-3 2026-09-11, 2차] 계란판 — **시각 전용**. 생성기: scripts/scene_tools/gen_egg_carton_asset.py
 #
-# 왜: T2 부착 이후 과실이 실제로 트레이 자리에 놓이는데, 놓일 계란판이 없어 허공에 정지해 있었다.
+# 1차(같은 날 폐기)는 컵 격자를 티칭 격자 그대로(사이각 84.26°, z 기울기) 만들고 점유 컵을 실측 과실에
+# 맞췄다. 사용자 지적: 계란판을 쓰는 이유가 "가로세로 균일한 컨테이너" 인데, 기울고 평행사변형이고
+# 컵이 제각각이면 그 이유가 사라진다. 맞는 지적이다 — 격자 왜곡은 로봇 티칭 오차이지 컨테이너의 성질이
+# 아니고, 컨테이너에 구워 넣으면 오차가 숨는다. 2차는 컨테이너를 규칙적으로 두고 과실이 벗어나는 모습을
+# 그대로 보인다.
 #
-# SUBMISSION_PLAN §2 게이트 — 플래너 입출력 불변:
-#   - 콜라이더·강체·조인트 없음. 프림 이름에 "strawberry" 없음 (브릿지 발행 필터 무관).
-#   - 좌표를 새로 만들지 않았다. 격자 벡터는 플래너 상수 TAUGHT_SLOT{{0,1,3}}_PLACE_REFERENCE 그대로:
-#       열 축 v = {np.round(G.V_COL*1000,2).tolist()} mm,  행 축 h = {np.round(G.H_ROW*1000,2).tolist()} mm
-#     두 축 사이각 {ang:.2f}° — 실기 3점 수동 티칭 오차의 재현. 컵도 그 격자로 놓아야 과실과 맞는다.
-#   - 격자 상수는 그리퍼 밑동(ee) 위치이고 과실은 툴 축 ~250mm 앞에 놓이므로, 컵 원점은
-#     **런 7({G.RUN_ID}) 과실 정지 위치 6개의 최소자승**이다:  F0 = {np.round(F0*1000,1).tolist()} mm (world)
-#     → 이 값이 layout_layer.usd 의 translate. 격자 대비 잔차(mm) — **점유 컵 6개는 이만큼 옮겨 실측 과실에 맞췄다**:
-{chr(10).join("#         slot %2d  %s" % (s, np.round(r,1).tolist()) for s, r in sorted(res.items()))}
-#     잔차 x 성분은 분면별 접근 기울기(sw 10.1° vs nw/ne 0.2°) 로 매달린 깊이가 8.7mm 다른 것이 원인 (log/m3 §런 7).
+# 이 애셋 = 계란판 자체 프레임. 원점 = slot 0 컵 중심 아래 테이블 상판(z=0). 열은 -x, 행은 -y.
+#   피치 열 {G.PITCH_COL_M*1000:.1f} / 행 {G.PITCH_ROW_M*1000:.1f} mm (플래너 상수 TAUGHT_SLOT{{0,1,3}} 의 크기만; 각도는 쓰지 않는다)
+#   컵 15개 동일: 림 rx{G.CUP_RINGS_M[0][1]*1000:.0f}/ry{G.CUP_RINGS_M[0][2]*1000:.0f} @ z{G.PLATE_TOP_Z_M*1000:.0f} → 바닥 rx{G.CUP_RINGS_M[-1][1]*1000:.0f}/ry{G.CUP_RINGS_M[-1][2]*1000:.0f} @ z{G.CUP_FLOOR_Z_M*1000:.0f} mm, 깊이 {(G.PLATE_TOP_Z_M-G.CUP_FLOOR_Z_M)*1000:.0f}mm
+#   판 윗면 z{G.PLATE_TOP_Z_M*1000:.0f}mm 은 가장 낮게 놓이는 과실(중심 z≈24mm)이 림에 걸리지 않는 상한이다. 스커트는 상판 {-G.SKIRT_BOTTOM_Z_M*1000:.0f}mm 아래.
 #
-# 형상: 컵 = 타원 그릇 {G.CUP_RINGS}링. 림은 피치가 허용하는 최대(rx{G.CUP_RIM_RX_M*1000:.0f}/ry{G.CUP_RIM_RY_M*1000:.0f}mm), 그 아래 벽은 **과실 반경 프로파일 + {G.CUP_WALL_MARGIN_M*1000:.0f}mm**\n#   (바닥 최소 rx{G.CUP_BOT_MIN_RX_M*1000:.0f}/ry{G.CUP_BOT_MIN_RY_M*1000:.0f}mm). 판 윗면은 과실 중심 {-G.CUP_RIM_DZ_M*1000:.0f}mm 아래,
-#   컵 바닥 목표는 {-G.CUP_BOTTOM_DZ_M*1000:.0f}mm 아래(과실 밑끝 -33.1mm 보다 3mm 여유)지만 **테이블 상판 위 +{G.CUP_FLOOR_MIN_WORLD_Z_M*1000:.0f}mm 를 하한**으로 둔다 —
-#   격자 z 기울기(행당 {G.H_ROW[2]*1000:+.1f}mm) 탓에 그대로 두면 바닥이 전부 상판 아래로 가 빈 컵에 테이블 면이 비친다. 낮은 행 과실은
-#   밑끝이 바닥보다 아래로 잠기지만(최대 ~10mm) 그 부분은 바닥판·테이블 안이라 보이지 않는다. 판은 셀마다 격자 z 를 따라가므로
-#   격자 z 기울기가 그대로 판 기울기다. 스커트는 상판 5mm 아래까지 내려 앉힌다.
-#   ⚠️ 하강 중 과실 최대 반경(y 27mm) 이 림(ry 23mm) 을 지날 때 ~4mm 겹쳐 보인다. 콜라이더가 없어 물리 영향은 없다.
-#   행 피치 51.2mm 가 과실 y 전폭 53.8mm 보다 작아 림을 더 키울 수 없다 — (A) 접촉 문제와 같은 뿌리.
-#
-# 색: 펄프 계란판. sRGB (176,158,132) → linear (0.43, 0.34, 0.23), roughness 0.9.
+# 씬 배치 (layout_layer.usd) — 티칭 ee 격자 15점 + 평균 ee→과실 변위(런 {G.RUN_ID}) 에 강체 최소자승(Kabsch):
+#   translate = {np.round(t, 4).tolist()} m,  yaw = {np.degrees(yaw):+.2f}° (orient wxyz = {tuple(round(v, 6) for v in q)})
+#   격자 왜곡을 fit 이 양쪽 축으로 나눠 가진 잔차(티칭 목표 − 컵 중심, mm):
+{chr(10).join("#     slot %2d  %s" % (s, np.round(r, 1).tolist()) for s, r in sorted(res.items()))}
+#   → 행 0 과 행 4 가 x 로 반대 방향으로 벗어난다. 이것이 티칭 격자 5.74° 왜곡의 눈에 보이는 크기다.
+#     과실 정지 위치(런 실측)는 건드리지 않는다. 컵에서 벗어난 과실이 림·능선과 겹치는 것은 콜라이더가 없어 물리 영향이 없다.
 
 def Xform "egg_carton"
 {{
@@ -199,9 +160,9 @@ def Xform "egg_carton"
     with open(out, "w", encoding="utf-8") as f:
         f.write(header + "\n".join(body) + "\n" + footer)
     print("wrote %s  (%d points, %d faces)" % (os.path.normpath(out), len(V), len(counts)))
-    print("F0 (layout_layer translate) = %s m" % np.round(F0, 4).tolist())
-    for s, r in sorted(res.items()):
-        print("  slot %2d 잔차 %s mm" % (s, np.round(r, 1).tolist()))
+    print("layout_layer: translate = %s  yaw = %+.2f deg  orient(wxyz) = %s" % (np.round(t, 4).tolist(), np.degrees(yaw), tuple(round(v, 6) for v in q)))
+    for s in sorted(res):
+        print("  slot %2d 티칭−컵 잔차 %s mm%s" % (s, np.round(res[s], 1).tolist(), "  ← 점유" if s in G.FRUIT_REST_M else ""))
 
 
 if __name__ == "__main__":

@@ -1,22 +1,24 @@
-"""계란판 형상의 단일 출처 (T4-3). 생성기와 검증기가 공용.
+"""계란판 형상의 단일 출처 (T4-3, 2차). 생성기와 검증기가 공용.
+
+원칙 (2026-09-11 사용자 결정)
+  계란판은 **강체 실물**이다 — 수평, 직사각, 컵 15개 동일. 티칭 격자의 왜곡(사이각 84.26°, z 기울기)은
+  로봇 티칭 오차이지 컨테이너의 성질이 아니다. 컨테이너를 그 오차에 맞추면 오차가 숨는다.
+  컨테이너는 규칙적으로 만들고, 과실은 놓이는 자리에 그대로 둔다 — 과실이 컵에서 벗어나는 만큼이
+  티칭 오차의 눈에 보이는 크기다.
 
 좌표계
-  로컬 원점 = slot 0 컵 중심 (아래 fit 결과), 축은 world 와 동일.
-  layout_layer.usd 의 translate 가 이 원점의 world 위치다.
+  애셋 프레임 = 계란판 자체 프레임. 원점 = slot 0 컵 중심의 바로 아래 테이블 상판(z=0).
+  열(slot%3) 은 -x, 행(slot//3) 은 -y 방향 (티칭 격자와 같은 방향 관례). 컵 15개는 축 정렬 직교 격자.
+  씬 배치(layout_layer.usd) = 아래 fit 의 (translate, z축 회전).
 
-격자
-  컵 15개 = 5행 × 3열, slot = row*3 + col.
-  격자 벡터는 플래너 상수 TAUGHT_SLOT{0,1,3}_PLACE_REFERENCE_POSX_MM_DEG 에서 그대로 온다
-  (열 축 v = slot1 - slot0, 행 축 h = slot3 - slot0). 새 좌표를 만들지 않는다 (§2 부수규칙 2).
-  ⚠️ 이 격자는 두 축 사이각이 84.26° 라 평행사변형이다 — 실기 3점 수동 티칭 오차의 재현.
-     컵도 같은 격자로 놓아야 과실과 맞는다.
+피치
+  열 |slot1-slot0| = 59.8mm, 행 |slot3-slot0| = 51.2mm — 플래너 상수의 **크기**만 쓴다. 각도는 쓰지 않는다.
+  (컨테이너 실측 치수는 기록이 없다. 3점 티칭 오차는 각도에 주로 들어가고 거리에는 덜 들어간다고 본다.)
 
-원점 fit
-  격자 상수는 그리퍼 밑동(ee) 위치이고, 과실은 툴 축으로 ~250mm 앞에 매달려 놓인다.
-  그래서 컵 격자의 원점은 ee 상수가 아니라 **최종 런(런 7)의 과실 정지 위치 6개**로 최소자승 fit 한다:
-      F0 = mean( F_s - row_s*h - col_s*v )
-  과실별 매달린 깊이 차(분면별 접근 기울기, 최대 8.7mm)는 잔차로 남는다(≤6mm). 점유 컵 6개는
-  그 잔차만큼 격자에서 옮겨 실측 과실 위치에 맞춘다 (cup_shift_local_m).
+자세 fit
+  티칭 ee 격자 15점 + 평균 ee→과실 변위(런 7 실측 6개) 를 목표로, 피치 고정 직교 격자를 강체(회전+평행이동)
+  최소자승(Kabsch)으로 맞춘다. 과실 6개로 직접 맞추지 않는 이유: 분면별 매달린 깊이 차(±4mm x)가
+  행 그룹별로 달라 가짜 전단이 섞인다. 격자 왜곡은 fit 이 양쪽 축으로 나눠 갖는다.
 """
 import os
 import sys
@@ -36,9 +38,11 @@ from harvest_motion_params import (  # noqa: E402
 ROWS, COLS = 5, 3
 assert ROWS * COLS == TAUGHT_TRAY_SLOT_COUNT
 
-# 격자 벡터 (m)
-V_COL = (np.array(_S1[:3]) - np.array(_S0[:3])) / 1000.0   # slot%3 방향  ≈ (-59.7, +3.4, +0.9)mm
-H_ROW = (np.array(_S3[:3]) - np.array(_S0[:3])) / 1000.0   # slot//3 방향 ≈ (-8.0, -50.6, -2.5)mm
+_EE0 = np.array(_S0[:3]) / 1000.0
+V_COL_TAUGHT = (np.array(_S1[:3]) - np.array(_S0[:3])) / 1000.0   # 티칭 열 축 (왜곡 포함)
+H_ROW_TAUGHT = (np.array(_S3[:3]) - np.array(_S0[:3])) / 1000.0   # 티칭 행 축 (왜곡 포함)
+PITCH_COL_M = float(np.linalg.norm(V_COL_TAUGHT[:2]))               # 0.0598
+PITCH_ROW_M = float(np.linalg.norm(H_ROW_TAUGHT[:2]))               # 0.0512
 
 # 1차 출처: 런 7 (20260910T140636-71389d3a) Kit 로그 `[bridge] RELEASE ... frozen at` (m)
 RUN_ID = "20260910T140636-71389d3a"
@@ -51,27 +55,9 @@ FRUIT_REST_M = {
     13: np.array([0.6821, -0.1066, 0.0256]),
 }
 
-# 과실 정지 자세 (런 7 해석): 파지 자세에서 수직축 기준 ~82° 회전, 장축은 그대로 수직.
-#   world 전폭 x 44.5 / y 53.8 / z 62.6 mm, 중심 기준 밑끝 -33.1mm, 줄기끝 +29.5mm, 최대 반경은 중심 +6mm 부근.
+# 과실 정지 자세: 파지 자세에서 수직축 기준 ~82° 회전(장축은 수직 유지). 중심 기준 밑끝 -33.1mm, 줄기끝 +29.5mm.
 FRUIT_BOTTOM_BELOW_CENTER_M = 0.0331
-FRUIT_HALF_X_M, FRUIT_HALF_Y_M = 0.0223, 0.0269
-
-# 컵 형상 (컵 중심 = 과실 정지 중심 fit 값, 그 기준 상대 높이)
-CUP_RIM_DZ_M = -0.012        # 판 윗면 = 과실 중심 12mm 아래 (과실 반경 그 높이에서 ~19mm)
-CUP_BOTTOM_DZ_M = -0.036     # 컵 바닥 목표 = 과실 밑끝(-33.1) 보다 3mm 아래 …
-# … 이지만 격자 z 기울기(행당 -2.5mm) 때문에 그러면 컵 바닥이 **전부 테이블 상판(z=0) 아래**로 간다
-# (slot0 -0.6mm ~ slot12 -10.4mm). 상판은 불투명이라 빈 컵 안에 테이블 면이 비친다.
-# 그래서 컵 바닥은 상판 위 +1mm 를 하한으로 둔다. 낮은 행의 과실은 밑끝이 컵 바닥보다 아래로
-# 잠기는데(최대 ~10mm), 그 부분은 바닥판·테이블 안이라 보이지 않는다 — 과실 정지 위치(런 실측)는 건드리지 않는다.
-CUP_FLOOR_MIN_WORLD_Z_M = 0.001
-CUP_RIM_RX_M, CUP_RIM_RY_M = 0.026, 0.023     # 열 피치 59.8 / 행 피치 51.2 안에서 능선이 남는 최대 크기
-CUP_WALL_MARGIN_M = 0.003                     # 컵 벽 = 과실 반경 프로파일 + 이 여유 (런 간 팔 산포 ~2mm 를 덮는다)
-CUP_RIM_EDGE_GAP_M = 0.001                    # 림이 셀 경계에 남기는 최소 여유
-CUP_BOT_MIN_RX_M, CUP_BOT_MIN_RY_M = 0.011, 0.010   # 바닥 링 최소 (과실 밑끝 아래로 내려간 컵)
-CUP_RINGS = 4                                 # 림 / 1/3 / 2/3 / 바닥
-FRUIT_XY_RATIO = 0.82                          # 과실 단면: 좁은 방향/넓은 방향 (22.2/27.0). 회전 후 넓은 쪽이 world y
-
-# 과실 최대 반경 프로파일 (중심 기준 높이 dz → 반경, m). 애셋 메시 히스토그램(scale 0.5) 에서.
+FRUIT_XY_RATIO = 0.82                     # 좁은 방향/넓은 방향 (22.2/27.0). 회전 후 넓은 쪽이 world y 근방
 _PROFILE_DZ_M = np.array([-0.0331, -0.0315, -0.0284, -0.0252, -0.0221, -0.0190, -0.0159, -0.0127, -0.0096,
                           -0.0065, -0.0033, -0.0002, 0.0030, 0.0060, 0.0092, 0.0123, 0.0155, 0.0186, 0.0217])
 _PROFILE_R_M = np.array([0.0000, 0.00985, 0.01295, 0.0145, 0.0158, 0.0166, 0.01805, 0.0194, 0.0212,
@@ -79,71 +65,72 @@ _PROFILE_R_M = np.array([0.0000, 0.00985, 0.01295, 0.0145, 0.0158, 0.0166, 0.018
 
 
 def fruit_max_radius_m(dz):
-    """과실 중심 기준 높이 dz 에서의 최대 반경(넓은 방향). 밑끝 아래는 0."""
     return float(np.interp(dz, _PROFILE_DZ_M, _PROFILE_R_M, left=0.0, right=0.0))
 
 
+# 컵 (15개 동일, 애셋 프레임 z = 테이블 상판 기준)
+PLATE_TOP_Z_M = 0.016        # 판 윗면 = 림 높이. 가장 낮게 놓이는 과실(중심 z 24mm)의 그 높이 반경 21.9 < ry 23
+CUP_FLOOR_Z_M = 0.001        # 컵 바닥 (상판 위 — 빈 컵에 테이블이 비치지 않게)
+SKIRT_BOTTOM_Z_M = -0.003    # 스커트 아랫변 (상판 3mm 아래로 앉힘)
+CUP_RINGS_M = [              # (z, rx, ry): 림 → 바닥. rx 는 열(-x) 방향, ry 는 행(-y) 방향
+    (PLATE_TOP_Z_M, 0.026, 0.023),   # 피치 59.8 / 51.2 안에서 능선 7.8 / 5.2mm 가 남는 최대
+    (0.0110, 0.021, 0.019),
+    (0.0060, 0.017, 0.015),
+    (CUP_FLOOR_Z_M, 0.013, 0.012),
+]
 CUP_SIDES = 16
-PLATE_MARGIN_M = 0.006       # 바깥 테두리 여유
-SKIRT_BOTTOM_WORLD_Z_M = -0.005   # 테이블 상판(z=0) 5mm 아래까지 내려 앉힌다
+PLATE_MARGIN_M = 0.006
+
+# 자세 각도 강제. None = 티칭 격자에 최소자승 fit (-7.24°, 컵 중심 잔차 최대 5.3mm).
+#   0.0   = 로봇 베이스 축에 정렬 — 잔차 최대 16.7mm (행 0·4 과실이 x 로 ±16mm, 능선 위에 걸린다)
+#   -3.30 = 티칭 열 축에 정렬 — 잔차 최대 10.3mm
+YAW_OVERRIDE_DEG = None
 
 
-def fit_origin_m():
-    """slot 0 컵 중심 (world, m) — 런 7 과실 6개의 최소자승."""
-    acc = []
-    for slot, f in FRUIT_REST_M.items():
-        r, c = divmod(slot, COLS)
-        acc.append(f - r * H_ROW - c * V_COL)
-    return np.mean(np.array(acc), axis=0)
-
-
-def cup_center_local_m(slot):
+def cup_center_asset_m(slot):
+    """애셋 프레임 컵 중심 (xy, z=0). 열은 -x, 행은 -y."""
     r, c = divmod(slot, COLS)
-    return r * H_ROW + c * V_COL
+    return np.array([-c * PITCH_COL_M, -r * PITCH_ROW_M, 0.0])
 
 
-def fit_residuals_mm():
-    F0 = fit_origin_m()
-    return {s: (f - (F0 + cup_center_local_m(s))) * 1000.0 for s, f in FRUIT_REST_M.items()}
+def _taught_targets_m():
+    """티칭 ee 격자 15점 + 평균 ee→과실 변위 (xy). fit 의 목표."""
+    ee = {s: _EE0 + divmod(s, COLS)[0] * H_ROW_TAUGHT + divmod(s, COLS)[1] * V_COL_TAUGHT for s in range(15)}
+    mean_off = np.mean([FRUIT_REST_M[s] - ee[s] for s in FRUIT_REST_M], axis=0)
+    return {s: (ee[s] + mean_off)[:2] for s in range(15)}, mean_off
 
 
-def cup_shift_local_m(slot, origin_m):
-    """점유 컵의 xy 치우침 = 실측 과실 위치 − 격자 위치. 빈 컵은 0.
+def fit_pose():
+    """강체 2D Kabsch: 애셋 격자 → world. 반환 (translate_m[3], yaw_rad, residual_mm{slot})."""
+    tgt, _ = _taught_targets_m()
+    L = np.array([cup_center_asset_m(s)[:2] for s in range(15)])
+    P = np.array([tgt[s] for s in range(15)])
+    Lc, Pc = L - L.mean(0), P - P.mean(0)
+    if YAW_OVERRIDE_DEG is None:
+        U, _, Vt = np.linalg.svd(Lc.T @ Pc)
+        d = np.sign(np.linalg.det(Vt.T @ U.T))
+        Rm = Vt.T @ np.diag([1.0, d]) @ U.T
+    else:
+        cy, sy = np.cos(np.radians(YAW_OVERRIDE_DEG)), np.sin(np.radians(YAW_OVERRIDE_DEG))
+        Rm = np.array([[cy, -sy], [sy, cy]])
+    t = P.mean(0) - Rm @ L.mean(0)
+    yaw = float(np.arctan2(Rm[1, 0], Rm[0, 0]))
+    res = {s: (P[s] - (Rm @ L[s] + t)) * 1000.0 for s in range(15)}
+    return np.array([t[0], t[1], 0.0]), yaw, res
 
-    과실은 컵 축에서 최대 ~6mm 치우쳐 놓인다(분면별 접근 기울기 → 매달린 깊이 8.7mm 차, 런 6·7 재현됨).
-    행 피치 51.2 < 과실 y 전폭 53.8 이라 림을 키워 흡수할 수 없으므로, 계획서대로 **점유 컵은 실측 과실
-    위치(1차 출처)에 맞추고** 빈 9칸만 티칭 격자에 둔다. 격자 대비 ≤6mm 어긋난 컵 6개가 생긴다 — 과실이 실제로
-    거기 있으므로 컵이 거기 있는 편이 맞아 보인다.
-    """
-    if slot not in FRUIT_REST_M:
-        return np.zeros(3)
-    d = FRUIT_REST_M[slot] - (origin_m + cup_center_local_m(slot))
-    return np.array([d[0], d[1], 0.0])
+
+def world_to_asset(p_world, translate, yaw):
+    c, s = np.cos(-yaw), np.sin(-yaw)
+    q = np.asarray(p_world) - translate
+    return np.array([c * q[0] - s * q[1], s * q[0] + c * q[1], q[2]])
 
 
-def cup_used_center_local_m(slot, origin_m):
-    return cup_center_local_m(slot) + cup_shift_local_m(slot, origin_m)
-
-
-def cup_rings_local_m(slot, origin_m):
-    """컵의 (z_local, rx, ry) 링 목록 — 림에서 바닥까지 CUP_RINGS 개. 중심은 cup_used_center_local_m.
-
-    림은 피치가 허용하는 최대 크기(치우친 컵은 셀 경계까지 남는 만큼)로 고정하고, 그 아래 링은
-    **과실 반경 프로파일 + 여유**를 따른다. 바닥은 테이블 상판 위 하한을 적용하므로 낮은 행은 컵이 얕고
-    바닥이 넓다 — 과실 몸통이 거기까지 내려와 있기 때문이다.
-    """
-    c = cup_center_local_m(slot)
-    sh = cup_shift_local_m(slot, origin_m)
-    half_x = 0.5 * abs(V_COL[0]); half_y = 0.5 * abs(H_ROW[1])
-    rim_rx = min(CUP_RIM_RX_M, half_x - abs(sh[0]) - CUP_RIM_EDGE_GAP_M)
-    rim_ry = min(CUP_RIM_RY_M, half_y - abs(sh[1]) - CUP_RIM_EDGE_GAP_M)
-    rim = c[2] + CUP_RIM_DZ_M
-    floor = max(c[2] + CUP_BOTTOM_DZ_M, CUP_FLOOR_MIN_WORLD_Z_M - origin_m[2])
-    rings = [(rim, rim_rx, rim_ry)]
-    for k in range(1, CUP_RINGS):
-        z = rim + (floor - rim) * k / (CUP_RINGS - 1)
-        r = fruit_max_radius_m(z - c[2])
-        ry = min(rim_ry, max(CUP_BOT_MIN_RY_M, r + CUP_WALL_MARGIN_M))
-        rx = min(rim_rx, max(CUP_BOT_MIN_RX_M, FRUIT_XY_RATIO * r + CUP_WALL_MARGIN_M))
-        rings.append((z, rx, ry))
-    return rings
+def cup_radii_at_z(z):
+    """애셋 프레임 높이 z 에서의 컵 (rx, ry). 바닥 아래는 None, 림 위는 림 값."""
+    if z >= CUP_RINGS_M[0][0]:
+        return CUP_RINGS_M[0][1], CUP_RINGS_M[0][2]
+    for (z1, x1, y1), (z2, x2, y2) in zip(CUP_RINGS_M, CUP_RINGS_M[1:]):
+        if z2 <= z <= z1:
+            t = (z1 - z) / (z1 - z2)
+            return x1 + t * (x2 - x1), y1 + t * (y2 - y1)
+    return None

@@ -234,9 +234,10 @@ def Xform "World"
         }
     }
 
-    # [T4-3 2026-09-11] 계란판 시각 메쉬. 5x3 컵, 격자는 플래너 티칭 상수 그대로(84.26° 평행사변형),
-    #   원점은 런 7 과실 정지 위치 fit. 물리·콜라이더 없음, 이름에 "strawberry" 없음.
-    #   배치는 layers/layout_layer.usd (translate = fit 원점). 생성기·검증기는 scripts/scene_tools/.
+    # [T4-3 2026-09-11] 계란판 시각 메쉬. 수평·직사각·컵 15개 동일 (피치만 플래너 티칭 상수의 크기).
+    #   격자 왜곡(84.26°)은 티칭 오차라 판에 굽지 않는다 — 과실이 컵에서 벗어나는 모습으로 보인다.
+    #   물리·콜라이더 없음, 이름에 "strawberry" 없음. 배치(translate+yaw fit)는 layers/layout_layer.usd,
+    #   생성기·검증기는 scripts/scene_tools/.
     def "egg_carton" (
         prepend references = @../assets/props/egg_carton.usd@
     )

@@ -379,17 +379,21 @@ over "World"
         }
     }
 
-    # [T4-3 2026-09-11] 계란판 — 시각 전용. 조립은 main_scene.usd, 형상은 assets/props/egg_carton.usd.
+    # [T4-3 2026-09-11, 2차] 계란판 — 시각 전용. 조립은 main_scene.usd, 형상은 assets/props/egg_carton.usd.
     #
-    # translate 는 **slot 0 컵 중심**이다 — 격자 상수(그리퍼 밑동 ee 위치)가 아니라
-    # 런 7 과실 정지 위치 6개의 최소자승 fit 값. ee 상수 자리(x≈520)에 놓으면 250mm 어긋난다.
-    # 컵 15개는 이 원점에서 플래너 격자 벡터(열 (-59.7,+3.4,+0.9) / 행 (-8.0,-50.6,-2.5) mm)로 펼쳐진다.
-    # 값을 다시 만들려면: python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py
-    # ⚠️ scale 없음. 배치 슬롯·과실 위치가 바뀌면 egg_carton_geom.py 의 FRUIT_REST_M 을 갱신하고 재생성.
+    # 계란판은 **수평·직사각·컵 15개 동일**한 강체다 (1차의 "티칭 격자 그대로 기울인 판" 은 사용자 지적으로 폐기 —
+    # 격자 왜곡은 로봇 티칭 오차이지 컨테이너의 성질이 아니다). 왜곡은 여기 배치가 아니라 **과실이 컵에서 벗어나는
+    # 모습**으로 드러난다.
+    #
+    # translate/orient = 티칭 ee 격자 15점 + 평균 ee→과실 변위(런 7)에 강체 최소자승(Kabsch) 으로 맞춘 자세.
+    #   translate = slot 0 컵 중심 아래 테이블 상판, yaw = fit 값 (아래). z 는 0 — 테이블 위에 놓인다.
+    #   격자 상수 자리(ee, x≈520)에 놓으면 250mm 어긋난다.
+    # 값을 다시 만들려면: python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py  (출력의 layout_layer 줄)
+    # ⚠️ scale 없음. 배치 슬롯·과실 위치가 바뀌면 egg_carton_geom.py 의 FRUIT_REST_M 갱신 후 재생성.
     over "egg_carton"
     {
-        quatf xformOp:orient = (1, 0, 0, 0)
-        double3 xformOp:translate = (0.7711, 0.0916, 0.0354)
+        quatf xformOp:orient = (0.998004, 0, 0, -0.063156)
+        double3 xformOp:translate = (0.7676, 0.0879, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
     }
 }
