@@ -1,3 +1,23 @@
 # Ignore official large repositories
 src/doosan_robot2/
 src/RH-P12-RN/
+
+# 실행 로그 (scripts/run_nodes.sh)
+run_logs/
+
+# colcon 산출물 — 재빌드 가능 (2026-09-10 추적 제외)
+build/
+install/
+log/build_*/
+log/latest
+log/latest_build
+log/COLCON_IGNORE
+__pycache__/
+*.pyc
+
+# 플래너 런타임 JSONL (런당 수 MB). 근거로 쓰는 것은 log/m*/ 에 사본으로 보존한다
+src/e0509_gripper_description/logs/
+
+# 작업용 임시 파일
+diff.txt
+robot copy.urdf
