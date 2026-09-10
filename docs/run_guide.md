@@ -314,7 +314,7 @@ cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source
 cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 run strawberry_sim_core sim_executor_bridge_node
 
 # curobo_planner — scripts/ 에서 실행해야 한다 (flat import 구조)
-cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && cd src/strawberry_motion/scripts && python3 curobo_planner_node.py --ros-args -p tool_model_profile:=legacy_160mm -p ee_to_tcp_offset_m:=0.236 -p enable_open_stem_descent:=true -p enable_straight_reverse_retreat:=true -p pick_target_z_bias_m:=0.035 -p allow_generated_tray_slot_release:=true -p enable_marker_place_sequence:=true -p use_taught_slot0_place_reference:=true -p execute_marker_place_release:=true -p hold_after_taught_slot0_place:=false -p taught_slot_sequence:="0,0,0,0,0,0"
+cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && cd src/strawberry_motion/scripts && python3 curobo_planner_node.py --ros-args -p tool_model_profile:=legacy_160mm -p ee_to_tcp_offset_m:=0.236 -p enable_open_stem_descent:=true -p enable_straight_reverse_retreat:=true -p pick_target_z_bias_m:=0.035 -p allow_generated_tray_slot_release:=true -p enable_marker_place_sequence:=true -p use_taught_slot0_place_reference:=true -p execute_marker_place_release:=true -p hold_after_taught_slot0_place:=false -p taught_slot_sequence:="0,1,3,4,6,7"
 
 # scan_executor
 cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 -m strawberry_motion.execution.scan_executor_node --ros-args -p execute_motion:=true -p target_cell:=all
@@ -422,11 +422,14 @@ place 실행 경로는 플래너에 **이미 전부 구현돼 있고 파라미�
 | `execute_marker_place_release` | False | 트레이 위 ABOVE까지만 가고 **안 놓음** (`MARKER_PLACE_PREVIEW_HOLD`) |
 | `hold_after_taught_slot0_place` | **True** | release 후 `TAUGHT_TRAY_PLACE_COMPLETE_HOLD`로 정지, 다음 딸기로 안 넘어감 |
 
-**`taught_slot_sequence:="0,0,0,0,0,0"` — 배치 슬롯을 slot 0에 고정한다. (2026-09-10: T4 에서 `0,1,3,4,6,7` 로 바꿀 예정)**
-09-07 에는 슬롯이 1 이상으로 넘어가면 J6 운용 한계(당시 ±225°) 때문에 `J6 spline jump` 로 거부됐다. 그 한계는 **09-08 에 ±360 으로
-고쳤고**, 09-10 03:11 런에서 slot 1 은 `Plan OK`, slot 2(x≈400 열, `is_row2`) 는 `IK_FAIL` 이었다. T2 부착 이후 slot 0 고정은
-**여섯 개가 한 칸에 겹치는 화면**을 만들므로 더 이상 권장하지 않는다 — `SUBMISSION_PLAN.md` T4.
-슬롯 인덱스는 **성공했을 때만** 증가하므로 위처럼 쓰면 6번 연속 slot 0에 놓는다.
+**`taught_slot_sequence:="0,1,3,4,6,7"` — 배치 슬롯을 여섯 칸에 차례로 진행한다. (2026-09-10 T4-1, 종전 `0,0,0,0,0,0`)**
+종전 slot 0 고정은 T2 부착 이후 **여섯 개가 한 칸에 겹치는 화면**을 만들었다 (12:02 런 해제 위치가 서로 수 mm 차이). 이것은 시뮬
+결함이 아니라 **실기 노드 설정의 결함**이다 — 같은 값이면 실기도 한 칸에 떨어뜨리는데, 부트캠프 최종은 과실 1~2개만 배치해 드러나지 않았다.
+격자는 플래너 상수 `TAUGHT_SLOT{0,1,3}_PLACE_REFERENCE_POSX_MM_DEG` 로 만든다 (열 = slot%3, 행 = slot//3; 열 피치 ≈ 59.7mm(-x), 행 피치
+≈ 50.6mm(-y)). 열 2·5·8(x≈400, 베이스 최근접 열, `is_row2` — 15° 피치 틸트가 붙는다)은 09-10 03:11 런에서 `IK_FAIL` 이라 뺐다.
+09-07 의 `J6 spline jump` 거부는 J6 운용 한계 ±225° 탓이었고 **09-08 에 ±360 으로 고쳤다**.
+슬롯 인덱스는 **place 가 끝날 때마다** 시퀀스를 따라 진행하고, 시퀀스가 끝나면 다음 자동 슬롯(8 = 열 2)으로 간다 —
+그래서 여섯 개보다 많이 배치하지 않는다. 런 전 사전 검증: `cd src/strawberry_motion/scripts && python3 check_tray_slot_reachability.py <runtime JSONL>`.
 
 **`use_taught_slot0_place_reference`가 왜 필요한가**: 기본 marker place 경로는 ArUco 트레이
 위치추정 결과 파일(`tray_cells_json`)을 요구하는데

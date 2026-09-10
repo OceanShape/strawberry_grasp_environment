@@ -9,6 +9,7 @@
 | **런 2** 09-10 10:13 | [`20260910T101326-43213d77/`](20260910T101326-43213d77/) | 09-10 **쿼드트리 가지치기** 수정본 (overview 1차 스캔 → 익은 과실 있는 분면만) |
 | **런 3** 09-10 11:05 | [`20260910T110524-e89f4f91/`](20260910T110524-e89f4f91/) | 브릿지 **MoveLine 스텝 상한 24** + `plan_scan_transit=false` 기본값 |
 | **런 4** 09-10 12:02 | [`20260910T120206-06df4423/`](20260910T120206-06df4423/) | **T2 딸기 키네마틱 부착** 첫 런 (`/sim/grasp_event` + Isaac 부착·추종·해제) |
+| **런 5** (대기) | — | **T4-1 배치 슬롯 진행** `taught_slot_sequence=0,1,3,4,6,7` + T3 덩굴 첫 화면 (판정표 템플릿은 §런 5) |
 
 각 폴더 구성은 동일하다.
 
@@ -254,3 +255,35 @@ T2 전에는 딸기가 사라지는 일이 없어 드러나지 않았다. 영향
 - 2건: `Prim path expression ['/World/robot_assembly'] is invalid` (03:01:21Z) — **씬 로드가 끝나기 전에 브릿지 스크립트를 Run** 한 흔적.
   `Articulation(...)` 이 예외로 끝나 스크립트가 중단됐고, 12초 뒤 다시 Run 해서 정상 기동(`Bridge Started` 03:01:33Z). 절차 문서에 추가.
 - 브릿지 초기화 실패→자동 복구는 이번에도 재현(29회, Stop→Play 후 1회).
+
+---
+
+# 런 5 — (대기) T4-1 배치 슬롯 진행 `0,1,3,4,6,7`
+
+`run_nodes.sh` 가 이미 바뀌어 있다 — 기동 로그 대조에 `배치 슬롯 진행 0,1,3,4,6,7` 이 OK 로 떠야 한다.
+**씬 재로드 필수** (T3 덩굴 12개 + 09-10 시각 정비가 이 런에서 처음 화면에 나온다).
+런 뒤 `~/.ros/log/`·JSONL·Kit 로그를 이 폴더 규칙대로 복사하고 아래 표를 채운다.
+
+## 사전 검증 (런 전, 09-10 오프라인)
+
+`src/strawberry_motion/scripts/check_tray_slot_reachability.py` — 플래너와 같은 MotionGen·충돌월드·plan config,
+시작 자세는 런 4 의 실제 retreat 종료 관절 6개 + overview. **slot 0·1·3·4·6·7 전부 7/7 Plan OK, release IK OK.**
+x≈400 열(2·5·8·11·14)은 15° 틸트를 빼도 7/7 `IK_FAIL` — `is_row2` 열은 위치 자체가 안 닿는다.
+
+## 판정표 (채울 것)
+
+| # | 항목 | 기준 | 확인 명령 |
+|---|---|---|---|
+| 1 | 시퀀스 진행 | `TAUGHT_TRAY_SLOT_SEQUENCE: slot 0 -> 1`, `1 -> 3`, `3 -> 4`, `4 -> 6`, `6 -> 7` 5건, `SLOT_SEQUENCE_DONE` 은 6번째 place 뒤 1건(next auto slot=8, 미사용) | `grep -n "TAUGHT_TRAY_SLOT_SEQUENCE" curobo_planner.log` |
+| 2 | above 계획 | `TAUGHT_TRAY_SLOT{0,1,3,4,6,7}_ABOVE generated` 각 1건, 직후 `Plan OK` 6/6, `_PLACE_BLOCKED` 0건 | `grep -n "_ABOVE generated\|PLACE_BLOCKED" curobo_planner.log` |
+| 3 | 해제 위치 분산 | Kit `[bridge] RELEASE … frozen at` 6개가 **서로 다른 자리**. 예상(과실 위치 = ee + 툴 ~250mm): slot0 (≈775, 95) / slot1 (≈715, 99) / slot3 (≈767, 45) / slot4 (≈707, 48) / slot6 (≈759, −6) / slot7 (≈699, −2) mm, z 36~47 | `grep "\[bridge\] RELEASE" kit_*.log` |
+| 4 | T4-3 입력 | 위 6개 좌표를 그대로 계란판 컵 위치의 1차 출처로 쓴다 (격자 상수는 ee 위치라 그대로 쓰면 250mm 어긋난다) | — |
+| 5 | 종전 기준 유지 | `PICK COMPLETE` 6, `GRASP_JUDGE` 6/6 CONTACT, `clamped`·`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED`·`EXEC_*` 0 | 런 2 판정표와 같다 |
+| 6 | 빈 배열 발행 (런 4 수정 확인) | JSONL `scene_positions_received` 종료 구간 최대간격 ≤1.0초 (런 4 는 23.7초 공백) | 런 1 의 간격 계산 |
+| 7 | 덩굴 (T3 육안) | 12개가 보드에서 줄기 끝까지 이어져 보이고, 열린 조우가 덩굴을 따라 내려와 물며, 부착 후 과실만 떠나고 덩굴은 남는다. 이웃 과실 관통 없음 (vine_ripe_06 ↔ ripe_04 가 1.3mm 로 가장 가깝다) | 뷰포트 |
+| — | 화면 | 여섯 개가 계란판 위 여섯 칸에 따로 놓이는가 | 뷰포트 |
+
+## 실패 시
+
+- 슬롯 3·4·6·7 중 `_PLACE_BLOCKED` 가 나면 → 되는 슬롯만 남긴 시퀀스로 (`SUBMISSION_PLAN.md` T4 항목 2). 오프라인 검사가 7/7 이었으므로
+  나면 시작 자세가 검사 표본 밖이라는 뜻이다 — 그 런의 `retreat_step_complete` JSONL 을 검사 스크립트에 넣어 재현한다.

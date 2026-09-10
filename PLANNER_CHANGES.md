@@ -14,6 +14,8 @@
 
 ## 실기 플래너 (`src/strawberry_motion/`)
 
+- [scripts/check_tray_slot_reachability.py] 신설 (T4-1) — 트레이 슬롯 도달성 오프라인 검사. 플래너의 `build_curobo_motion_gen` 으로 같은 로봇·충돌월드를 만들고, `_compute_taught_slot_above_target` 과 같은 식(Slot0 티칭 관절 FK + SLOT0/1/3 격자 벡터 + 120mm)으로 15개 슬롯의 above/release 목표를 생성해, 같은 plan config(seeds 64, attempts 3, 2.0s, `MAX_TAUGHT_PLACE_TRANSFER_JOINT_DELTA_DEG` 스윙 가드)로 계획한다. 시작 자세는 런타임 JSONL 의 `retreat_step_complete` 실측 6개 + overview. **결과(12:02 런 기준): 0·1·3·4·6·7·9·10·12 는 7/7, 13 은 5/7, x≈400 열(2·5·8·11·14)은 틸트 유무와 무관하게 0/7 `IK_FAIL`** — `is_row2` 의 실패는 15° 틸트가 아니라 위치다. 실기 팀의 `row2_*` 파라미터가 원인을 비껴간 처방이었다는 근거 (2026-09-10)
+- [scripts/run_nodes.sh, docs/run_guide.md] `taught_slot_sequence` **`0,0,0,0,0,0` → `0,1,3,4,6,7`** (T4-1). T2 로 과실이 실제 이송되자 여섯 개가 slot 0 한 칸에 겹치는 것이 드러났다 — 시뮬 결함이 아니라 실기 노드 설정 결함(같은 값이면 실기도 한 칸에 떨어뜨림; 부트캠프 최종은 과실 1~2개라 안 드러남). 기동 로그 대조에 `slot_sequence=[0, 1, 3, 4, 6, 7]` 한 줄 추가 (2026-09-10)
 - [scripts/*, execution/* 19개 파일] 설정·로그·캘리브레이션 경로 하드코딩을 `~/doosan_ws/...` → `~/strawberry_grasp_environment/...`로 일괄 치환 (2026-07-09)
 - [execution/scan_executor_node.py:_start_cb] 스캔 시퀀스를 `_scan_sequence_run` 래퍼로 감싸 종료 시 `_started`를 해제 — 프로세스당 1회만 가능하던 재실행 제한을 풂 (2026-09-07)
 - [scripts/pick_sequence_executor.py:maybe_execute_place_after_retreat] place 실패·게이트 차단·트레이 없음이 시퀀스 전체를 잠그던 것을, 그 자리에서 과실을 놓고 다음 타겟으로 계속하도록 변경 (`hold_on_place_failure` 파라미터, 기본 false) (2026-09-07)

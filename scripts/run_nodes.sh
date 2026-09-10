@@ -116,6 +116,12 @@ for _ in $(seq 1 240); do
 done
 
 # planner 는 flat import 구조라 scripts/ 에서 실행해야 한다.
+# taught_slot_sequence (T4-1, 2026-09-10): 0,0,0,0,0,0 -> 0,1,3,4,6,7.
+#   T2 로 과실이 실제로 이송되자 여섯 개가 slot 0 한 칸에 겹쳐 놓이는 것이 화면에 드러났다.
+#   이것은 시뮬 결함이 아니라 실기 노드 설정의 결함이다 — 같은 값이면 실기도 한 칸에 떨어뜨린다
+#   (부트캠프 최종은 과실 1~2개만 배치해 드러나지 않았다). 열 2·5·8(x≈400, 베이스 최근접 열,
+#   is_row2)은 03:11 런에서 IK_FAIL 이라 뺀다. 시퀀스가 끝나면 플래너가 자동으로 다음 슬롯(8 = 열 2)
+#   으로 가므로 여섯 개보다 많이 배치하지 않는다. 사전 검증: check_tray_slot_reachability.py.
 ( cd "$REPO/src/strawberry_motion/scripts" && exec stdbuf -oL -eL python3 curobo_planner_node.py --ros-args \
     -p tool_model_profile:=legacy_160mm \
     -p ee_to_tcp_offset_m:=0.236 \
@@ -127,7 +133,7 @@ done
     -p use_taught_slot0_place_reference:=true \
     -p execute_marker_place_release:=true \
     -p hold_after_taught_slot0_place:=false \
-    -p taught_slot_sequence:=0,0,0,0,0,0 \
+    -p taught_slot_sequence:=0,1,3,4,6,7 \
 ) > >(tee "$LOGDIR/planner.log" | stdbuf -oL sed 's/^/[planner] /') 2>&1 &
 
 # overview_prescan: 원안 1·2단계(overview 1차 스캔 → 익은 과실 있는 분면만 순회). 실기 기본 false.
@@ -167,6 +173,7 @@ need bridge.log  "tool_tcp_offset=236mm"              "브릿지 TCP 오프셋 2
 need planner.log "EE_TO_TCP_OFFSET_OVERRIDE"          "플래너 TCP 오프셋 160→236mm (없으면 툴을 짧게 보고 관통)"
 need planner.log "open_stem_descent=True"             "열린 조우 하강 단계"
 need planner.log "straight_reverse_retreat=True"      "진입 역순 후퇴 단계"
+need planner.log "slot_sequence=\[0, 1, 3, 4, 6, 7\]"  "배치 슬롯 진행 0,1,3,4,6,7 (0,0,… 이면 여섯 개가 slot 0 한 칸에 겹친다)"
 need scan.log    "scan_executor_node ready"           "scan_executor 기동"
 [ "$READY" = "1" ] && printf '  OK   %s\n' "cuRobo Planner Ready!" \
                    || { printf '  !!   %s\n' "cuRobo Planner Ready! 가 5분 안에 안 떴다"; FAILS=$((FAILS + 1)); }
