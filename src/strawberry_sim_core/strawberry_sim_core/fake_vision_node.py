@@ -100,6 +100,11 @@ class FakeVisionNode(Node):
         self.last_pub_time = current_time
 
         if not msg.poses:
+            # [T2 2026-09-10] 빈 입력 = "보이는 익은 과실이 없다". 종전엔 여기서 그냥 돌아가
+            # scene_positions 발행이 끊겼고, 마지막 딸기가 부착되는 순간부터 플래너 하트비트와
+            # HUD 비전 램프가 죽은 것처럼 보였다 (12:02 런 종료 전 23.7초 공백). 빈 배열을
+            # 발행해 하류가 "직전 목록이 아직 유효하다"고 오해하지 않게 한다.
+            self.scene_pub.publish(Float64MultiArray())
             return
 
         if not self._geom_logged:

@@ -12,6 +12,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseArray
+from std_msgs.msg import String
 from dsr_msgs2.srv import MoveSplineJoint, MoveJoint, MoveLine, ChangeOperationSpeed
 from dsr_gripper_tcp_interfaces.srv import SetPosition, GetState
 from dsr_gripper_tcp_interfaces.action import SafeGrasp
@@ -159,6 +160,16 @@ class SimExecutorBridgeNode(Node):
         self.gripper_close_rad = float(self.get_parameter("gripper_close_rad").value)
         self.strawberries = []          # Isaac Sim이 알려주는 익은 딸기 좌표 (base/world)
         self.last_grasp_reason = "no judgement yet"
+        # [T2 2026-09-10] 파지 부착 이벤트. 판정은 여기(브릿지)가 하고, 딸기를 실제로
+        # 그리퍼에 붙이고 떼는 것은 Isaac 스크립트가 이 토픽을 구독해서 한다.
+        #   "ATTACH x y z" — CONTACT 판정된 과실 중심 (m, base 프레임). Isaac 은 가장 가까운
+        #                    딸기 prim 을 찾아 그 순간의 그리퍼 밑동 기준 상대 트랜스폼을 잡는다.
+        #   "RELEASE"      — 부착 중 조우가 열림. 그 자리에 정지.
+        # 좌표로 지목하는 이유: 브릿지는 딸기를 /isaac_sim/strawberries 의 좌표로만 알고
+        # prim 이름을 모른다. 새 판정 로직을 Isaac 쪽에 다시 만들지 않는다 (SUBMISSION_PLAN T2).
+        self.grasp_event_pub = self.create_publisher(String, '/sim/grasp_event', 10)
+        self.last_grasp_berry = None    # 직전 _judge_grasp 가 재본 과실 중심 (np.array) / None
+        self.attached_berry = None      # ATTACH 발행 후 RELEASE 전까지의 과실 중심
 
         self.berry_sub = self.create_subscription(
             PoseArray, '/isaac_sim/strawberries', self.strawberry_cb, 10,
@@ -423,7 +434,9 @@ class SimExecutorBridgeNode(Node):
         # 줄기 기준이면 정상 파지에서 lateral ~ 0, along = 오프셋 그대로가 된다.
         stems = [np.asarray(b, dtype=float) + np.array([0.0, 0.0, self.grasp_z_bias])
                  for b in self.strawberries]
-        near = min(stems, key=lambda b: float(np.linalg.norm(tcp - b)))
+        near_idx = min(range(len(stems)), key=lambda i: float(np.linalg.norm(tcp - stems[i])))
+        near = stems[near_idx]
+        self.last_grasp_berry = np.asarray(self.strawberries[near_idx], dtype=float)   # [T2] 부착 대상
         along_mm = lateral_mm = float("nan")
         try:
             _st = torch.tensor([self.current_joints], device="cuda:0", dtype=torch.float32)
@@ -805,6 +818,29 @@ class SimExecutorBridgeNode(Node):
     GRIPPER_POS_ON_CONTACT = 670    # 딸기에 걸려 멈춘 개도 (<=685 → 접촉 판정)
     GRIPPER_POS_ON_EMPTY = 700      # 끝까지 닫힘   (>=695 → 빈손 판정)
 
+    # ── [T2 2026-09-10] 부착/해제 이벤트 ─────────────────────────────────
+    def _on_gripper_close(self, hit):
+        """CONTACT 판정이면 그 과실을 ATTACH 로 지목한다. 이미 부착 중이면 중복 발행 안 함."""
+        if not hit or self.last_grasp_berry is None or self.attached_berry is not None:
+            return
+        b = self.last_grasp_berry
+        msg = String()
+        msg.data = "ATTACH %.4f %.4f %.4f" % (float(b[0]), float(b[1]), float(b[2]))
+        self.grasp_event_pub.publish(msg)
+        self.attached_berry = b
+        self.get_logger().info("GRASP_ATTACH 과실 (%.0f, %.0f, %.0f)mm -> /sim/grasp_event"
+                               % (b[0] * 1000, b[1] * 1000, b[2] * 1000))
+
+    def _on_gripper_open(self):
+        """부착 중에 조우가 열리면 RELEASE. (스캔 전 pre-close 600 은 부착 중이 아니라 무시된다.)"""
+        if self.attached_berry is None:
+            return
+        msg = String()
+        msg.data = "RELEASE"
+        self.grasp_event_pub.publish(msg)
+        self.get_logger().info("GRASP_RELEASE -> /sim/grasp_event")
+        self.attached_berry = None
+
     def set_position_cb(self, req, res):
         self.get_logger().info(f"SetPosition called to {req.position}")
         if req.position >= self.GRIPPER_CLOSE_COMMAND_MIN:
@@ -816,8 +852,10 @@ class SimExecutorBridgeNode(Node):
             else:
                 self.gripper_position = (self.GRIPPER_POS_ON_CONTACT if hit
                                          else self.GRIPPER_POS_ON_EMPTY)
+                self._on_gripper_close(hit)                      # [T2]
         else:
             self.gripper_position = req.position
+            self._on_gripper_open()                              # [T2]
         # [Stage1] 숫자만 바꾸지 말고 실제로 시뮬 조우를 움직인다.
         # 시각 개도는 **명령값** 기준 (판정 리드백과 분리 — _gripper_joint_rad 주석 참조).
         self.gripper_command = int(req.position)
@@ -842,6 +880,7 @@ class SimExecutorBridgeNode(Node):
             hit = True   # 판정 불가(딸기 좌표 미수신 등) → 종전처럼 성공 처리
         self.gripper_position = (self.GRIPPER_POS_ON_CONTACT if hit
                                  else self.GRIPPER_POS_ON_EMPTY)
+        self._on_gripper_close(hit)                                  # [T2]
         self.gripper_command = int(goal_handle.request.target_position)
         self._publish_gripper_only()   # [Stage1] 실제 조우 구동
 

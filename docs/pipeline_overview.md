@@ -97,6 +97,7 @@ curobo_planner_node             ← cuRobo pre-approach + pick 시퀀스
 | `/strawberry/detection/scene_positions` | Float64MultiArray | fusion_node |
 | `/dsr01/joint_states` | JointState | 두산 드라이버 |
 | `/dsr01/curobo/pick_complete` | Empty | curobo_planner (scan_executor 수신) |
+| `/sim/grasp_event` | String (`ATTACH x y z` / `RELEASE`) | sim_executor_bridge → Isaac 브릿지 스크립트 (T2 키네마틱 부착, 시뮬 전용) |
 
 ### 서비스 클라이언트
 
@@ -131,7 +132,7 @@ curobo_planner_node             ← cuRobo pre-approach + pick 시퀀스
 |---|---|---|
 | `fake_vision_node` | `src/strawberry_sim_core/` | `/isaac_sim/strawberries`(PoseArray) 구독 → fusion_node와 동일 형식의 `/strawberry/detection/*` 토픽으로 변환·발행 |
 | `sim_executor_bridge_node` | `src/strawberry_sim_core/` | 두산 motion 서비스(`MoveJoint`/`MoveLine`/`MoveSplineJoint`)와 그리퍼 액션을 가로채 `/joint_command` 발행. MoveLine은 cuRobo IK로 실제 계산 — BASE(ref=0)/TOOL(ref=1) 좌표계 지원, 상대 이동(mode=1)만, **현재 관절 최근접 해 선택 + 관절 이동 45° 상한 가드**(elbow-flip 다이브 방지, 2026-07-16). IK 실패·예외·가드 탈락 시 `success=False` 반환 |
-| `isaac_sim_script_editor_bridge.py` | `strawberry_harvest/scripts/` | Isaac Sim Script Editor에서 실행. 딸기 prim 좌표를 `/isaac_sim/strawberries`로 발행하고, `/joint_command`를 받아 `/World/robot_assembly` articulation에 주입. **익은 딸기만 발행**(실기 fusion 노드가 ripe만 내보내는 것에 맞춤) — 씬에는 익은 6 / 안 익은 6, 총 12개가 있다 |
+| `isaac_sim_script_editor_bridge.py` | `strawberry_harvest/scripts/` | Isaac Sim Script Editor에서 실행. 딸기 prim 좌표를 `/isaac_sim/strawberries`로 발행하고, `/joint_command`를 받아 `/World/robot_assembly` articulation에 주입. **익은 딸기만 발행**(실기 fusion 노드가 ripe만 내보내는 것에 맞춤) — 씬에는 익은 6 / 안 익은 6, 총 12개가 있다. **[T2] `/sim/grasp_event` 를 받아 CONTACT 과실을 그리퍼 밑동에 키네마틱 부착·추종하고 RELEASE 에 정지시킨다. 부착·해제된 딸기는 발행에서 제외** |
 | `self_collision_logger_script.py` | `strawberry_harvest/scripts/` | 로봇 자기 충돌 감지 → `log/collision_*.log` 기록 |
 | 상태 HUD (`isaac_sim_hud.py`) | `strawberry_harvest/scripts/` | Isaac Sim 뷰포트 위에 얹히는 상태 패널. 노드 램프·타겟 카운터·현재 단계·완주 결과를 표시. 노드 4개가 `/tmp/harvest_hud_<role>.json` 에 쓴 스냅샷을 읽기만 한다 — ROS 노드가 아니다 (2026-09-09, `status_monitor_node` 대체) |
 

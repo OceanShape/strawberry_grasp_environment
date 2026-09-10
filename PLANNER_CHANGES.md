@@ -56,6 +56,8 @@
 - [브릿지 `sim_executor_bridge_node.py:move_line_cb`] `MOVELINE_SHORT` 임계값 3mm 고정 → `max(3mm, 스텝 길이)`. 스텝 상한에 걸린 5mm 스텝 이동(배치 하강 120mm)에서 부족 3.5~4.1mm 가 매번 거짓 ERROR 로 찍혔다 (11:05 런 6건, 다음 동작이 관절공간 절대 목표라 잔차 무의미). 2mm 스텝인 파지 쪽은 3mm 그대로 (2026-09-10)
 
 ## 가상 제어기 (`src/strawberry_sim_core/`) — 본인 구현물
+- [sim_executor_bridge_node.py] **T2 파지 이벤트 발행** — `/sim/grasp_event` (String). `_judge_grasp` 가 CONTACT 로 판정한 과실 중심을 `ATTACH x y z` 로, 부착 중 조우가 열리면 `RELEASE` 를 낸다 (`_on_gripper_close`/`_on_gripper_open`, `set_position_cb`·`safe_grasp_cb` 양쪽). 딸기를 좌표로 지목하는 이유는 브릿지가 prim 이름을 모르기 때문. 판정 로직은 그대로이고 Isaac 쪽에 재구현하지 않는다 (2026-09-10)
+- [fake_vision_node.py:strawberry_cb] 빈 PoseArray 를 받으면 **빈 `scene_positions` 를 발행**하고 돌아간다. 종전엔 그냥 return 해서, T2 로 마지막 딸기가 부착되는 순간부터 하류(플래너 하트비트·HUD 비전 램프·브릿지 판정 목록)가 멈췄다 (12:02 런 종료 전 23.7초 공백) (2026-09-10)
 - [sim_executor_bridge_node.py:move_line_cb] `MOVELINE_MAX_STEPS=24` 스텝 수 상한 신설. 실소요는 명령 속도가 아니라 스텝 수 × IK 1회(~150ms) 가 지배한다 — 10:13 런에서 배치 하강 120mm 가 60스텝 9.2초로 자체 페이싱 1.5초의 6배, MoveLine 합계가 런의 50%. 24 로 자르면 120mm 만 5mm 스텝(관절 이동 0.3→0.75도)이 되고 파지 쪽 30/40/45mm 는 그대로. 실기 movel 에는 없는 시뮬 인공물 제거. `MoveLine ok` 로그에 **실소요** 추가 — 종전엔 계획값(1.50s)만 찍혀 9초 지연이 안 보였다 (2026-09-10)
 - [sim_executor_bridge_node.py] MoveLine IKSolver 에 `collision_activation_distance=0.005` — 플래너와 동일 값 (2026-09-10)
 - [sim_executor_bridge_node.py:_judge_grasp] 판정 대상을 과실 중심 -> **줄기(과실+z_bias)**, 기준을 스칼라 d_tcp -> **조우 물림 구간(along/lateral)** 으로 교체 (2026-09-10)
@@ -87,6 +89,8 @@
 
 ## 씬 (`strawberry_harvest/`)
 
+- [scripts/isaac_sim_script_editor_bridge.py] **T2 키네마틱 부착** — `/sim/grasp_event` 구독. ATTACH 면 좌표에서 60mm 안의 가장 가까운 익은 딸기 루트 prim 을 골라 그 순간의 `T_rel = T_fruit · T_gripper⁻¹` 를 잡고(그리퍼 밑동 `rh_p12_rn_base` 기준, **TCP 스냅 없음**), 매 물리 스텝 `fruit = T_rel · T_gripper` 로 따라간다. 부착 중: 강체 kinematic, 콜라이더 off, 줄기 FixedJoint off — 전부 **세션 레이어**에만 씀(저장해도 씬에 안 박힘). RELEASE 면 그 자리에 정지(kinematic 유지, 콜라이더 계속 off — 조우 사이의 부동체가 팔을 튕기지 않게). **부착·해제된 딸기는 `/isaac_sim/strawberries` 에서 제외** — 안 빼면 계란판(분면 격자상 se) 의 딸기가 다시 타겟으로 잡혀 가지치기가 깨진다. 런타임 FixedJoint 생성 없음. 그리퍼 자세는 물리 뷰(RigidPrim) 우선, 실패 시 USD xform 폴백 (2026-09-10)
+- [scripts/isaac_sim_script_editor_bridge.py:_publish_state] `/isaac_sim/strawberries` 를 **빈 배열이어도 발행**. `if len > 0` 가드가 T2 이후 "익은 과실이 하나도 안 보임" 상태를 침묵으로 만들었다 (위 fake_vision 항목과 한 쌍) (2026-09-10)
 - [assets/robot/robot_assembly.usd] D455 중첩 강체 문제로 `physics:rigidBodyEnabled=False` 오버라이드, 드라이브 게인 상향(팔 1e5/1e4, 그리퍼 1e4/1e3)
 - [scenes/layers/layout_layer.usd] 보드를 −109.5mm 이동해 앞면을 플래너 벽 모델(672.0mm)에 정합, 딸기 매립 해소 (2026-09-05)
 - [scenes/layers/layout_layer.usd, physics_layer.usd] 딸기 2 → 12개(익은 6/안 익은 6)로 확장, 보드 4등분 서브셀에 배치 (2026-09-07)

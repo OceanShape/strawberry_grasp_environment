@@ -422,10 +422,10 @@ place 실행 경로는 플래너에 **이미 전부 구현돼 있고 파라미�
 | `execute_marker_place_release` | False | 트레이 위 ABOVE까지만 가고 **안 놓음** (`MARKER_PLACE_PREVIEW_HOLD`) |
 | `hold_after_taught_slot0_place` | **True** | release 후 `TAUGHT_TRAY_PLACE_COMPLETE_HOLD`로 정지, 다음 딸기로 안 넘어감 |
 
-**`taught_slot_sequence:="0,0,0,0,0,0"` — 배치 슬롯을 slot 0에 고정한다 (권장).**
-슬롯이 1 이상으로 넘어가면 cuRobo가 J6를 한계(±225°) 밖인 273.7°로 내는 해를 골라
-`Cartesian plan rejected: J6 spline jump 357.0deg`로 계획이 거부된다 (2026-09-07 확인).
-씬에 트레이 prim이 없어 어차피 같은 자리에 떨어뜨리므로, 영상용으로는 slot 0 고정이 안전하다.
+**`taught_slot_sequence:="0,0,0,0,0,0"` — 배치 슬롯을 slot 0에 고정한다. (2026-09-10: T4 에서 `0,1,3,4,6,7` 로 바꿀 예정)**
+09-07 에는 슬롯이 1 이상으로 넘어가면 J6 운용 한계(당시 ±225°) 때문에 `J6 spline jump` 로 거부됐다. 그 한계는 **09-08 에 ±360 으로
+고쳤고**, 09-10 03:11 런에서 slot 1 은 `Plan OK`, slot 2(x≈400 열, `is_row2`) 는 `IK_FAIL` 이었다. T2 부착 이후 slot 0 고정은
+**여섯 개가 한 칸에 겹치는 화면**을 만들므로 더 이상 권장하지 않는다 — `SUBMISSION_PLAN.md` T4.
 슬롯 인덱스는 **성공했을 때만** 증가하므로 위처럼 쓰면 6번 연속 slot 0에 놓는다.
 
 **`use_taught_slot0_place_reference`가 왜 필요한가**: 기본 marker place 경로는 ArUco 트레이
@@ -478,6 +478,12 @@ place 관련 파라미터를 모두 빼고 `-p tool_model_profile:=legacy_160mm`
 - 순회 순서는 실기와 동일한 **nw -> ne -> se -> sw -> overview** 다
 - 2026-09-10 부터 `run_nodes.sh` 는 `overview_prescan:=true` 로 띄운다. overview 에서 1차 스캔(`OVERVIEW_SCAN nw:2 ne:1 se:0 sw:3`)을 하고 **익은 과실 0개 분면은 건너뛴다**(`TRAVERSAL_PRUNED skip=[...]`). 4분면 전수 순회로 돌리려면 `-p overview_prescan:=false`
 - 셀 간 이동은 실기와 똑같이 순수 MoveJoint 다 (`plan_scan_transit` 기본 false, 2026-09-10). 비인접 분면 직행만 overview 를 경유한다 (`TRANSIT_VIA_OVERVIEW`)
+- **[T2] 딸기 부착 확인** (2026-09-10): 브릿지 로그에 `GRASP_ATTACH 과실 (x, y, z)mm` / `GRASP_RELEASE`, Isaac Script Editor 콘솔(또는 Kit 로그)에
+  `[bridge] ATTACH strawberry_ripe_NN  match N mm  offset …` / `[bridge] RELEASE … frozen at … harvested=N` 이 픽마다 한 쌍씩 찍힌다.
+  `ATTACH ignored: no ripe fruit within 60 mm` 가 나오면 브릿지 좌표와 씬이 어긋난 것(씬 재로드 누락이 흔한 원인).
+- **씬 로드가 끝나기 전에 브릿지 스크립트를 Run 하면** `Exception: Prim path expression ['/World/robot_assembly'] is invalid` 로
+  스크립트가 중단된다 (12:02 런 Kit 로그). 뷰포트에 로봇이 보인 뒤 Run 하고, 이 예외가 났으면 그냥 다시 Run 하면 된다.
+  부착 상태는 **브릿지 스크립트를 Run 할 때마다 초기화**되므로, 씬 재로드 → Run → Play 순서를 지키면 지난 런의 계란판 딸기가 남지 않는다.
 - `target_cell` 필수. **원안 시퀀스(4분면 전부 수확)는 `all`** — PROJECT_GOAL.md §1-2
   - 단일 분면만 보려면 `root/nw` / `root/ne` / `root/se` / `root/sw`
   - `all` 은 `TRAVERSAL_SCAN_STARTED cells=[...] (4/4 quadrants)` 가 떠야 한다.
@@ -695,6 +701,6 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | `TAUGHT_TRAY_PLACE_COMPLETE_HOLD` — 놓고 나서 정지 | 플래너 인자에서 `-p hold_after_taught_slot0_place:=false` 누락 |
 | place 게이트에서 `GRASP_EMPTY`로 차단 | 파지가 실제로 실패한 것. `GRASP_JUDGE` 로그의 `d_tcp`를 보고 "파지 판정 튜닝" 절대로 조정. `allow_unverified_grasp_place`로는 안 뚫린다 |
 | place 도중 `IK_FAIL` / 바닥 간섭 | 티칭 슬롯(z=66mm)이 시뮬 좌표계에서 도달 불가. 고정 자세 release로 후퇴 (`curobo_planner_node` 절 참조) |
-| `Cartesian plan rejected: J6 spline jump ...deg` | 배치 슬롯이 1 이상으로 넘어가 J6가 한계(±225°)를 넘었다. `-p taught_slot_sequence:="0,0,0,0,0,0"`으로 slot 0 고정 |
+| `Cartesian plan rejected: J6 spline jump ...deg` | J6 랩 불연속. 운용 한계는 09-08 부터 ±360 이라 배치에서는 더 안 난다. 파지 접근 후보 탐색 중에는 정상적으로 나올 수 있다(다음 후보로 넘어감) |
 | `PICK_SEQUENCE_HOLD_LATCHED` | 2026-09-07 이전 코드가 돌고 있다. `colcon build` 후 터미널 2 재시작 (지금은 place 실패 시 놓고 계속 진행한다) |
 | `Pick target ignored: sequence hold` | 위와 같음. 래치가 걸리면 **플래너 재시작 외에는 풀 방법이 없다** |
