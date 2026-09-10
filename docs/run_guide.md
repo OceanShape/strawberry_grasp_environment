@@ -314,7 +314,7 @@ cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source
 cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 run strawberry_sim_core sim_executor_bridge_node
 
 # curobo_planner — scripts/ 에서 실행해야 한다 (flat import 구조)
-cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && cd src/strawberry_motion/scripts && python3 curobo_planner_node.py --ros-args -p tool_model_profile:=legacy_160mm -p ee_to_tcp_offset_m:=0.236 -p enable_open_stem_descent:=true -p enable_straight_reverse_retreat:=true -p pick_target_z_bias_m:=0.035 -p allow_generated_tray_slot_release:=true -p enable_marker_place_sequence:=true -p use_taught_slot0_place_reference:=true -p execute_marker_place_release:=true -p hold_after_taught_slot0_place:=false -p taught_slot_sequence:="0,1,3,4,6,7"
+cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && cd src/strawberry_motion/scripts && python3 curobo_planner_node.py --ros-args -p tool_model_profile:=legacy_160mm -p ee_to_tcp_offset_m:=0.236 -p enable_open_stem_descent:=true -p enable_straight_reverse_retreat:=true -p pick_target_z_bias_m:=0.035 -p allow_generated_tray_slot_release:=true -p enable_marker_place_sequence:=true -p use_taught_slot0_place_reference:=true -p execute_marker_place_release:=true -p hold_after_taught_slot0_place:=false -p taught_slot_sequence:="0,1,6,7,12,13"
 
 # scan_executor
 cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 -m strawberry_motion.execution.scan_executor_node --ros-args -p execute_motion:=true -p target_cell:=all
@@ -422,7 +422,21 @@ place 실행 경로는 플래너에 **이미 전부 구현돼 있고 파라미�
 | `execute_marker_place_release` | False | 트레이 위 ABOVE까지만 가고 **안 놓음** (`MARKER_PLACE_PREVIEW_HOLD`) |
 | `hold_after_taught_slot0_place` | **True** | release 후 `TAUGHT_TRAY_PLACE_COMPLETE_HOLD`로 정지, 다음 딸기로 안 넘어감 |
 
-**`taught_slot_sequence:="0,1,3,4,6,7"` — 배치 슬롯을 여섯 칸에 차례로 진행한다. (2026-09-10 T4-1, 종전 `0,0,0,0,0,0`)**
+**`taught_slot_sequence:="0,1,6,7,12,13"` — 배치 슬롯을 **행 한 칸씩 건너뛰며** 여섯 칸에 진행한다. (2026-09-10 T4-1)**
+09-10 13:12 런에서 `0,1,3,4,6,7`(행 인접)로 돌려 보니 **이웃 행끼리 과실이 닿았다.** 배치 정밀도 문제가 아니라
+격자 자체의 문제다 — 행 피치가 51.2mm 인데 트레이에 눕는 과실의 y 전폭이 53.8mm 다 (과실은 파지 자세에서
+82° 돌아 눕는다). **산포가 0이어도 행 이웃 간격은 +0.3mm**, 즉 완벽히 실행해도 닿는다. 행을 건너뛰면 그 쌍이
+사라지고 남는 열 이웃은 +15.3mm 다. 근거·수치는 `log/m3/README.md` §런 5 (A).
+5행 × 열 2개(열 2·5·8·11·14 는 IK_FAIL)에서 과실 6개를 행 이웃 없이 놓는 조합은 (0,2,4행)×(0,1열) 하나뿐이라
+**slot 13 은 뺄 수 없다.** slot 13 은 사전 검증 5/7 이라 **시퀀스 맨 뒤**에 둔다 — 실패해도 이미 5개가 놓인 뒤이고
+`hold_on_place_failure=false` 라 그 자리에 놓고 끝낸다.
+
+**배치가 평행사변형으로 보이는 것은 고치지 않는다.** 티칭 격자 두 축의 사이각이 84.26° 로 직교에서 5.74°
+어긋나 있다 — 강체 계란판이 스스로 비직교일 수는 없으므로 이는 **실기에서 slot 0·1·3 을 손으로 티칭할 때 들어간
+오차**이고, 플래너가 그 세 점으로 15칸을 만들기 때문에 행마다 누적된다. 실기 1차 출처를 시뮬에서 직교화하면
+sim2real 주장이 깨진다 (`SUBMISSION_PLAN.md` §2 부수규칙 2). 자세한 분해는 `log/m3/README.md` §런 5 (B)(C).
+
+(아래는 종전 `0,0,0,0,0,0` → 슬롯 진행으로 바꾼 1차 근거)
 종전 slot 0 고정은 T2 부착 이후 **여섯 개가 한 칸에 겹치는 화면**을 만들었다 (12:02 런 해제 위치가 서로 수 mm 차이). 이것은 시뮬
 결함이 아니라 **실기 노드 설정의 결함**이다 — 같은 값이면 실기도 한 칸에 떨어뜨리는데, 부트캠프 최종은 과실 1~2개만 배치해 드러나지 않았다.
 격자는 플래너 상수 `TAUGHT_SLOT{0,1,3}_PLACE_REFERENCE_POSX_MM_DEG` 로 만든다 (열 = slot%3, 행 = slot//3; 열 피치 ≈ 59.7mm(-x), 행 피치

@@ -116,12 +116,19 @@ for _ in $(seq 1 240); do
 done
 
 # planner 는 flat import 구조라 scripts/ 에서 실행해야 한다.
-# taught_slot_sequence (T4-1, 2026-09-10): 0,0,0,0,0,0 -> 0,1,3,4,6,7.
-#   T2 로 과실이 실제로 이송되자 여섯 개가 slot 0 한 칸에 겹쳐 놓이는 것이 화면에 드러났다.
-#   이것은 시뮬 결함이 아니라 실기 노드 설정의 결함이다 — 같은 값이면 실기도 한 칸에 떨어뜨린다
-#   (부트캠프 최종은 과실 1~2개만 배치해 드러나지 않았다). 열 2·5·8(x≈400, 베이스 최근접 열,
-#   is_row2)은 03:11 런에서 IK_FAIL 이라 뺀다. 시퀀스가 끝나면 플래너가 자동으로 다음 슬롯(8 = 열 2)
-#   으로 가므로 여섯 개보다 많이 배치하지 않는다. 사전 검증: check_tray_slot_reachability.py.
+# taught_slot_sequence (T4-1, 2026-09-10): 0,0,0,0,0,0 -> 0,1,3,4,6,7 -> **0,1,6,7,12,13**.
+#   1차(0,1,3,4,6,7): slot 0 고정을 풀었다. T2 로 과실이 실제 이송되자 여섯 개가 한 칸에
+#     겹치는 것이 드러났고, 이는 시뮬이 아니라 실기 노드 설정의 결함이다 (같은 값이면 실기도
+#     한 칸에 떨어뜨린다; 부트캠프 최종은 과실 1~2개라 안 드러났다).
+#   2차(0,1,6,7,12,13): **행을 한 칸씩 건너뛴다.** 13:12 런에서 이웃한 행끼리 과실이 닿았다.
+#     원인은 배치가 아니라 티칭 격자 자체다 — 행 피치 51.2mm 인데 트레이에 눕는 과실의
+#     y 전폭이 53.8mm (파지 자세에서 82° 돌아 눕는다). **산포가 0이어도 행 이웃 간격은 +0.3mm**,
+#     즉 완벽히 실행해도 닿는다. 행을 건너뛰면 피치가 102.4mm 가 되어 이 쌍이 사라지고,
+#     남는 열 이웃은 피치 59.8mm / 간격 +15.3mm 다.
+#     ⚠️ 5행 × 열 2개(열 2·5·8·11·14 는 IK_FAIL)에서 과실 6개를 행 이웃 없이 놓으려면
+#        (0,2,4행) × (0,1열) 조합밖에 없다 — 즉 slot 13 은 뺄 수 없다. slot 13 은 사전 검증에서
+#        5/7 이라 **시퀀스 맨 뒤**에 둔다 (실패해도 이미 5개가 놓인 뒤이고, hold_on_place_failure
+#        =false 라 그 자리에 놓고 끝낸다). 사전 검증: check_tray_slot_reachability.py.
 ( cd "$REPO/src/strawberry_motion/scripts" && exec stdbuf -oL -eL python3 curobo_planner_node.py --ros-args \
     -p tool_model_profile:=legacy_160mm \
     -p ee_to_tcp_offset_m:=0.236 \
@@ -133,7 +140,7 @@ done
     -p use_taught_slot0_place_reference:=true \
     -p execute_marker_place_release:=true \
     -p hold_after_taught_slot0_place:=false \
-    -p taught_slot_sequence:=0,1,3,4,6,7 \
+    -p taught_slot_sequence:=0,1,6,7,12,13 \
 ) > >(tee "$LOGDIR/planner.log" | stdbuf -oL sed 's/^/[planner] /') 2>&1 &
 
 # overview_prescan: 원안 1·2단계(overview 1차 스캔 → 익은 과실 있는 분면만 순회). 실기 기본 false.
@@ -173,7 +180,7 @@ need bridge.log  "tool_tcp_offset=236mm"              "브릿지 TCP 오프셋 2
 need planner.log "EE_TO_TCP_OFFSET_OVERRIDE"          "플래너 TCP 오프셋 160→236mm (없으면 툴을 짧게 보고 관통)"
 need planner.log "open_stem_descent=True"             "열린 조우 하강 단계"
 need planner.log "straight_reverse_retreat=True"      "진입 역순 후퇴 단계"
-need planner.log "slot_sequence=\[0, 1, 3, 4, 6, 7\]"  "배치 슬롯 진행 0,1,3,4,6,7 (0,0,… 이면 여섯 개가 slot 0 한 칸에 겹친다)"
+need planner.log "slot_sequence=\[0, 1, 6, 7, 12, 13\]" "배치 슬롯 진행 0,1,6,7,12,13 (행 건너뛰기 — 이웃 행이면 과실이 닿는다)"
 need scan.log    "scan_executor_node ready"           "scan_executor 기동"
 [ "$READY" = "1" ] && printf '  OK   %s\n' "cuRobo Planner Ready!" \
                    || { printf '  !!   %s\n' "cuRobo Planner Ready! 가 5분 안에 안 떴다"; FAILS=$((FAILS + 1)); }

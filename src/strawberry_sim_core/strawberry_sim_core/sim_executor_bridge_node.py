@@ -74,6 +74,8 @@ class SimExecutorBridgeNode(Node):
     # 인공물이다. 24 로 자르면 120mm 만 5mm 스텝이 되고(관절 이동 0.3→0.75도, 가드 45도)
     # 파지 쪽 30/40/45mm(16/20/23스텝) 는 그대로다.
     MOVELINE_MAX_STEPS = 24
+    # [DIAG 2026-09-10] 직선 종점의 **측방** 오차 경고선. 계측 전용 — 동작을 막지 않는다.
+    MOVELINE_LATERAL_WARN_MM = 5.0
 
     def __init__(self):
         super().__init__('sim_executor_bridge_node')
@@ -722,8 +724,34 @@ class SimExecutorBridgeNode(Node):
                     # ⚠️ cuRobo get_state() 는 내부 버퍼를 재사용한다. fk_result 를
                     # 그대로 들고 있으면 이후 호출이 덮어써서 항상 0mm 가 나온다
                     # (2026-09-10 실측: 전 구간 "실제 0.0mm" 오보).
-                    _moved = float(np.linalg.norm(
-                        _now.ee_position[0].cpu().numpy() - _start_ee)) * 1000.0
+                    _end_ee = _now.ee_position[0].cpu().numpy().copy()
+                    _moved = float(np.linalg.norm(_end_ee - _start_ee)) * 1000.0
+                    # [DIAG 2026-09-10] **방향까지** 본다.
+                    #
+                    # 위 _moved 는 시작점~끝점의 스칼라 거리다. 옆으로 밀려도
+                    # 거리만 맞으면 통과한다. 실제로 그런 일이 있었다: 09-10 13:12 런의
+                    # 배치 하강(BASE -Z 120mm)은 전부 "실이동 115.8~116.6mm" 로 정상
+                    # 판정됐는데, 과실 정지 위치를 역산하면 그리퍼가 계획 자세에서
+                    # 최대 21mm 어긋나 있었다 (계란판 배치가 들쭉날쭉해 보인 원인).
+                    #
+                    # 종점 오차를 명령 축 방향(along)과 그 수직 성분(lateral)으로
+                    # 나눠 남긴다. along 은 종전 부족분과 같은 정보이고, lateral 이
+                    # 새로 보이는 값이다. **판정·동작은 바꾸지 않는다 — 계측만 한다.**
+                    # 파지 조우(TCP)보다 과실이 툴 축으로 ~250mm 앞에 매달리므로
+                    # 이 lateral 은 과실 위치에서 그대로 또는 더 크게 나타난다.
+                    _err = _end_ee - (_start_ee + delta_m)
+                    _axis = delta_m / max(float(np.linalg.norm(delta_m)), 1e-9)
+                    _along_mm = float(np.dot(_err, _axis)) * 1000.0
+                    _lat_mm = float(np.linalg.norm(
+                        _err - np.dot(_err, _axis) * _axis)) * 1000.0
+                    _endlog = (self.get_logger().warn
+                               if _lat_mm > self.MOVELINE_LATERAL_WARN_MM
+                               else self.get_logger().info)
+                    _endlog("MOVELINE_END_ERR: along=%+.1fmm lateral=%.1fmm |err|=%.1fmm "
+                            "(명령 %.0fmm, %s)"
+                            % (_along_mm, _lat_mm,
+                               float(np.linalg.norm(_err)) * 1000.0, dist_mm,
+                               "TOOL" if req.ref == 1 else "BASE"))
                     # [FIX 2026-09-10] 임계값은 스텝 길이를 따른다. 3mm 는 2mm 스텝 기준값이라
                     # 스텝 상한에 걸린 5mm 스텝 이동(배치 하강 120mm)에서 매번 거짓 경고가 났다
                     # (11:05 런: 부족 3.5~4.1mm ×6, 다음 동작이 관절공간 절대 목표라 잔차 무의미).
