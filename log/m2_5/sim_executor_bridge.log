@@ -1,0 +1,74 @@
+[INFO] [1788767027.872435747] [sim_executor_bridge_node]: Sim Executor Bridge Node initializing...
+[INFO] [1788767028.506263764] [sim_executor_bridge_node]: cuRobo IK Solver successfully initialized for MoveLine.
+[INFO] [1788767028.506470580] [sim_executor_bridge_node]: Sim Executor Bridge Node Ready! (Listening to Doosan & Gripper services)
+[INFO] [1788767046.634327913] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767416.936489558] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1788767429.560993016] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767432.397452499] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767433.950080963] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[WARN] [1788767434.956398375] [sim_executor_bridge_node]: MoveLine IK Failed! (near-branch 해 없음, best delta=infdeg)
+[INFO] [1788767435.004511214] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767436.108683191] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767438.577414657] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767440.130129092] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1788767440.245117982] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 5.1deg) -> [129.6, 3.1, 89.5, 102.5, -40.0, 172.7]
+[INFO] [1788767440.783074613] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1788767440.785919889] [sim_executor_bridge_node]: GRASP_JUDGE d_tcp=14.8mm d_ee=174.8mm radius=35.0mm tool_offset=160.0mm -> CONTACT
+[INFO] [1788767441.185384577] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1788767441.308931300] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 9.5deg) -> [129.6, 3.7, 95.1, 95.2, -39.0, 182.2]
+[INFO] [1788767443.702745226] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767444.956059562] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1788767445.068730395] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 20.7deg) -> [6.5, 51.0, 119.5, 177.2, 80.1, 95.0]
+[INFO] [1788767446.757333837] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767447.818611321] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767454.077771264] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767455.334325024] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767456.440171348] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767459.189528462] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767460.743330523] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1788767460.878966333] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 5.2deg) -> [126.0, 0.6, 82.9, 114.5, -39.5, 157.3]
+[INFO] [1788767461.395433314] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1788767461.396238540] [sim_executor_bridge_node]: GRASP_JUDGE d_tcp=14.7mm d_ee=174.6mm radius=35.0mm tool_offset=160.0mm -> CONTACT
+[INFO] [1788767461.797640651] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1788767461.917628730] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 9.3deg) -> [126.0, 0.3, 89.4, 107.2, -37.3, 166.6]
+[INFO] [1788767464.379824467] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767465.632809275] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1788767465.774239567] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 20.6deg) -> [6.1, 50.7, 119.1, 175.8, 79.8, 94.2]
+[INFO] [1788767467.433786472] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767468.631930074] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767471.835176737] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767473.089907109] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767474.196795047] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767477.200607164] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767478.753996777] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1788767478.894510148] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 5.6deg) -> [111.7, 6.9, 42.0, 153.6, -54.9, 110.6]
+[INFO] [1788767479.406508799] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1788767479.408911905] [sim_executor_bridge_node]: GRASP_JUDGE d_tcp=13.5mm d_ee=173.3mm radius=35.0mm tool_offset=160.0mm -> CONTACT
+[INFO] [1788767479.808381336] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1788767479.935688198] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 13.1deg) -> [111.7, 2.1, 55.2, 150.5, -47.7, 115.5]
+[INFO] [1788767482.289719693] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767483.543045642] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1788767483.642579027] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 20.6deg) -> [6.0, 51.0, 119.2, 176.0, 80.0, 93.4]
+[INFO] [1788767485.345214689] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767486.337174573] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767489.171933880] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767490.425790295] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767491.531559427] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767494.845026220] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767496.398677088] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 30.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1788767496.537592028] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 20.9deg) -> [131.4, 30.5, 0.1, 132.3, -62.9, 112.8]
+[INFO] [1788767497.052273156] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1788767497.053064286] [sim_executor_bridge_node]: GRASP_JUDGE d_tcp=28.9mm d_ee=188.7mm radius=35.0mm tool_offset=160.0mm -> CONTACT
+[INFO] [1788767497.453147434] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1788767497.588364263] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 34.6deg) -> [131.4, 14.9, 34.8, 122.5, -51.3, 130.7]
+[INFO] [1788767500.077816784] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767501.330189559] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1788767501.435612775] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 13.7deg) -> [76.7, 50.4, 70.9, 175.9, 76.1, 93.9]
+[INFO] [1788767503.132587711] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767504.383986766] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767507.123375904] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1788767508.376516978] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767509.481952689] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767514.327121016] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1788767515.380986961] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1788767605.949100296] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]

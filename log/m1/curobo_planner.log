@@ -1,0 +1,91 @@
+[INFO] [1787967532.316522999] [curobo_planner_node]: cuRobo MotionGen warmed up!
+[INFO] [1787967532.334710874] [curobo_planner_node]: cuRobo Planner Ready!
+[INFO] [1787967532.334867205] [curobo_planner_node]: Runtime JSONL: /home/oceanshape/strawberry_grasp_environment/src/e0509_gripper_description/logs/runtime/2026-08-29/curobo_planner_node_20260829T103842-dee9a559.jsonl
+[INFO] [1787967532.335384414] [curobo_planner_node]:   ENV_CUBOIDS=1  SELF_COLLISION=False
+[WARN] [1787967532.335557394] [curobo_planner_node]: Leaf/stem geometry is not in the cuRobo world; visually occluded targets require reobserve/skip instead of forced approach
+[INFO] [1787967532.335710773] [curobo_planner_node]:   WALL_QUAT_WXYZ=[0.497, -0.497, 0.503, 0.503] approach_dir=[0.0, 1.0, -0.0] elevation=-0.0deg  variants=4
+[INFO] [1787967532.335846272] [curobo_planner_node]:   LEFTMOST horizontal fallback x_corr=+5mm offsets_mm=[30, 35, 40, 45, 50, 70] extra_request=0mm wall_margin=-30mm wall_override=False pre_approach=60mm
+[WARN] [1787967532.336006248] [curobo_planner_node]:   TOOL_GEOMETRY_LEGACY: planner offset=160mm, measured grasp center=260mm (model shortfall=100mm).
+[INFO] [1787967532.336137349] [curobo_planner_node]:   environment loaded: /home/oceanshape/strawberry_grasp_environment/src/e0509_gripper_description/config/environment.yaml
+[INFO] [1787967532.336266255] [curobo_planner_node]:   marker place: enabled=False release=False taught_slot0_reference=False hold_after_slot0=True slot_sequence=auto slot_step=1 skip_row2=False allow_generated_slot_release=False allow_unverified_grasp=False max_age=3600s
+[INFO] [1787967532.336394154] [curobo_planner_node]:   SafeGrasp: enabled=False target=700 max_current=400 delta_threshold=40 timeout=5.0s contact_pos<=685 empty_pos>=695
+[INFO] [1787967532.336519804] [curobo_planner_node]:   grasp verification: position-only (contact <= 685, empty >= 695; current is logged only)
+[INFO] [1787968010.413734488] [curobo_planner_node]: Operation speed set to 100%
+[WARN] [1787968010.415030182] [curobo_planner_node]: Detection Y=804mm > wall surface 672mm (FK calibration drift) — clamped to 672mm
+[INFO] [1787968010.415384886] [curobo_planner_node]: === PICK 딸기 raw=(-198,672,587)mm grasp=(-198,672,587)mm det_y=804mm x_bias=+0mm z_bias=+0mm ===
+[INFO] [1787968010.416084996] [curobo_planner_node]: 1 open gripper for stem descent: set_position=600
+[INFO] [1787968010.472425906] [curobo_planner_node]: World updated (neighbor obstacles registered): static=1 dynamic=0 neighbor_spheres=2
+[INFO] [1787968010.472954973] [curobo_planner_node]: Registered 2 neighbor sphere obstacle(s)
+[INFO] [1787968010.474825980] [curobo_planner_node]: 2 grasp (CuRobo 2-step 6cm pre) — trying 5 offsets × 4 quats | target=(-198,672,587)mm | start_J1=88.0°
+[WARN] [1787968011.936870528] [curobo_planner_node]: Cartesian plan rejected: J2 swing 91.8deg > 90.0deg (start=-94.4deg -> end=-2.6deg)
+[WARN] [1787968012.953526114] [curobo_planner_node]: Cartesian plan rejected: J2 swing 90.4deg > 90.0deg (start=-94.4deg -> end=-4.1deg)
+[INFO] [1787968013.869018861] [curobo_planner_node]: Plan OK 914ms 53pts 0.95s | goal=['-198', '452', '587']mm | end_J=[125.3, -4.6, 92.9, 272.4, 35.4, -2.3]deg
+[INFO] [1787968014.953547842] [curobo_planner_node]: Plan OK 1084ms 31pts 0.56s | goal=['-198', '497', '587']mm | end_J=[121.4, 1.1, 87.3, 272.5, 31.5, -2.3]deg
+[INFO] [1787968014.954612294] [curobo_planner_node]: Spline 12pts plan=0.95s exec=0.83s -> end=['125.3', '-4.6', '92.9', '272.4', '35.4', '-2.3']deg
+[INFO] [1787968016.207024092] [curobo_planner_node]: PRE_APPROACH_REACHED — settling 0.3s before 45mm straight approach
+[INFO] [1787968016.507828474] [curobo_planner_node]: FINAL_APPROACH_STRAIGHT TOOL +Z 45.0mm vel=60.0mm/s
+[ERROR] [1787968017.609971580] [curobo_planner_node]: FINAL_APPROACH_STRAIGHT MoveLine failed/timeout>30.0s
+[ERROR] [1787968017.610407018] [curobo_planner_node]: ABORT: 직선 진입 실패
+[INFO] [1787968017.612164995] [curobo_planner_node]: World updated (neighbor obstacles cleared): static=1 dynamic=0 neighbor_spheres=0
+[INFO] [1787968018.718595005] [curobo_planner_node]: Operation speed set to 100%
+[WARN] [1787968018.719407097] [curobo_planner_node]: Detection Y=786mm > wall surface 672mm (FK calibration drift) — clamped to 672mm
+[INFO] [1787968018.719741057] [curobo_planner_node]: === PICK 딸기 raw=(-304,672,787)mm grasp=(-304,672,787)mm det_y=786mm x_bias=+0mm z_bias=+0mm ===
+[INFO] [1787968018.720159710] [curobo_planner_node]: 1 open gripper for stem descent: set_position=600
+[INFO] [1787968018.773102228] [curobo_planner_node]: World updated (neighbor obstacles registered): static=1 dynamic=0 neighbor_spheres=2
+[INFO] [1787968018.773649629] [curobo_planner_node]: Registered 2 neighbor sphere obstacle(s)
+[INFO] [1787968018.774377127] [curobo_planner_node]: 2 grasp (CuRobo 2-step 6cm pre) — trying 6 offsets × 4 quats | target=(-299,672,787)mm | start_J1=125.3°
+[ERROR] [1787968019.193258857] [curobo_planner_node]: Plan FAIL 418ms | status=MotionGenStatus.IK_FAIL | goal=['-299', '455', '825']mm | start_J=[125.3, -4.6, 92.9, 272.4, 35.4, -2.3]deg
+[INFO] [1787968020.095582677] [curobo_planner_node]: Plan OK 901ms 43pts 0.77s | goal=['-299', '453', '806']mm | end_J=[136.8, 27.0, 13.3, 308.5, 68.0, -58.8]deg
+[INFO] [1787968021.227880688] [curobo_planner_node]: Plan OK 1131ms 31pts 0.56s | goal=['-299', '483', '804']mm | end_J=[133.9, 35.1, -0.0, 312.7, 69.7, -64.2]deg
+[INFO] [1787968021.228588413] [curobo_planner_node]: Spline 12pts plan=0.77s exec=0.67s -> end=['136.8', '27.0', '13.3', '308.5', '68.0', '-58.8']deg
+[INFO] [1787968022.480799902] [curobo_planner_node]: PRE_APPROACH_REACHED — settling 0.3s before 30mm straight approach
+[INFO] [1787968022.781348426] [curobo_planner_node]: FINAL_APPROACH_STRAIGHT TOOL +Z 30.0mm vel=60.0mm/s
+[INFO] [1787968023.432902286] [curobo_planner_node]: GRASP_POSE_REACHED — offset=+0.030m pre=6cm+30mm+0mm variant=('base', [1, 0, 0], -5.0) elevation=-5.0deg (attempt 7/24)
+[INFO] [1787968023.433197089] [curobo_planner_node]: 3 close gripper + verify grasp
+[INFO] [1787968023.834326873] [curobo_planner_node]: VERIFY_GRASP: GRASP_EMPTY present_pos=700 current_raw=200 — jaw fully closed by position (pos=700 >= 695); position-only verification, current_raw=200 logged only
+[INFO] [1787968023.834792529] [curobo_planner_node]: 4 detach pull — BASE -Z 40mm at 50mm/s
+[INFO] [1787968024.486434467] [curobo_planner_node]: DETACH_PULL_DOWN: BASE -Z 40mm -> OK
+[WARN] [1787968024.787777151] [curobo_planner_node]: PLACE_GATE_BLOCKED (GRASP_EMPTY): GRASP_EMPTY: jaw fully closed, nothing grabbed
+[INFO] [1787968024.788305456] [curobo_planner_node]: 7 return to pick-start scan pose
+[INFO] [1787968029.609318638] [curobo_planner_node]: pick-start scan pose after pick/place JS Plan OK 4819ms 41pts 0.73s | goal=['125.3', '-4.6', '92.9', '272.4', '35.4', '-2.3']deg
+[INFO] [1787968029.610024728] [curobo_planner_node]: Spline 12pts plan=0.73s exec=0.63s -> end=['125.3', '-4.6', '92.9', '272.4', '35.4', '-2.3']deg
+[INFO] [1787968030.863901258] [curobo_planner_node]: World updated (neighbor obstacles cleared): static=1 dynamic=0 neighbor_spheres=0
+[INFO] [1787968030.915060955] [curobo_planner_node]: === PICK COMPLETE (GRASP_EMPTY) ===
+[INFO] [1787970218.428802339] [curobo_planner_node]: Operation speed set to 100%
+[WARN] [1787970218.429693771] [curobo_planner_node]: Detection Y=804mm > wall surface 672mm (FK calibration drift) — clamped to 672mm
+[INFO] [1787970218.430062534] [curobo_planner_node]: === PICK 딸기 raw=(-198,672,587)mm grasp=(-198,672,587)mm det_y=804mm x_bias=+0mm z_bias=+0mm ===
+[INFO] [1787970218.430487172] [curobo_planner_node]: 1 open gripper for stem descent: set_position=600
+[INFO] [1787970218.490061266] [curobo_planner_node]: World updated (neighbor obstacles registered): static=1 dynamic=0 neighbor_spheres=2
+[INFO] [1787970218.490443936] [curobo_planner_node]: Registered 2 neighbor sphere obstacle(s)
+[INFO] [1787970218.490843548] [curobo_planner_node]: 2 grasp (CuRobo 2-step 6cm pre) — trying 5 offsets × 4 quats | target=(-198,672,587)mm | start_J1=88.0°
+[WARN] [1787970219.725154329] [curobo_planner_node]: Cartesian plan rejected: J2 swing 91.8deg > 90.0deg (start=-94.4deg -> end=-2.6deg)
+[WARN] [1787970220.622252018] [curobo_planner_node]: Cartesian plan rejected: J2 swing 90.4deg > 90.0deg (start=-94.4deg -> end=-4.1deg)
+[INFO] [1787970221.673892143] [curobo_planner_node]: Plan OK 1050ms 53pts 0.94s | goal=['-198', '452', '587']mm | end_J=[125.3, -4.6, 92.9, 92.4, -35.4, 177.7]deg
+[INFO] [1787970222.907880510] [curobo_planner_node]: Plan OK 1233ms 31pts 0.56s | goal=['-198', '497', '587']mm | end_J=[121.4, 1.1, 87.3, 92.5, -31.5, 177.7]deg
+[INFO] [1787970222.908620287] [curobo_planner_node]: Spline 12pts plan=0.94s exec=0.82s -> end=['125.3', '-4.6', '92.9', '92.4', '-35.4', '177.7']deg
+[INFO] [1787970224.161123121] [curobo_planner_node]: PRE_APPROACH_REACHED — settling 0.3s before 45mm straight approach
+[INFO] [1787970224.461712187] [curobo_planner_node]: FINAL_APPROACH_STRAIGHT TOOL +Z 45.0mm vel=60.0mm/s
+[INFO] [1787970225.113539433] [curobo_planner_node]: GRASP_POSE_REACHED — offset=+0.015m pre=6cm+45mm+0mm variant=('base', [1, 0, 0], 0.0) elevation=-0.0deg (attempt 11/20)
+[INFO] [1787970225.114066404] [curobo_planner_node]: 3 close gripper + verify grasp
+[INFO] [1787970225.515623742] [curobo_planner_node]: VERIFY_GRASP: GRASP_EMPTY present_pos=700 current_raw=200 — jaw fully closed by position (pos=700 >= 695); position-only verification, current_raw=200 logged only
+[INFO] [1787970225.516187470] [curobo_planner_node]: 4 detach pull — BASE -Z 40mm at 50mm/s
+[INFO] [1787970226.167886101] [curobo_planner_node]: DETACH_PULL_DOWN: BASE -Z 40mm -> OK
+[WARN] [1787970226.469070144] [curobo_planner_node]: PLACE_GATE_BLOCKED (GRASP_EMPTY): GRASP_EMPTY: jaw fully closed, nothing grabbed
+[INFO] [1787970226.469547473] [curobo_planner_node]: 7 return to pick-start scan pose
+[INFO] [1787970228.163575559] [curobo_planner_node]: pick-start scan pose after pick/place JS Plan OK 1693ms 56pts 1.00s | goal=['88.0', '-94.4', '129.9', '175.9', '-31.3', '93.4']deg
+[INFO] [1787970228.164353454] [curobo_planner_node]: Spline 12pts plan=1.00s exec=0.87s -> end=['88.0', '-94.4', '129.9', '175.9', '-31.3', '93.4']deg
+[INFO] [1787970229.420752058] [curobo_planner_node]: World updated (neighbor obstacles cleared): static=1 dynamic=0 neighbor_spheres=0
+[INFO] [1787970229.472509665] [curobo_planner_node]: === PICK COMPLETE (GRASP_EMPTY) ===
+[INFO] [1787970230.526312398] [curobo_planner_node]: Operation speed set to 100%
+[WARN] [1787970230.526978597] [curobo_planner_node]: Detection Y=786mm > wall surface 672mm (FK calibration drift) — clamped to 672mm
+[INFO] [1787970230.527234465] [curobo_planner_node]: === PICK 딸기 raw=(-304,672,787)mm grasp=(-304,672,787)mm det_y=786mm x_bias=+0mm z_bias=+0mm ===
+[INFO] [1787970230.527548336] [curobo_planner_node]: 1 open gripper for stem descent: set_position=600
+[INFO] [1787970230.579506901] [curobo_planner_node]: World updated (neighbor obstacles registered): static=1 dynamic=0 neighbor_spheres=2
+[INFO] [1787970230.580119113] [curobo_planner_node]: Registered 2 neighbor sphere obstacle(s)
+[INFO] [1787970230.580560579] [curobo_planner_node]: 2 grasp (CuRobo 2-step 6cm pre) — trying 6 offsets × 4 quats | target=(-299,672,787)mm | start_J1=88.0°
+[ERROR] [1787970230.997559992] [curobo_planner_node]: Plan FAIL 417ms | status=MotionGenStatus.IK_FAIL | goal=['-299', '455', '825']mm | start_J=[88.0, -94.4, 129.9, 175.9, -31.3, 93.4]deg
+[WARN] [1787970231.923569182] [curobo_planner_node]: Cartesian plan rejected: J2 swing 121.4deg > 90.0deg (start=-94.4deg -> end=27.0deg)
+[WARN] [1787970232.952691572] [curobo_planner_node]: Cartesian plan rejected: J1 swing 131.0deg > 75.0deg (start=88.0deg -> end=-43.1deg)
+[WARN] [1787970234.032439805] [curobo_planner_node]: Cartesian plan rejected: J2 swing 107.9deg > 90.0deg (start=-94.4deg -> end=13.5deg)
+[ERROR] [1787970234.032994372] [curobo_planner_node]: ABORT: grasp 전체 실패 — 24개 후보 모두 reject (target=(-299,672,787)mm start_J=[88, -94, 130, 176, -31, 93]°)
+[INFO] [1787970234.034007573] [curobo_planner_node]: World updated (neighbor obstacles cleared): static=1 dynamic=0 neighbor_spheres=0

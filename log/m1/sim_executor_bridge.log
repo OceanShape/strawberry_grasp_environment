@@ -1,0 +1,41 @@
+[INFO] [1787967494.983521618] [sim_executor_bridge_node]: Sim Executor Bridge Node initializing...
+[INFO] [1787967496.487244739] [sim_executor_bridge_node]: cuRobo IK Solver successfully initialized for MoveLine.
+[INFO] [1787967496.487501169] [sim_executor_bridge_node]: Sim Executor Bridge Node Ready! (Listening to Doosan & Gripper services)
+[INFO] [1787967534.339858700] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787967997.794193598] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787968010.417064978] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787968014.955875901] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1787968016.509439565] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[WARN] [1787968017.578598728] [sim_executor_bridge_node]: MoveLine IK Failed! (near-branch 해 없음, best delta=176.1deg)
+[INFO] [1787968017.613137105] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787968018.721143462] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787968021.229588210] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1787968022.782315738] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 30.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1787968022.888805572] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 13.4deg) -> [133.9, 35.2, 0.0, 312.7, 69.7, -64.2]
+[INFO] [1787968023.434225456] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1787968023.836529958] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1787968023.964346533] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 33.7deg) -> [133.9, 20.3, 33.8, 305.5, 57.8, -48.0]
+[INFO] [1787968029.611569943] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1787968030.865305901] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787968031.918210210] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787968044.695071087] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787968057.271313441] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787968069.842491870] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787968082.414804822] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787970205.807040230] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787970218.431251062] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787970222.910077077] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1787970224.462822274] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1787970224.582142374] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 5.8deg) -> [121.4, 1.1, 87.4, 92.6, -31.4, 177.7]
+[INFO] [1787970225.116021284] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1787970225.517451908] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1787970225.639521986] [sim_executor_bridge_node]: MoveLine IK ok (max joint delta 11.7deg) -> [121.4, 1.3, 93.4, 82.6, -31.7, 189.4]
+[INFO] [1787970228.166328253] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1787970229.422227013] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787970230.528518438] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787970234.035060932] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1787970235.088321082] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787970247.663682710] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787970260.239615881] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787970272.809018476] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
+[INFO] [1787970285.379966443] [sim_executor_bridge_node]: MoveJoint called to [ 87.98 -94.91 129.9  175.94 -31.34  93.42]
