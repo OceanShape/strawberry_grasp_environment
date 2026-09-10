@@ -1,0 +1,28 @@
+[package]
+version = "1.0.0"
+title = "Strawberry Sim Setup"
+description = "Startup tweaks for the harvest demo: viewport HUD off, Script Editor docked, perspective camera pinned."
+category = "Setup"
+authors = ["strawberry_grasp_environment"]
+keywords = ["isaac", "strawberry", "setup"]
+toggleable = true
+
+[dependencies]
+"omni.kit.viewport.window" = {}
+"omni.kit.window.script_editor" = {}
+"omni.usd" = {}
+"omni.ui" = {}
+
+[[python.module]]
+name = "strawberry_sim_setup"
+
+[settings]
+# Every value below can be overridden on the command line, e.g.
+#   --/exts/strawberry.sim.setup/pin_persp_camera=false
+exts."strawberry.sim.setup".hide_viewport_hud = true
+exts."strawberry.sim.setup".dock_script_editor = true
+exts."strawberry.sim.setup".dock_target_window = "Render Settings"
+exts."strawberry.sim.setup".focus_script_editor = true
+exts."strawberry.sim.setup".pin_persp_camera = true
+exts."strawberry.sim.setup".persp_translate = [-1.86373, -1.15613, 2.08606]
+exts."strawberry.sim.setup".persp_rotate_xyz = [58.1076, 0.0, -46.70705]

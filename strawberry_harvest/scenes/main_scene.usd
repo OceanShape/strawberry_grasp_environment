@@ -28,7 +28,17 @@ def Xform "World"
     {
     }
 
-    def "strawberry_ripe" (
+    # [2026-09-10] 셀 경계 마커(cell_markers.usd, 분면 꼭지점 봉 9개)는 제거했다.
+    #   시야를 가려서. 영역 표시는 assets/props/whiteboard.usd 의 highlight 오버레이
+    #   (분면별 옅은 주황 판)가 대신한다 — isaac_sim_hud.py 가 켜고 끈다.
+
+    # [2026-09-07] 딸기 12개 — 익은 6 / 안 익은 6. 보드 4등분 서브셀에 배치.
+    #   서브셀 판정은 scan_executor가 "탐지된" 딸기들의 bbox 중점으로 계산하므로,
+    #   익은 6개의 bbox 중점이 보드 중심(x=0.050, z=0.660)과 일치하도록 배치했다.
+    #   → planner를 수정하지 않고도 상대 분할 결과가 보드 격자와 같아진다.
+    #   배치는 layers/layout_layer.usd, 줄기 조인트는 layers/physics_layer.usd.
+
+    def "strawberry_ripe_01" (          # ripe / 보드 nw
         prepend references = @../assets/strawberry/strawberry.usd@
         variants = {
             string ripeness = "ripe"
@@ -37,7 +47,97 @@ def Xform "World"
     {
     }
 
-    def "strawberry_unripe" (
+    def "strawberry_ripe_02" (          # ripe / 보드 nw
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "ripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_ripe_03" (          # ripe / 보드 ne
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "ripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_ripe_04" (          # ripe / 보드 sw
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "ripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_ripe_05" (          # ripe / 보드 sw
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "ripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_ripe_06" (          # ripe / 보드 sw
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "ripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_unripe_01" (          # unripe / 보드 nw
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "unripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_unripe_02" (          # unripe / 보드 ne
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "unripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_unripe_03" (          # unripe / 보드 ne
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "unripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_unripe_04" (          # unripe / 보드 se
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "unripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_unripe_05" (          # unripe / 보드 se
+        prepend references = @../assets/strawberry/strawberry.usd@
+        variants = {
+            string ripeness = "unripe"
+        }
+    )
+    {
+    }
+
+    def "strawberry_unripe_06" (          # unripe / 보드 se
         prepend references = @../assets/strawberry/strawberry.usd@
         variants = {
             string ripeness = "unripe"

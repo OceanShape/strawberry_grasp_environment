@@ -4,13 +4,13 @@
   <!-- ========================================== -->
   <!-- 1. Include Doosan e0509                    -->
   <!-- ========================================== -->
-  <xacro:include filename="/home/sun/strawberry_grasp_environment/src/doosan_robot2/dsr_description2/xacro/e0509.urdf.xacro" />
+  <xacro:include filename="/home/oceanshape/strawberry_grasp_environment/src/doosan_robot2/dsr_description2/xacro/e0509.urdf.xacro" />
 
   <!-- ========================================== -->
   <!-- 2. Include Robotis RH-P12-RN               -->
   <!-- ========================================== -->
   <!-- We modified the original file to remove the world_fixed joint -->
-  <xacro:include filename="/home/sun/strawberry_grasp_environment/src/RH-P12-RN/rh_p12_rn_description/urdf/rh_p12_rn.xacro" />
+  <xacro:include filename="/home/oceanshape/strawberry_grasp_environment/src/RH-P12-RN/rh_p12_rn_description/urdf/rh_p12_rn.xacro" />
 
   <!-- define pi -->
   <xacro:property name="pi" value="3.1415926535897931" />

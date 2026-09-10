@@ -9,6 +9,23 @@ over "World"
 {
     def Scope "physics"
     {
+        # [2026-09-07] 딸기 줄기 파단력 상향: breakForce 2 → 20 N, breakTorque 1 → 5 Nm.
+        #
+        # 2N 은 과실 자중(0.020kg × 9.81 = 0.196N)의 10.2배뿐이었다. 로봇 관절이
+        # stiffness 100000 위치구동이라 스치기만 해도 접촉력이 이를 훌쩍 넘겨,
+        # 로봇이 지나갈 때마다 딸기가 튕겨 날아갔다. 20N = 자중의 101.9배.
+        #
+        # breakTorque 를 함께 올리는 이유: 조인트 프레임이 과실 중심(localPos1=0,0,0)이라
+        # 표면에 20N 이 걸리면 토크가 20 × 0.0222 = 0.44 Nm 다. 1 Nm 은 여유가 얇아
+        # 비스듬한 접촉에서 힘 한계보다 토크가 먼저 걸릴 수 있다. 5 Nm 이면 항상
+        # 힘 한계(20N)가 먼저 판정된다.
+        #
+        # ⚠️ 이 값을 올려도 "수확 시 안 떨어지는" 부작용은 없다. 현재 시뮬에서 딸기는
+        #    애초에 물리적으로 분리되지 않는다 — 실제로 과실에 닿는 커스텀 3D 프린팅
+        #    파츠에 콜라이더가 없고(robot.urdf 해당 링크에 <collision> 없음),
+        #    파지 판정은 TCP↔딸기 거리로 하는 기하 기반이며, 브릿지는 딸기 포즈를
+        #    읽기만 한다. 즉 이 파라미터는 "실수로 튕겨나가는 것"만 막는 보호값이다.
+        #    물리적 분리까지 재현하려면 커스텀 파츠에 콜라이더를 추가해야 한다.
         def PhysicsScene "physicsScene" (
             prepend apiSchemas = ["PhysxSceneAPI"]
         )
@@ -17,31 +34,175 @@ over "World"
             float physics:gravityMagnitude = 9.81
         }
 
-        def PhysicsFixedJoint "stem_ripe" (
-            "익은 딸기 줄기 — body0 미지정 = 월드(공중) 고정. breakForce/Torque를 낮추면 수확(분리)이 쉬워짐. 튜닝 대상"
+
+
+
+
+
+
+
+
+
+
+
+
+
+        def PhysicsFixedJoint "stem_ripe_01" (
+            "ripe 딸기 줄기 (보드 nw) — body0 미지정 = 월드 고정"
         )
         {
-            rel physics:body1 = </World/strawberry_ripe>
-            float physics:breakForce = 2
-            float physics:breakTorque = 1
-            point3f physics:localPos0 = (-0.19825253830546546, 0.8037297534967913, 0.5874436604724225)
+            rel physics:body1 = </World/strawberry_ripe_01>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (-0.25, 0.7828, 0.74)
             point3f physics:localPos1 = (0, 0, 0)
             quatf physics:localRot0 = (1, 0, 0, 0)
             quatf physics:localRot1 = (1, 0, 0, 0)
         }
 
-        def PhysicsFixedJoint "stem_unripe" (
-            "안 익은 딸기 줄기 — 월드 고정 + break force"
+        def PhysicsFixedJoint "stem_ripe_02" (
+            "ripe 딸기 줄기 (보드 nw) — body0 미지정 = 월드 고정"
         )
         {
-            rel physics:body1 = </World/strawberry_unripe>
-            float physics:breakForce = 2
-            float physics:breakTorque = 1
-            point3f physics:localPos0 = (-0.3040665943771112, 0.7863578007836973, 0.7872296116189899)
+            rel physics:body1 = </World/strawberry_ripe_02>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (-0.12, 0.7828, 0.76)
             point3f physics:localPos1 = (0, 0, 0)
             quatf physics:localRot0 = (1, 0, 0, 0)
             quatf physics:localRot1 = (1, 0, 0, 0)
         }
+
+        def PhysicsFixedJoint "stem_ripe_03" (
+            "ripe 딸기 줄기 (보드 ne) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_ripe_03>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (0.2, 0.7828, 0.74)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_ripe_04" (
+            "ripe 딸기 줄기 (보드 sw) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_ripe_04>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (-0.22, 0.7828, 0.56)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_ripe_05" (
+            "ripe 딸기 줄기 (보드 sw) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_ripe_05>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (-0.1, 0.7828, 0.44)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_ripe_06" (
+            "ripe 딸기 줄기 (보드 sw) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_ripe_06>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (-0.25, 0.7828, 0.5)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_unripe_01" (
+            "unripe 딸기 줄기 (보드 nw) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_unripe_01>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (-0.38, 0.7828, 0.72)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_unripe_02" (
+            "unripe 딸기 줄기 (보드 ne) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_unripe_02>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (0.15, 0.7828, 0.9)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_unripe_03" (
+            "unripe 딸기 줄기 (보드 ne) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_unripe_03>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (0.28, 0.7828, 0.7)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_unripe_04" (
+            "unripe 딸기 줄기 (보드 se) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_unripe_04>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (0.12, 0.7828, 0.56)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_unripe_05" (
+            "unripe 딸기 줄기 (보드 se) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_unripe_05>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (0.25, 0.7828, 0.48)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
+        def PhysicsFixedJoint "stem_unripe_06" (
+            "unripe 딸기 줄기 (보드 se) — body0 미지정 = 월드 고정"
+        )
+        {
+            rel physics:body1 = </World/strawberry_unripe_06>
+            float physics:breakForce = 20
+            float physics:breakTorque = 5
+            point3f physics:localPos0 = (0.18, 0.7828, 0.38)
+            point3f physics:localPos1 = (0, 0, 0)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+
     }
 
     over "lab_environment"

@@ -41,6 +41,16 @@ def Xform "whiteboard"
                 uniform token info:implementationSource = "sourceAsset"
                 uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
                 uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
+                # [2026-09-10] 흰 종이 격자 텍스처로 복귀.
+                #
+                # 2026-09-08 에 슬레이트 틸 단색(#3E7383)으로 바꿨었다 — 흰 커스텀
+                # 파츠(robot.urdf "white")와 밝은 회색 팔이 흰 보드에 묻힌다는 이유.
+                # 그 대비 손실은 알고 되돌린다: 격자선이 분면 경계를 그대로 보여 줘서
+                # 화면을 읽기 쉽고, 영역 표시는 이제 아래 highlight 오버레이가 맡는다
+                # (분면 꼭지점 봉 cell_markers.usd 는 같은 날 제거).
+                # 틸이 다시 필요하면 diffuse_texture 를 지우고
+                #   color3f inputs:diffuse_color_constant = (0.0482, 0.1714, 0.227)
+                # 로 돌려놓으면 된다 (linear; sRGB #3E7383).
                 asset inputs:diffuse_texture = @./textures/paper_grid_custom_bg.png@ (
                     colorSpace = "auto"
                 )
@@ -50,6 +60,131 @@ def Xform "whiteboard"
                     renderType = "material"
                 )
             }
+        }
+
+        # [2026-09-10] 활성 분면 머티리얼 — 같은 격자 텍스처에 옅은 주황 tint 를 곱한다.
+        # tint 는 곱셈이라 흰 바탕만 살구색이 되고 검은 격자선은 검게 남는다.
+        #
+        # 색: Claude 주황 sRGB #D97757 을 흰색 위에 55% 섞은 값 (09-10 35% -> 55%, 더 진하게).
+        #   sRGB (234, 180, 163) = #EAB4A3  ->  linear (0.823, 0.456, 0.366)
+        # 더 진하게 = #D97757 쪽으로, 더 옅게 = 흰색 쪽으로 섞어서 linear 로 변환해 넣는다.
+        # (OmniPBR 색 입력은 전부 linear.)
+        def Material "PaperGrid_Active_Mat"
+        {
+            token outputs:mdl:displacement.connect = </whiteboard/Looks/PaperGrid_Active_Mat/Shader.outputs:out>
+            token outputs:mdl:surface.connect = </whiteboard/Looks/PaperGrid_Active_Mat/Shader.outputs:out>
+            token outputs:mdl:volume.connect = </whiteboard/Looks/PaperGrid_Active_Mat/Shader.outputs:out>
+
+            def Shader "Shader"
+            {
+                uniform token info:implementationSource = "sourceAsset"
+                uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
+                uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
+                asset inputs:diffuse_texture = @./textures/paper_grid_custom_bg.png@ (
+                    colorSpace = "auto"
+                )
+                color3f inputs:diffuse_tint = (0.823, 0.456, 0.366)
+                float inputs:reflection_roughness_constant = 1
+                float inputs:specular_level = 0
+                token outputs:out (
+                    renderType = "material"
+                )
+            }
+        }
+    }
+
+
+    # [2026-09-10] 분면 하이라이트 오버레이 — 로봇이 작업 중인 / 가려는 영역 표시.
+    #
+    # board 와 같은 단위 정사각형을 4분면으로 나눈 얇은 판 4장. 보드면에서 로컬 -Z
+    # 2mm(로봇 쪽) 앞에 두고, 같은 격자 텍스처에 옅은 주황 tint 를 곱한 머티리얼을
+    # 입혔다. 기본은 전부 invisible — isaac_sim_hud.py 가 HUD 의 영역 값에 맞춰
+    # 세션 레이어에서 visibility 를 켠다 (홈 = 4장 전부, 분면 = 그 한 장).
+    #
+    # 분면 이름은 로봇(world -Y 쪽)에서 보드를 본 방향이다:
+    #   north = world +Z = 로컬 -y,  west = world -X = 로컬 -x
+    #   (lab_environment.usd / layout_layer.usd 의 orient Rx(-90°) 기준)
+    #   nw: 로컬 x<0, y<0   ne: x>0, y<0   sw: x<0, y>0   se: x>0, y>0
+    # st 는 board 와 같은 (x+0.5, y+0.5) 라 텍스처의 격자 칸과 정확히 겹친다.
+    #
+    # 시각 전용: 콜라이더 없음(physics_layer 는 whiteboard/board 만 건드린다),
+    # 이름에 strawberry 가 없어 fake_vision 도 발행하지 않는다. 플래너 입출력과 무관.
+    def Scope "highlight"
+    {
+        def Mesh "nw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.5, -0.5, -0.002), (0, 0, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.5, -0.5, -0.002), (0, -0.5, -0.002), (-0.5, 0, -0.002), (0, 0, -0.002)]
+            texCoord2f[] primvars:st = [(0, 0), (0.5, 0), (0.5, 0.5), (0, 0.5)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "ne" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0, -0.5, -0.002), (0.5, 0, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0, -0.5, -0.002), (0.5, -0.5, -0.002), (0, 0, -0.002), (0.5, 0, -0.002)]
+            texCoord2f[] primvars:st = [(0.5, 0), (1, 0), (1, 0.5), (0.5, 0.5)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "sw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.5, 0, -0.002), (0, 0.5, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.5, 0, -0.002), (0, 0, -0.002), (-0.5, 0.5, -0.002), (0, 0.5, -0.002)]
+            texCoord2f[] primvars:st = [(0, 0.5), (0.5, 0.5), (0.5, 1), (0, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "se" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0, 0, -0.002), (0.5, 0.5, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0, 0, -0.002), (0.5, 0, -0.002), (0, 0.5, -0.002), (0.5, 0.5, -0.002)]
+            texCoord2f[] primvars:st = [(0.5, 0.5), (1, 0.5), (1, 1), (0.5, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
         }
     }
 

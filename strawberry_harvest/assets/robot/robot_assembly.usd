@@ -24,6 +24,8 @@ def Xform "robot_assembly" (
 
             over "RSD455"
             {
+                bool physics:rigidBodyEnabled = 0
+
                 over "Camera_Pseudo_Depth"
                 {
                     quatd xformOp:orient = (0.4999999999999997, 0.5000000000000001, 0.5000000000000001, 0.5)
@@ -44,4 +46,130 @@ def Xform "robot_assembly" (
             }
         }
     }
+
+    over "joints"
+    {
+        over "joint_1"
+        {
+            float drive:angular:physics:damping = 100000
+            float drive:angular:physics:stiffness = 1000000
+        }
+
+        over "joint_2"
+        {
+            float drive:angular:physics:damping = 100000
+            float drive:angular:physics:stiffness = 1000000
+        }
+
+        over "joint_3"
+        {
+            float drive:angular:physics:damping = 100000
+            float drive:angular:physics:stiffness = 1000000
+        }
+
+        over "joint_4"
+        {
+            float drive:angular:physics:damping = 100000
+            float drive:angular:physics:stiffness = 1000000
+        }
+
+        over "joint_5"
+        {
+            float drive:angular:physics:damping = 100000
+            float drive:angular:physics:stiffness = 1000000
+        }
+
+        over "joint_6"
+        {
+            float drive:angular:physics:damping = 100000
+            float drive:angular:physics:stiffness = 1000000
+        }
+
+        over "rh_p12_rn"
+        {
+            float drive:angular:physics:damping = 10000
+            float drive:angular:physics:stiffness = 100000
+        }
+
+        # ★ [FIX 2026-09-10] rh_r2 / rh_l2 상한을 rh_l1 / rh_p12_rn 과 같은
+        # 63.02535629272461 deg (1.1 rad) 로 올린다. 종전 상한은 57.2957763671875 deg
+        # (1.0 rad) 였다 — RH-P12-RN 제조사 xacro 의 **스톡 손가락 기준** 값이다.
+        #
+        # 실측 (실제 메시 gripper_parts.stl 기준, 두 파츠 최소 간격):
+        #     1.000 rad  9.4mm   <- 종전 상한. 5mm 줄기를 못 문다
+        #     1.050 rad  3.7mm
+        #     1.080 rad  0.7mm   <- 현재 닫힘값
+        #     1.101 rad  0.1mm   (접촉)
+        # 15cm 커스텀 파츠를 붙이면서 손가락이 길어져, 스톡 스트로크로는 파츠 끝이
+        # 9.4mm 벌어진 채로 멈춘다. 파츠는 완전히 평행하므로(평행도 실측 0.0mm)
+        # 이 간격은 전체 면에 균일하다 — 즉 줄기를 무는 것이 아니라 홈에 끼울 뿐이다.
+        #
+        # ⚠️ 이것은 **의도한 시뮬 편차**다. 실기 하드웨어는 1.0 rad 에서 멈춘다.
+        #    실기와 완전히 맞추려면 이 override 를 지우고 브릿지의
+        #    gripper_close_rad 를 1.0 으로 되돌린다 (그러면 9.4mm 간격이 된다).
+        over "rh_r2"
+        {
+            float drive:angular:physics:damping = 10000
+            float drive:angular:physics:stiffness = 100000
+            float physics:upperLimit = 63.02535629272461
+        }
+
+        over "rh_l1"
+        {
+            float drive:angular:physics:damping = 10000
+            float drive:angular:physics:stiffness = 100000
+        }
+
+        over "rh_l2"
+        {
+            float drive:angular:physics:damping = 10000
+            float drive:angular:physics:stiffness = 100000
+            float physics:upperLimit = 63.02535629272461
+        }
+
+        # [FIX 2026-09-08] 커스텀 파츠 부착각의 6° 갈라짐(splay) 제거.
+        #
+        # robot.urdf 의 l2_to_left_custom_part / r2_to_right_custom_part 오리진에
+        # rpy 의 pitch 로 +0.10472 rad(6°)가 들어 있어 두 파츠를 **바깥으로** 벌린다.
+        # 그 결과 조우를 완전히 닫아도(stroke 700 = 1.0 rad) 팁 간격이 38.9mm,
+        # 기구 한계(1.101 rad)에서도 27.4mm 라 **줄기를 쥐는 모습이 절대 안 나온다.**
+        # 밑동은 14.9mm 까지 닫히는데 팁만 벌어지는, 앞이 트인 깔때기 형상이었다.
+        #
+        # pitch 를 0 으로 두면 평행 파지가 되어 stroke 700 에서 팁 간격 9.4mm,
+        # 접촉 리드백(670)에서 약 14mm — 줄기를 문 것으로 보인다.
+        # robot.urdf 원본 주석도 이 오리진을 "나중에 수정 가능"한 임시값으로 적어 두었다.
+        #
+        #   localRot0: rpy(∓90°, 6°, ∓90°) -> rpy(∓90°, 0°, ∓90°)
+        #   좌 (0.5254827, -0.47314674, ...) -> (0.5, -0.5, 0.5, -0.5)
+        #   우 (0.5254827, +0.47314674, ...) -> (0.5, +0.5, 0.5, +0.5)
+        # ⚠️ 1.101 rad 까지 닫으면 -2.1mm 로 서로 파고든다. 브릿지의 stroke/700 매핑이
+        #    1.0 rad 에서 멈추는 것이 오히려 안전장치이므로 그 매핑은 그대로 둔다.
+        over "l2_to_left_custom_part"
+        {
+            quatf physics:localRot0 = (0.5, -0.5, 0.5, -0.5)
+        }
+
+        over "r2_to_right_custom_part"
+        {
+            quatf physics:localRot0 = (0.5, 0.5, 0.5, 0.5)
+        }
+    }
+
+    # [FIX 2026-09-08] 위에서 조인트 프레임(physics:localRot0)만 고쳤더니 화면은
+    # 그대로였다. 렌더링·기구 포즈는 **링크 자신의 xformOp:orient** 를 쓰기 때문이다.
+    # 그 값에 6° splay 가 남아 있어 조우를 닫아도 계속 V(가위) 모양이었다.
+    #   종전 left  = (0.70613754, -0.70613766, 0.03700976, 0.03700712)  ← 0.037 이 6°
+    #   종전 right = (0.03700712, -0.03700450, 0.70613790, 0.70613766)
+    # 검증: authored ⊗ rpy(∓90°,6°,∓90°)⁻¹ 를 계산하면 부모(rh_p12_rn_l2/r2)의
+    # authored 자세 (0.7071081, 0, 0, 0.7071055) 가 정확히 나온다. 즉 6° 만 제거하면 된다.
+    over "left_custom_part"
+    {
+        quatd xformOp:orient = (0.70710678, -0.70710678, 0, 0)
+    }
+
+    over "right_custom_part"
+    {
+        quatd xformOp:orient = (0, 0, 0.70710678, 0.70710678)
+    }
 }
+
