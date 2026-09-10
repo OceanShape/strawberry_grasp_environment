@@ -378,4 +378,18 @@ over "World"
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
         }
     }
+
+    # [T4-3 2026-09-11] 계란판 — 시각 전용. 조립은 main_scene.usd, 형상은 assets/props/egg_carton.usd.
+    #
+    # translate 는 **slot 0 컵 중심**이다 — 격자 상수(그리퍼 밑동 ee 위치)가 아니라
+    # 런 7 과실 정지 위치 6개의 최소자승 fit 값. ee 상수 자리(x≈520)에 놓으면 250mm 어긋난다.
+    # 컵 15개는 이 원점에서 플래너 격자 벡터(열 (-59.7,+3.4,+0.9) / 행 (-8.0,-50.6,-2.5) mm)로 펼쳐진다.
+    # 값을 다시 만들려면: python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py
+    # ⚠️ scale 없음. 배치 슬롯·과실 위치가 바뀌면 egg_carton_geom.py 의 FRUIT_REST_M 을 갱신하고 재생성.
+    over "egg_carton"
+    {
+        quatf xformOp:orient = (1, 0, 0, 0)
+        double3 xformOp:translate = (0.7711, 0.0916, 0.0354)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
+    }
 }
