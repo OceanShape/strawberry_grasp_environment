@@ -23,8 +23,10 @@ class TrayPlacePolicy:
     def __init__(self, node, runtime_log, tray_cells_json: str,
                  marker_place_max_age_sec: float,
                  marker_place_above_clearance_m: float,
-                 measured_tcp_model: bool):
+                 measured_tcp_model: bool,
+                 orthogonalize_taught_grid: bool = False):
         self.node = node
+        self.orthogonalize_taught_grid = orthogonalize_taught_grid
         self.runtime_log = runtime_log
         self.tray_cells_json = tray_cells_json
         self.marker_place_max_age_sec = marker_place_max_age_sec
@@ -173,7 +175,15 @@ class TrayPlacePolicy:
         slot1 = np.array(TAUGHT_SLOT1_PLACE_REFERENCE_POSX_MM_DEG[:3], dtype=float)
         slot3 = np.array(TAUGHT_SLOT3_PLACE_REFERENCE_POSX_MM_DEG[:3], dtype=float)
         horizontal_idx, vertical_idx = divmod(slot_index, 3)
-        offset_mm = horizontal_idx * (slot3 - slot0) + vertical_idx * (slot1 - slot0)
+        col_axis = slot1 - slot0          # slot%3 방향 (실기: (-59.7, +3.4, +0.9)mm)
+        row_axis = slot3 - slot0          # slot//3 방향 (실기: (-8.0, -50.6, -2.5)mm)
+        if self.orthogonalize_taught_grid:
+            # [2026-09-11] 세 점 수동 티칭이 만든 격자는 두 축 사이각이 84.26° 이고 행마다 z 가 2.5mm
+            # 내려간다 (09-10 런 5 분석). 강체 계란판은 그럴 수 없으므로 티칭 오차다. 피치 크기만 남기고
+            # 축을 -x / -y, z 를 수평으로 둔다. slot 0 자체는 그대로다.
+            col_axis = np.array([-float(np.linalg.norm(col_axis[:2])), 0.0, 0.0])
+            row_axis = np.array([0.0, -float(np.linalg.norm(row_axis[:2])), 0.0])
+        offset_mm = horizontal_idx * row_axis + vertical_idx * col_axis
         return (offset_mm / 1000.0).tolist()
 
     @staticmethod

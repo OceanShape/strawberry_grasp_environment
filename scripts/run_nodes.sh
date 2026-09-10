@@ -129,6 +129,9 @@ done
 #        (0,2,4행) × (0,1열) 조합밖에 없다 — 즉 slot 13 은 뺄 수 없다. slot 13 은 사전 검증에서
 #        5/7 이라 **시퀀스 맨 뒤**에 둔다 (실패해도 이미 5개가 놓인 뒤이고, hold_on_place_failure
 #        =false 라 그 자리에 놓고 끝낸다). 사전 검증: check_tray_slot_reachability.py.
+# orthogonalize_taught_grid (T4-3 2차, 2026-09-11): 실기 slot 0·1·3 세 점이 만드는 배치 격자는 사이각 84.26°
+#   평행사변형에 행당 z -2.5mm 기울기다 — 강체 계란판은 그럴 수 없으니 수동 티칭 오차다. 시뮬 계란판은
+#   수평·직사각(사용자 결정)이므로 피치 크기만 남기고 축을 -x/-y, z 를 수평으로 둔다. 실기 기본값 false 는 보존.
 ( cd "$REPO/src/strawberry_motion/scripts" && exec stdbuf -oL -eL python3 curobo_planner_node.py --ros-args \
     -p tool_model_profile:=legacy_160mm \
     -p ee_to_tcp_offset_m:=0.236 \
@@ -141,6 +144,7 @@ done
     -p execute_marker_place_release:=true \
     -p hold_after_taught_slot0_place:=false \
     -p taught_slot_sequence:=0,1,6,7,12,13 \
+    -p orthogonalize_taught_grid:=true \
 ) > >(tee "$LOGDIR/planner.log" | stdbuf -oL sed 's/^/[planner] /') 2>&1 &
 
 # overview_prescan: 원안 1·2단계(overview 1차 스캔 → 익은 과실 있는 분면만 순회). 실기 기본 false.
@@ -182,6 +186,7 @@ need planner.log "EE_TO_TCP_OFFSET_OVERRIDE"          "플래너 TCP 오프셋 1
 need planner.log "open_stem_descent=True"             "열린 조우 하강 단계"
 need planner.log "straight_reverse_retreat=True"      "진입 역순 후퇴 단계"
 need planner.log "slot_sequence=\[0, 1, 6, 7, 12, 13\]" "배치 슬롯 진행 0,1,6,7,12,13 (행 건너뛰기 — 이웃 행이면 과실이 닿는다)"
+need planner.log "orthogonalize_taught_grid=True"     "배치 격자 직교화 (false 면 티칭 평행사변형 84.26° 그대로 — 계란판과 어긋난다)"
 need scan.log    "scan_executor_node ready"           "scan_executor 기동"
 [ "$READY" = "1" ] && printf '  OK   %s\n' "cuRobo Planner Ready!" \
                    || { printf '  !!   %s\n' "cuRobo Planner Ready! 가 5분 안에 안 떴다"; FAILS=$((FAILS + 1)); }

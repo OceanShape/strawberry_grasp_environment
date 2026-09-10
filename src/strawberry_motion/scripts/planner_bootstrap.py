@@ -119,6 +119,10 @@ def declare_and_load_params(node, safe_grasp_available: bool) -> None:
     node.declare_parameter("taught_slot_sequence", "")
     node.declare_parameter("taught_slot_index_step", 1)
     node.declare_parameter("skip_row2_place_slots", False)
+    # [2026-09-11] 티칭 격자 직교화. 기본 False = 실기 그대로(slot0/1/3 세 점이 만드는 84.26° 평행사변형,
+    # 행당 z -2.5mm 기울기). True 면 같은 세 점의 **피치 크기만** 쓰고 축을 -x/-y, z 를 수평으로 둔다.
+    # 시뮬은 규칙적인 계란판(수평·직사각) 위에 놓으므로 켠다. 실기 값은 건드리지 않는다.
+    node.declare_parameter("orthogonalize_taught_grid", False)
     node.declare_parameter("allow_generated_tray_slot_release", False)
     node.declare_parameter("allow_unverified_grasp_place", False)
     node.declare_parameter("grasp_current_contact_threshold_raw", -1)
@@ -211,6 +215,8 @@ def declare_and_load_params(node, safe_grasp_available: bool) -> None:
         1, int(node.get_parameter("taught_slot_index_step").value))
     node._skip_row2_place_slots = bool(
         node.get_parameter("skip_row2_place_slots").value)
+    node._orthogonalize_taught_grid = bool(
+        node.get_parameter("orthogonalize_taught_grid").value)
     node._allow_generated_tray_slot_release = bool(
         node.get_parameter("allow_generated_tray_slot_release").value)
     if not 0 <= node._marker_place_slot_idx < TAUGHT_TRAY_SLOT_COUNT:

@@ -76,12 +76,13 @@ for s in range(15):
 chk(same, "컵 15개 형상 동일 (컵당 %d점, 기대 점집합과 최대 차 %.2e m)" % (len(expected), worst))
 chk(P[:, 2].min() >= G.SKIRT_BOTTOM_Z_M - 1e-9, "쉘 최저점 = 스커트 %.0fmm (컵이 그보다 내려가지 않음)" % (G.SKIRT_BOTTOM_Z_M * 1000))
 
-print("[4] 과실 6개 착지 (런 %s) — 컨테이너를 과실에 맞추지 않았으므로 치우침은 정보" % G.RUN_ID)
+print("[4] 과실 6개 **예상** 착지 = 직교화 격자 ee + 런 %s 실측 매달림 변위 (실제 착지는 다음 런에서 확인)" % G.RUN_ID)
 fl = np.array(UsdGeom.Mesh(st.GetPrimAtPath("/World/strawberry_ripe_01/geo/fruit/mesh")).GetPointsAttr().Get()) * 0.005
 fp_world = R.from_euler("z", -81.5, degrees=True).apply(fl)          # 파지→배치 회전 (world)
 hx, hy = G.PITCH_COL_M / 2, G.PITCH_ROW_M / 2
 in_cell = True; worst_clip = 0.0
-for slot, f in sorted(G.FRUIT_REST_M.items()):
+for slot in sorted(G.FRUIT_REST_M):
+    f = G.predicted_fruit_rest_m(slot)
     fa = G.world_to_asset(f, t_scene, yaw_scene)
     c = G.cup_center_asset_m(slot)
     off = (fa - c)[:2] * 1000
@@ -102,7 +103,8 @@ for slot, f in sorted(G.FRUIT_REST_M.items()):
     worst_clip = max(worst_clip, clip)
     print("     slot %2d  컵 중심 치우침 (%+5.1f, %+5.1f) mm  %s  림/벽 겹침 %.1fmm  밑끝 z %+.1fmm"
           % (slot, off[0], off[1], "셀 안" if inside else "셀 밖!", clip, (f[2] - G.FRUIT_BOTTOM_BELOW_CENTER_M) * 1000))
-chk(in_cell, "과실 6개 전부 자기 셀 안 (반폭 %.1f × %.1f mm)" % (hx * 1000, hy * 1000))
-print("     림/벽 겹침 최대 %.1fmm — 티칭 격자 왜곡(84.26°)·분면별 매달린 깊이의 눈에 보이는 크기. 콜라이더 없음" % worst_clip)
+chk(in_cell, "예상 착지 6개 전부 자기 셀 안 (반폭 %.1f × %.1f mm)" % (hx * 1000, hy * 1000))
+chk(worst_clip <= 1.0, "예상 착지에서 림/벽 겹침 ≤1mm (최대 %.1fmm — 격자가 합동이라 잔차 = 매달린 깊이 차뿐; 1mm 이하는 화면에서 안 보인다)" % worst_clip)
+print("     (컨테이너 yaw 0 · 배치 직교화. 치우침 = 분면별 매달린 깊이 차(±4mm) + 런 간 팔 산포(~2mm))")
 print("\n" + ("T4-3 검증 통과" if ok else "T4-3 검증 실패"))
 sys.exit(0 if ok else 1)

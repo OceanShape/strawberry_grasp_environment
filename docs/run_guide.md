@@ -314,7 +314,7 @@ cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source
 cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 run strawberry_sim_core sim_executor_bridge_node
 
 # curobo_planner — scripts/ 에서 실행해야 한다 (flat import 구조)
-cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && cd src/strawberry_motion/scripts && python3 curobo_planner_node.py --ros-args -p tool_model_profile:=legacy_160mm -p ee_to_tcp_offset_m:=0.236 -p enable_open_stem_descent:=true -p enable_straight_reverse_retreat:=true -p pick_target_z_bias_m:=0.035 -p allow_generated_tray_slot_release:=true -p enable_marker_place_sequence:=true -p use_taught_slot0_place_reference:=true -p execute_marker_place_release:=true -p hold_after_taught_slot0_place:=false -p taught_slot_sequence:="0,1,6,7,12,13"
+cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && cd src/strawberry_motion/scripts && python3 curobo_planner_node.py --ros-args -p tool_model_profile:=legacy_160mm -p ee_to_tcp_offset_m:=0.236 -p enable_open_stem_descent:=true -p enable_straight_reverse_retreat:=true -p pick_target_z_bias_m:=0.035 -p allow_generated_tray_slot_release:=true -p enable_marker_place_sequence:=true -p use_taught_slot0_place_reference:=true -p execute_marker_place_release:=true -p hold_after_taught_slot0_place:=false -p taught_slot_sequence:="0,1,6,7,12,13" -p orthogonalize_taught_grid:=true
 
 # scan_executor
 cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 -m strawberry_motion.execution.scan_executor_node --ros-args -p execute_motion:=true -p target_cell:=all
@@ -421,6 +421,7 @@ place 실행 경로는 플래너에 **이미 전부 구현돼 있고 파라미�
 | `use_taught_slot0_place_reference` | False | `MARKER_PLACE_BLOCKED: tray cells JSON not found` → soft skip |
 | `execute_marker_place_release` | False | 트레이 위 ABOVE까지만 가고 **안 놓음** (`MARKER_PLACE_PREVIEW_HOLD`) |
 | `hold_after_taught_slot0_place` | **True** | release 후 `TAUGHT_TRAY_PLACE_COMPLETE_HOLD`로 정지, 다음 딸기로 안 넘어감 |
+| `orthogonalize_taught_grid` | **False** | 배치 격자가 실기 티칭 그대로 — 사이각 84.26° 평행사변형 + 행당 z −2.5mm. 수평·직사각 계란판과 어긋나 행 0·4 과실이 x 로 ±16mm 벗어난다 (2026-09-11 신설, 시뮬은 true) |
 
 **`taught_slot_sequence:="0,1,6,7,12,13"` — 배치 슬롯을 **행 한 칸씩 건너뛰며** 여섯 칸에 진행한다. (2026-09-10 T4-1)**
 09-10 13:12 런에서 `0,1,3,4,6,7`(행 인접)로 돌려 보니 **이웃 행끼리 과실이 닿았다.** 배치 정밀도 문제가 아니라

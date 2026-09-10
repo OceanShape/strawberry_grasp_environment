@@ -385,15 +385,16 @@ over "World"
     # 격자 왜곡은 로봇 티칭 오차이지 컨테이너의 성질이 아니다). 왜곡은 여기 배치가 아니라 **과실이 컵에서 벗어나는
     # 모습**으로 드러난다.
     #
-    # translate/orient = 티칭 ee 격자 15점 + 평균 ee→과실 변위(런 7)에 강체 최소자승(Kabsch) 으로 맞춘 자세.
-    #   translate = slot 0 컵 중심 아래 테이블 상판, yaw = fit 값 (아래). z 는 0 — 테이블 위에 놓인다.
+    # [2026-09-11 사용자 결정] yaw 0 (베이스 축 정렬) + 플래너 orthogonalize_taught_grid=true 로 배치 격자도 직교화.
+    #   두 격자가 합동이므로 translate = 직교화 격자의 slot 0 겨냥 ee + 평균 ee→과실 변위(런 7) — slot 0 컵 중심 아래 상판.
+    #   z 는 0 — 테이블 위에 놓인다. (직교화 전 티칭 격자에 맞출 때는 Kabsch fit 이 yaw -7.24° 를 냈다.)
     #   격자 상수 자리(ee, x≈520)에 놓으면 250mm 어긋난다.
     # 값을 다시 만들려면: python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py  (출력의 layout_layer 줄)
     # ⚠️ scale 없음. 배치 슬롯·과실 위치가 바뀌면 egg_carton_geom.py 의 FRUIT_REST_M 갱신 후 재생성.
     over "egg_carton"
     {
-        quatf xformOp:orient = (0.998004, 0, 0, -0.063156)
-        double3 xformOp:translate = (0.7676, 0.0879, 0)
+        quatf xformOp:orient = (1.0, 0, 0, 0.0)
+        double3 xformOp:translate = (0.7711, 0.0915, 0.0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
     }
 }

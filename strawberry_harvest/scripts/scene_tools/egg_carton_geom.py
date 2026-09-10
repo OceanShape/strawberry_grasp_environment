@@ -16,9 +16,10 @@
   (컨테이너 실측 치수는 기록이 없다. 3점 티칭 오차는 각도에 주로 들어가고 거리에는 덜 들어간다고 본다.)
 
 자세 fit
-  티칭 ee 격자 15점 + 평균 ee→과실 변위(런 7 실측 6개) 를 목표로, 피치 고정 직교 격자를 강체(회전+평행이동)
-  최소자승(Kabsch)으로 맞춘다. 과실 6개로 직접 맞추지 않는 이유: 분면별 매달린 깊이 차(±4mm x)가
-  행 그룹별로 달라 가짜 전단이 섞인다. 격자 왜곡은 fit 이 양쪽 축으로 나눠 갖는다.
+  플래너가 겨냥하는 ee 격자 15점 + 평균 ee→과실 변위(런 7 실측 6개) 를 목표로 격자를 맞춘다.
+  2026-09-11 사용자 결정: 계란판은 베이스 축 정렬(yaw 0), 배치 격자도 플래너 파라미터
+  orthogonalize_taught_grid=true 로 직교화 — 두 격자가 합동이라 잔차는 과실별 매달린 깊이 차뿐이다.
+  (직교화 전의 티칭 격자에 맞출 때는 Kabsch 가 왜곡을 양쪽 축으로 나눠 가져 yaw -7.24° 가 나왔다.)
 """
 import os
 import sys
@@ -69,14 +70,14 @@ def fruit_max_radius_m(dz):
 
 
 # 컵 (15개 동일, 애셋 프레임 z = 테이블 상판 기준)
-PLATE_TOP_Z_M = 0.016        # 판 윗면 = 림 높이. 가장 낮게 놓이는 과실(중심 z 24mm)의 그 높이 반경 21.9 < ry 23
+PLATE_TOP_Z_M = 0.022        # 판 윗면 = 림 높이. 격자가 수평이면 과실 중심 z≈36.5 → 그 높이 반경 18.4 < ry 23 (여유 4.6mm)
 CUP_FLOOR_Z_M = 0.001        # 컵 바닥 (상판 위 — 빈 컵에 테이블이 비치지 않게)
 SKIRT_BOTTOM_Z_M = -0.003    # 스커트 아랫변 (상판 3mm 아래로 앉힘)
 CUP_RINGS_M = [              # (z, rx, ry): 림 → 바닥. rx 는 열(-x) 방향, ry 는 행(-y) 방향
     (PLATE_TOP_Z_M, 0.026, 0.023),   # 피치 59.8 / 51.2 안에서 능선 7.8 / 5.2mm 가 남는 최대
-    (0.0110, 0.021, 0.019),
-    (0.0060, 0.017, 0.015),
-    (CUP_FLOOR_Z_M, 0.013, 0.012),
+    (0.0150, 0.021, 0.019),
+    (0.0080, 0.017, 0.015),
+    (CUP_FLOOR_Z_M, 0.013, 0.012),   # 깊이 21mm. 과실 밑끝(36.5-33.1=3.4mm) 은 바닥 위 2.4mm
 ]
 CUP_SIDES = 16
 PLATE_MARGIN_M = 0.006
@@ -84,7 +85,7 @@ PLATE_MARGIN_M = 0.006
 # 자세 각도 강제. None = 티칭 격자에 최소자승 fit (-7.24°, 컵 중심 잔차 최대 5.3mm).
 #   0.0   = 로봇 베이스 축에 정렬 — 잔차 최대 16.7mm (행 0·4 과실이 x 로 ±16mm, 능선 위에 걸린다)
 #   -3.30 = 티칭 열 축에 정렬 — 잔차 최대 10.3mm
-YAW_OVERRIDE_DEG = None
+YAW_OVERRIDE_DEG = 0.0      # 2026-09-11 사용자 결정: 베이스 축 정렬. 배치 격자도 직교화하므로 잔차는 매달린 깊이 차뿐
 
 
 def cup_center_asset_m(slot):
@@ -93,11 +94,39 @@ def cup_center_asset_m(slot):
     return np.array([-c * PITCH_COL_M, -r * PITCH_ROW_M, 0.0])
 
 
+# 플래너 파라미터 orthogonalize_taught_grid 와 같은 규칙. run_nodes.sh 가 true 로 켠다.
+PLACEMENT_ORTHOGONALIZED = True
+
+
+def ee_taught_m(slot):
+    """실기 티칭 격자의 ee 위치 (플래너 기본값 false 일 때 놓는 자리)."""
+    r, c = divmod(slot, COLS)
+    return _EE0 + r * H_ROW_TAUGHT + c * V_COL_TAUGHT
+
+
+def ee_placed_m(slot):
+    """플래너가 실제로 겨냥하는 ee 위치. 직교화 켜면 축 -x/-y, z 수평 (tray_place_policy 와 같은 식)."""
+    if not PLACEMENT_ORTHOGONALIZED:
+        return ee_taught_m(slot)
+    r, c = divmod(slot, COLS)
+    return _EE0 + np.array([-c * PITCH_COL_M, -r * PITCH_ROW_M, 0.0])
+
+
+def fruit_hang_offsets_m():
+    """런 실측 과실별 ee→과실 변위 d_s (world). 분면별 매달린 깊이 차가 여기 들어 있다."""
+    return {s: FRUIT_REST_M[s] - ee_taught_m(s) for s in FRUIT_REST_M}
+
+
+def predicted_fruit_rest_m(slot):
+    """직교화된 격자로 놓았을 때의 예상 착지 = 겨냥 ee + 같은 슬롯의 실측 변위 (같은 과실·같은 접근 자세 가정)."""
+    return ee_placed_m(slot) + fruit_hang_offsets_m()[slot]
+
+
 def _taught_targets_m():
-    """티칭 ee 격자 15점 + 평균 ee→과실 변위 (xy). fit 의 목표."""
-    ee = {s: _EE0 + divmod(s, COLS)[0] * H_ROW_TAUGHT + divmod(s, COLS)[1] * V_COL_TAUGHT for s in range(15)}
-    mean_off = np.mean([FRUIT_REST_M[s] - ee[s] for s in FRUIT_REST_M], axis=0)
-    return {s: (ee[s] + mean_off)[:2] for s in range(15)}, mean_off
+    """플래너가 겨냥하는 ee 격자 15점 + 평균 ee→과실 변위 (xy). fit 의 목표."""
+    d = fruit_hang_offsets_m()
+    mean_off = np.mean(list(d.values()), axis=0)
+    return {s: (ee_placed_m(s) + mean_off)[:2] for s in range(15)}, mean_off
 
 
 def fit_pose():
