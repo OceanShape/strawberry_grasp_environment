@@ -58,7 +58,32 @@ class SimExecutorBridgeNode(Node):
     # 그 잔차가 그대로 남아 조우가 파지점보다 앞에서 닫힌다.
     # 사용자 보고와 일치: sw 3개는 완벽, nw/ne 는 앞쪽을 집음.
     SPLINE_MAX_JOINT_SPEED_DEG_S = 120.0
-    ARM_ARRIVAL_TOL_DEG = 1.5         # "도착" 판정 허용 오차
+    # [FIX 2026-09-10] "도착" 판정 허용 오차 1.5 -> 0.3 deg.
+    #
+    # 1.5 는 **6축 각각** 1.5도를 도착으로 인정하는 값이다. 배치 자세(slot0)에서 FK 로
+    # 환산하면 J1 13.7 / J2 14.2 / J3 11.4 / J4 4.5 / J5 4.5 / J6 0.0mm, RMS 23.6mm 다.
+    # 09-10 13:42 런 실측: 과실 정지 위치에서 역산한 팔이 계획 자세에서 10.0~24.3mm
+    # 어긋나 있었고 (계란판 배치가 들쭉날쭉해 보인 원인), 그 값이 이 예산 안에 그대로
+    # 들어온다. 같은 게이트가 파지 접근에도 걸린다.
+    #
+    # 드라이브는 stiffness 1e6 / damping 1e5 라 **정상상태 오차는 0.02도 수준**이다.
+    # 즉 1.5도는 정지 오차가 아니라 **아직 움직이는 중인 팔을 도착으로 인정**하는 값이고,
+    # 조금 더 기다리면 붙는다. 실기 Doosan 서비스는 모션이 끝나야 응답하므로
+    # 조이는 쪽이 실기에 더 가깝다 (이 값은 실기 데이터가 아니라 시뮬 브릿지가 지어낸 값이다).
+    #
+    # 0.3도 = 배치 자세에서 RMS 4.7mm. ROS 파라미터 `arm_arrival_tol_deg` 로 덮어쓸 수 있다.
+    ARM_ARRIVAL_TOL_DEG = 0.3
+    # 조인 허용오차가 **새 타임아웃을 만들지 않도록** 정체 감지를 같이 둔다.
+    # 개선이 EPS 미만인 상태가 STALL_SEC 이어지면 "더 기다려도 소용없다" 로 보고 끝낸다.
+    # MIN_WAIT_SEC 전에는 발동하지 않는다 (명령 직후 아직 안 움직인 구간 보호).
+    ARM_ARRIVAL_STALL_EPS_DEG = 0.01
+    ARM_ARRIVAL_STALL_SEC = 0.30
+    ARM_ARRIVAL_MIN_WAIT_SEC = 0.15
+    # 정체 감지가 **실패까지 삼키면 안 된다.** 팔이 아예 안 움직이면(09-09 17:23 의
+    # 브릿지 콜백 사망) 잔차가 100deg 대인 채로 "개선 없음" 이 되어 0.45초 만에
+    # "도착" 으로 끝나 버린다. 그래서 이 상한 안에 들어와 있을 때만 정체로 인정한다.
+    # 2.0 은 종전 허용오차 1.5 보다 넉넉하다 — 옛 코드가 통과시켰을 상황은 전부 덮는다.
+    ARM_ARRIVAL_STALL_MAX_DEG = 2.0
     # 3.0 -> 8.0. 제때 도착하면 비용이 0 이고, 못 하면 잔차가 다음 상대 이동으로
     # 전파되므로 넉넉히 기다리는 편이 항상 낫다.
     ARM_ARRIVAL_TIMEOUT_SEC = 8.0
@@ -160,6 +185,9 @@ class SimExecutorBridgeNode(Node):
         self.grasp_z_bias = float(self.get_parameter("grasp_target_z_bias_m").value)
         self.speed_scale = max(0.1, float(self.get_parameter("sim_speed_scale").value))
         self.gripper_close_rad = float(self.get_parameter("gripper_close_rad").value)
+        self.declare_parameter("arm_arrival_tol_deg", self.ARM_ARRIVAL_TOL_DEG)
+        self.arm_arrival_tol_deg = max(
+            0.01, float(self.get_parameter("arm_arrival_tol_deg").value))
         self.strawberries = []          # Isaac Sim이 알려주는 익은 딸기 좌표 (base/world)
         self.last_grasp_reason = "no judgement yet"
         # [T2 2026-09-10] 파지 부착 이벤트. 판정은 여기(브릿지)가 하고, 딸기를 실제로
@@ -205,10 +233,10 @@ class SimExecutorBridgeNode(Node):
 
         self.get_logger().warn(
             "GRASP_JUDGE_MODEL: tool_tcp_offset=%.0fmm capture_radius=%.0fmm enabled=%s "
-            "sim_speed_scale=%.1f gripper_close=%.3frad "
+            "sim_speed_scale=%.1f gripper_close=%.3frad arm_arrival_tol=%.2fdeg "
             "— planner 의 ee_to_tcp_offset_m 과 반드시 같아야 한다 (다르면 전 타겟 GRASP_EMPTY)"
             % (self.tool_offset * 1000, self.grasp_radius * 1000, self.grasp_judgement,
-               self.speed_scale, self.gripper_close_rad))
+               self.speed_scale, self.gripper_close_rad, self.arm_arrival_tol_deg))
         self.get_logger().info("Sim Executor Bridge Node Ready! (Listening to Doosan & Gripper services)")
 
         try:    # ── HUD 계측 (제거: 이 4줄만 지우면 된다) ──
@@ -517,6 +545,26 @@ class SimExecutorBridgeNode(Node):
         msg.position = arm_rad + [grip_rad] * len(self.GRIPPER_JOINT_NAMES)
         self.joint_pub.publish(msg)
 
+    def _tip_error_mm(self, target_deg) -> float:
+        """현재 관절과 목표 관절의 **손끝** 거리(mm).
+
+        ⚠️ cuRobo `get_state()` 는 내부 버퍼를 재사용한다. 두 결과를 그대로 들고 빼면
+        나중 호출이 앞 결과를 덮어써 **항상 0mm** 가 나온다. 종전 구현이 정확히 그
+        상태였고, 그래서 `ARM_ARRIVAL_TIMEOUT` 이 함께 찍던 손끝오차는 신뢰할 수 없었다
+        (SUBMISSION_PLAN T1 부수 발견). 첫 결과를 copy() 해서 끊는다.
+        """
+        try:
+            now = self.ik_solver.kinematics.get_state(torch.tensor(
+                [list(self.current_joints)], device="cuda:0", dtype=torch.float32)
+            ).ee_position[0].cpu().numpy().copy()
+            tgt = self.ik_solver.kinematics.get_state(torch.tensor(
+                [[math.radians(v) for v in target_deg]],
+                device="cuda:0", dtype=torch.float32)
+            ).ee_position[0].cpu().numpy().copy()
+            return float(np.linalg.norm(now - tgt)) * 1000.0
+        except Exception:                                        # noqa: BLE001
+            return float("nan")
+
     def _wait_for_arm_arrival(self, target_deg, label: str) -> bool:
         """팔이 실제로 목표에 닿을 때까지 기다린다.
 
@@ -526,37 +574,56 @@ class SimExecutorBridgeNode(Node):
           - 복귀가 덜 끝난 자세에서 다음 딸기 경로가 계산되고
           - 노드가 pick 시작 자세로 저장하는 current_joints 가 흔들렸다.
         타임아웃돼도 경고만 남기고 True 를 되돌린다 — 시퀀스를 막지 않는다.
+
+        [FIX 2026-09-10] 허용오차를 1.5 -> 0.3deg 로 조이면서 **정체 감지**를 넣었다.
+        조인 값 때문에 8초 타임아웃이 새로 생기면 런이 통째로 느려진다. 개선이 멈추면
+        그 자리에서 끝내고, 잔차를 관절 deg 와 **손끝 mm** 로 남긴다 — 어디까지
+        수렴하는지가 로그로 보여야 다음에 값을 다시 정할 수 있다.
         """
         if not self.joint_state_received:
             time.sleep(0.2)
             return True
-        deadline = time.time() + self.ARM_ARRIVAL_TIMEOUT_SEC
+        tol = self.arm_arrival_tol_deg
+        t0 = time.time()
+        deadline = t0 + self.ARM_ARRIVAL_TIMEOUT_SEC
         worst = float("inf")
+        best = float("inf")
+        stall_since = None
+        reason = "timeout"
         while time.time() < deadline:
             cur = [math.degrees(j) for j in self.current_joints]
             worst = max(abs(c - t) for c, t in zip(cur, target_deg))
-            if worst <= self.ARM_ARRIVAL_TOL_DEG:
-                return True
+            if worst <= tol:
+                reason = "tol"
+                break
+            if worst < best - self.ARM_ARRIVAL_STALL_EPS_DEG:
+                best = worst
+                stall_since = None
+            elif (worst <= self.ARM_ARRIVAL_STALL_MAX_DEG
+                  and time.time() - t0 >= self.ARM_ARRIVAL_MIN_WAIT_SEC):
+                if stall_since is None:
+                    stall_since = time.time()
+                elif time.time() - stall_since >= self.ARM_ARRIVAL_STALL_SEC:
+                    reason = "stall"
+                    break
             time.sleep(0.02)
-        # 잔차를 손끝 오차(mm)로도 환산해 남긴다 — 이 값이 그대로 다음 상대
-        # MoveLine 에 전파되어 "파지점보다 앞에서 닫힘" 으로 나타난다.
-        tip_err_mm = float("nan")
-        try:
-            cur = [math.radians(v) for v in
-                   [math.degrees(j) for j in self.current_joints]]
-            fk_now = self.ik_solver.kinematics.get_state(
-                torch.tensor([cur], device="cuda:0", dtype=torch.float32))
-            fk_tgt = self.ik_solver.kinematics.get_state(
-                torch.tensor([[math.radians(v) for v in target_deg]],
-                             device="cuda:0", dtype=torch.float32))
-            tip_err_mm = float(np.linalg.norm(
-                fk_now.ee_position[0].cpu().numpy()
-                - fk_tgt.ee_position[0].cpu().numpy())) * 1000.0
-        except Exception:                                        # noqa: BLE001
-            pass
+        waited = time.time() - t0
+        tip_err_mm = self._tip_error_mm(target_deg)
+        if reason == "tol":
+            self.get_logger().info(
+                "ARM_ARRIVAL %s: 잔차 %.2fdeg (손끝 %.1fmm) / 대기 %.2fs"
+                % (label, worst, tip_err_mm, waited))
+            return True
+        if reason == "stall":
+            self.get_logger().warn(
+                "ARM_ARRIVAL_STALLED %s: 허용 %.2fdeg 에 못 들어왔는데 %.2fs 째 개선이 없다 "
+                "— 잔차 %.2fdeg (손끝 %.1fmm) / 대기 %.2fs. 이 잔차는 다음 상대 이동에 "
+                "그대로 전파된다"
+                % (label, tol, self.ARM_ARRIVAL_STALL_SEC, worst, tip_err_mm, waited))
+            return True
         self.get_logger().error(
             "ARM_ARRIVAL_TIMEOUT %s: %.1fs 안에 목표에 못 닿음 "
-            "(최대 관절오차 %.1fdeg, 손끝오차 %.1fmm) — 이 잔차는 다음 상대 이동에 "
+            "(최대 관절오차 %.2fdeg, 손끝오차 %.1fmm) — 이 잔차는 다음 상대 이동에 "
             "그대로 전파된다"
             % (label, self.ARM_ARRIVAL_TIMEOUT_SEC, worst, tip_err_mm))
         return False
