@@ -17,6 +17,12 @@ Run (flat imports -> must run from this directory):
   cd src/strawberry_motion/scripts && python3 check_tray_slot_reachability.py \
       ../../../log/m3/20260910T120206-06df4423/curobo_planner_node_*.jsonl
 
+  Optional flags mirror the sim-only planner parameters (2026-09-11, T4-3):
+    --orthogonalize        same as orthogonalize_taught_grid:=true  (pitch sizes only, axes -x/-y, z level)
+    --shift-y-m 0.0108     same as taught_grid_shift_y_m:=0.0108     (whole grid moved along world y)
+    --pitch-m 0.066        same as taught_grid_pitch_override_m:=0.066 (square grid, implies orthogonalize)
+  Without flags the REAL taught grid is checked (planner defaults).
+
 Why this exists: 2026-09-10 03:11 run - slot 1 Plan OK, slot 2 IK_FAIL x2.
 Slot 2 is the x~400 column nearest the robot base (is_row2 = slot % 3 == 2)
 and gets a 15 deg pitch tilt (row2_place_pitch_tilt_deg).  Slots 3/4/6/7
@@ -83,12 +89,26 @@ def load_retreat_starts(jsonl_paths):
     return starts
 
 
+ORTHOGONALIZE = False       # --orthogonalize
+SHIFT_Y_M = 0.0             # --shift-y-m
+PITCH_M = 0.0               # --pitch-m (0 = taught pitch)
+
+
 def slot_offset_m(slot_index):
+    """Same arithmetic as tray_place_policy.taught_grid_slot_offset_m (incl. the two sim-only options)."""
     s0 = np.array(TAUGHT_SLOT0_PLACE_REFERENCE_POSX_MM_DEG[:3], float)
     s1 = np.array(TAUGHT_SLOT1_PLACE_REFERENCE_POSX_MM_DEG[:3], float)
     s3 = np.array(TAUGHT_SLOT3_PLACE_REFERENCE_POSX_MM_DEG[:3], float)
     h, v = divmod(slot_index, 3)
-    return (h * (s3 - s0) + v * (s1 - s0)) / 1000.0
+    col_axis, row_axis = s1 - s0, s3 - s0
+    if PITCH_M > 0.0:
+        col_axis = np.array([-PITCH_M * 1000.0, 0.0, 0.0])
+        row_axis = np.array([0.0, -PITCH_M * 1000.0, 0.0])
+    elif ORTHOGONALIZE:
+        col_axis = np.array([-np.linalg.norm(col_axis[:2]), 0.0, 0.0])
+        row_axis = np.array([0.0, -np.linalg.norm(row_axis[:2]), 0.0])
+    off_mm = h * row_axis + v * col_axis + np.array([0.0, SHIFT_Y_M * 1000.0, 0.0])
+    return off_mm / 1000.0
 
 
 def nearest_equiv(vals_deg, ref_deg):
@@ -121,7 +141,18 @@ def guard(traj_rad, start_rad):
 
 
 def main():
-    jsonl = [p for a in sys.argv[1:] for p in glob.glob(a)]
+    global ORTHOGONALIZE, SHIFT_Y_M, PITCH_M
+    args = list(sys.argv[1:])
+    if "--orthogonalize" in args:
+        ORTHOGONALIZE = True; args.remove("--orthogonalize")
+    if "--shift-y-m" in args:
+        k = args.index("--shift-y-m"); SHIFT_Y_M = float(args[k + 1]); del args[k:k + 2]
+    if "--pitch-m" in args:
+        k = args.index("--pitch-m"); PITCH_M = float(args[k + 1]); del args[k:k + 2]
+    print("grid: %s, shift_y = %+.1f mm" % (
+        ("SQUARE pitch %.1f mm (sim)" % (PITCH_M * 1000)) if PITCH_M > 0 else
+        ("ORTHOGONALIZED (sim)" if ORTHOGONALIZE else "real taught"), SHIFT_Y_M * 1000))
+    jsonl = [p for a in args for p in glob.glob(a)]
     starts = load_retreat_starts(jsonl)
     starts.append(("overview", np.deg2rad(OVERVIEW_JOINTS_DEG).tolist()))
     print("start states: %d (%s)" % (len(starts), ", ".join(n for n, _ in starts)))

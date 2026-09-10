@@ -123,6 +123,13 @@ def declare_and_load_params(node, safe_grasp_available: bool) -> None:
     # 행당 z -2.5mm 기울기). True 면 같은 세 점의 **피치 크기만** 쓰고 축을 -x/-y, z 를 수평으로 둔다.
     # 시뮬은 규칙적인 계란판(수평·직사각) 위에 놓으므로 켠다. 실기 값은 건드리지 않는다.
     node.declare_parameter("orthogonalize_taught_grid", False)
+    # [2026-09-11] 배치 격자 전체를 world y 로 평행이동 (m). 기본 0.0 = 실기 그대로. 시뮬은 계란판의 수평 중점을
+    # 테이블 중심축(y=0)에 맞추려고 +0.0108 을 준다 (값의 출처: scene_tools/egg_carton_geom.GRID_SHIFT_Y_M).
+    node.declare_parameter("taught_grid_shift_y_m", 0.0)
+    # [2026-09-11, T4-3 4차] 배치 격자 두 축 피치를 이 값(m)으로 바꾼다 (정사각, 축 -x/-y, z 수평). 기본 0.0 = 실기
+    # 티칭 피치 그대로. 시뮬은 0.066 — 과실 애셋 y 전폭 53.8 > 실기 행 피치 51.2 라 인접 칸에 못 들어간다.
+    # 값의 출처: scene_tools/egg_carton_geom.PITCH_M (컵 격자와 같은 값이어야 한다).
+    node.declare_parameter("taught_grid_pitch_override_m", 0.0)
     node.declare_parameter("allow_generated_tray_slot_release", False)
     node.declare_parameter("allow_unverified_grasp_place", False)
     node.declare_parameter("grasp_current_contact_threshold_raw", -1)
@@ -217,6 +224,19 @@ def declare_and_load_params(node, safe_grasp_available: bool) -> None:
         node.get_parameter("skip_row2_place_slots").value)
     node._orthogonalize_taught_grid = bool(
         node.get_parameter("orthogonalize_taught_grid").value)
+    node._taught_grid_shift_y_m = float(
+        node.get_parameter("taught_grid_shift_y_m").value)
+    if abs(node._taught_grid_shift_y_m) > 0.05:
+        raise ValueError(
+            f"taught_grid_shift_y_m={node._taught_grid_shift_y_m:.4f} m: 계란판 정렬용 평행이동은 수 cm 이내다 "
+            "(|값| ≤ 0.05 m). 자리(m/mm) 착오가 아닌지 확인할 것")
+    node._taught_grid_pitch_override_m = float(
+        node.get_parameter("taught_grid_pitch_override_m").value)
+    if node._taught_grid_pitch_override_m != 0.0 and not (
+            0.03 <= node._taught_grid_pitch_override_m <= 0.15):
+        raise ValueError(
+            f"taught_grid_pitch_override_m={node._taught_grid_pitch_override_m:.4f} m: 트레이 칸 피치는 "
+            "0.03~0.15 m 범위다 (0 = 실기 티칭 피치). 자리(m/mm) 착오가 아닌지 확인할 것")
     node._allow_generated_tray_slot_release = bool(
         node.get_parameter("allow_generated_tray_slot_release").value)
     if not 0 <= node._marker_place_slot_idx < TAUGHT_TRAY_SLOT_COUNT:

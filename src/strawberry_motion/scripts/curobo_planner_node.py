@@ -225,6 +225,8 @@ class CuroboPlanner(Node):
             f"slot_step={self._taught_slot_index_step} "
             f"skip_row2={self._skip_row2_place_slots} "
             f"orthogonalize_taught_grid={self._orthogonalize_taught_grid} "
+            f"taught_grid_shift_y_m={self._taught_grid_shift_y_m:.4f} "
+            f"taught_grid_pitch_override_m={self._taught_grid_pitch_override_m:.4f} "
             f"allow_generated_slot_release={self._allow_generated_tray_slot_release} "
             f"allow_unverified_grasp={self._allow_unverified_grasp_place} "
             f"max_age={self._marker_place_max_age_sec:.0f}s")
@@ -390,6 +392,8 @@ class CuroboPlanner(Node):
             marker_place_above_clearance_m=self._marker_place_above_clearance_m,
             measured_tcp_model=self._measured_tcp_model,
             orthogonalize_taught_grid=self._orthogonalize_taught_grid,
+            taught_grid_shift_y_m=self._taught_grid_shift_y_m,
+            taught_grid_pitch_override_m=self._taught_grid_pitch_override_m,
         )
         self.tray_place_executor = TrayPlaceExecutor(
             node=self,

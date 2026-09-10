@@ -116,7 +116,12 @@ for _ in $(seq 1 240); do
 done
 
 # planner 는 flat import 구조라 scripts/ 에서 실행해야 한다.
-# taught_slot_sequence (T4-1, 2026-09-10): 0,0,0,0,0,0 -> 0,1,3,4,6,7 -> **0,1,6,7,12,13**.
+# taught_slot_sequence (T4-1, 2026-09-10): 0,0,0,0,0,0 -> 0,1,3,4,6,7 -> 0,1,6,7,12,13 -> **0,1,3,4,6,7 (09-11 4차, 아래)**.
+#   4차(0,1,3,4,6,7, 2026-09-11): 실기 부트캠프 영상은 과실 3개를 인접 칸(slot 0·1·3)에 넣었고 닿지 않았다(사용자 제공 정보).
+#     시뮬에서 행 이웃이 닿았던 원인은 과실 애셋 y 전폭 53.8 > 실기 행 피치 51.2 — 애셋 치수 불일치다. 4차 계란판은
+#     시뮬 전용 정사각 피치 68mm(taught_grid_pitch_override_m) + 과실 형상을 따르는 컵이라 인접 칸에 넣어도 컵 안에 든다.
+#     열 2·5·8(x≈400) 은 여전히 IK_FAIL 이라 열 0·1 × 행 0~2. 도달성 사전 검사: check_tray_slot_reachability.py --pitch-m 0.068 --shift-y-m 0.0452.
+#   (아래 1·2차 근거는 이력)
 #   1차(0,1,3,4,6,7): slot 0 고정을 풀었다. T2 로 과실이 실제 이송되자 여섯 개가 한 칸에
 #     겹치는 것이 드러났고, 이는 시뮬이 아니라 실기 노드 설정의 결함이다 (같은 값이면 실기도
 #     한 칸에 떨어뜨린다; 부트캠프 최종은 과실 1~2개라 안 드러났다).
@@ -132,6 +137,13 @@ done
 # orthogonalize_taught_grid (T4-3 2차, 2026-09-11): 실기 slot 0·1·3 세 점이 만드는 배치 격자는 사이각 84.26°
 #   평행사변형에 행당 z -2.5mm 기울기다 — 강체 계란판은 그럴 수 없으니 수동 티칭 오차다. 시뮬 계란판은
 #   수평·직사각(사용자 결정)이므로 피치 크기만 남기고 축을 -x/-y, z 를 수평으로 둔다. 실기 기본값 false 는 보존.
+# taught_grid_pitch_override_m (T4-3 4차, 2026-09-11): 배치 격자 두 축 피치를 68mm 정사각으로 (실기 59.8×51.2 대신). 시뮬 과실
+#   애셋이 정지 자세에서 y 전폭 53.8mm 라 실기 행 피치 51.2 안에 못 들어간다 — 실기 컵에는 실기 모형 과실이 인접 3칸에 들어갔으므로
+#   애셋 치수 불일치. 실기 기본값 0 은 보존. 값은 scene_tools/egg_carton_geom.PITCH_M 과 같아야 한다 (verify 가 대조).
+# taught_grid_shift_y_m (T4-3 3차, 2026-09-11): 배치 격자 전체를 world y 로 평행이동 (3차 +10.8, 4차 +45.2 — 피치가 커져 판이 길어졌다).
+#   계란판의 수평 중점을 테이블 중심축(y=0)에 맞추기 위한 것(사용자 결정) — 계란판은 배치 격자에 합동으로 따라가므로 격자를 옮겨야 판이 옮겨진다.
+#   값은 scene_tools/gen_egg_carton_asset.py 가 계산해 출력한다(egg_carton_geom.GRID_SHIFT_Y_M 과 동일해야 하고 verify 가 대조).
+#   실기 기본값 0.0 은 보존. FRUIT_REST_M 을 새 런으로 갱신해 ideal 값이 1mm 넘게 달라지면 여기와 geom 상수를 같이 고친다.
 ( cd "$REPO/src/strawberry_motion/scripts" && exec stdbuf -oL -eL python3 curobo_planner_node.py --ros-args \
     -p tool_model_profile:=legacy_160mm \
     -p ee_to_tcp_offset_m:=0.236 \
@@ -143,8 +155,10 @@ done
     -p use_taught_slot0_place_reference:=true \
     -p execute_marker_place_release:=true \
     -p hold_after_taught_slot0_place:=false \
-    -p taught_slot_sequence:=0,1,6,7,12,13 \
+    -p taught_slot_sequence:=0,1,3,4,6,7 \
     -p orthogonalize_taught_grid:=true \
+    -p taught_grid_pitch_override_m:=0.068 \
+    -p taught_grid_shift_y_m:=0.0452 \
 ) > >(tee "$LOGDIR/planner.log" | stdbuf -oL sed 's/^/[planner] /') 2>&1 &
 
 # overview_prescan: 원안 1·2단계(overview 1차 스캔 → 익은 과실 있는 분면만 순회). 실기 기본 false.
@@ -185,8 +199,10 @@ need bridge.log  "arm_arrival_tol=0.30deg"            "도착 판정 허용오�
 need planner.log "EE_TO_TCP_OFFSET_OVERRIDE"          "플래너 TCP 오프셋 160→236mm (없으면 툴을 짧게 보고 관통)"
 need planner.log "open_stem_descent=True"             "열린 조우 하강 단계"
 need planner.log "straight_reverse_retreat=True"      "진입 역순 후퇴 단계"
-need planner.log "slot_sequence=\[0, 1, 6, 7, 12, 13\]" "배치 슬롯 진행 0,1,6,7,12,13 (행 건너뛰기 — 이웃 행이면 과실이 닿는다)"
+need planner.log "slot_sequence=\[0, 1, 3, 4, 6, 7\]"  "배치 슬롯 진행 0,1,3,4,6,7 (인접 칸 — 4차 계란판은 컵이 과실보다 넓어 인접 배치 가능; 열 2·5·8 은 IK_FAIL)"
 need planner.log "orthogonalize_taught_grid=True"     "배치 격자 직교화 (false 면 티칭 평행사변형 84.26° 그대로 — 계란판과 어긋난다)"
+need planner.log "taught_grid_pitch_override_m=0.0680" "배치 격자 정사각 피치 68mm (0 이면 실기 59.8×51.2 — 4차 계란판 컵 격자와 어긋나 과실이 옆 컵으로 간다)"
+need planner.log "taught_grid_shift_y_m=0.0452"       "배치 격자 y +45.2mm 평행이동 (계란판 중점 = 테이블 중심축; 0 이면 과실이 컵에서 y 로 45mm 벗어난다)"
 need scan.log    "scan_executor_node ready"           "scan_executor 기동"
 [ "$READY" = "1" ] && printf '  OK   %s\n' "cuRobo Planner Ready!" \
                    || { printf '  !!   %s\n' "cuRobo Planner Ready! 가 5분 안에 안 떴다"; FAILS=$((FAILS + 1)); }

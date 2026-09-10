@@ -24,9 +24,13 @@ class TrayPlacePolicy:
                  marker_place_max_age_sec: float,
                  marker_place_above_clearance_m: float,
                  measured_tcp_model: bool,
-                 orthogonalize_taught_grid: bool = False):
+                 orthogonalize_taught_grid: bool = False,
+                 taught_grid_shift_y_m: float = 0.0,
+                 taught_grid_pitch_override_m: float = 0.0):
         self.node = node
         self.orthogonalize_taught_grid = orthogonalize_taught_grid
+        self.taught_grid_shift_y_m = float(taught_grid_shift_y_m)
+        self.taught_grid_pitch_override_m = float(taught_grid_pitch_override_m)
         self.runtime_log = runtime_log
         self.tray_cells_json = tray_cells_json
         self.marker_place_max_age_sec = marker_place_max_age_sec
@@ -177,13 +181,25 @@ class TrayPlacePolicy:
         horizontal_idx, vertical_idx = divmod(slot_index, 3)
         col_axis = slot1 - slot0          # slot%3 방향 (실기: (-59.7, +3.4, +0.9)mm)
         row_axis = slot3 - slot0          # slot//3 방향 (실기: (-8.0, -50.6, -2.5)mm)
-        if self.orthogonalize_taught_grid:
+        if self.taught_grid_pitch_override_m > 0.0:
+            # [2026-09-11, T4-3 4차] 시뮬 전용 정사각 격자. 시뮬 과실 애셋(정지 자세 y 전폭 53.8mm)이 실기 티칭
+            # 행 피치 51.2mm 보다 넓어, 인접 칸에 놓으면 어떤 컵 형상으로도 이웃 과실이 겹친다. 실기 컵에는
+            # 실기 모형 과실이 들어갔으므로(부트캠프 영상, 인접 3칸) 이것은 애셋 치수의 불일치다. 실기 상수는
+            # 그대로 두고 시뮬에서만 두 축 피치를 이 값으로 바꾼다 (축 -x/-y, z 수평 — 직교화를 포함한다).
+            p = float(self.taught_grid_pitch_override_m) * 1000.0
+            col_axis = np.array([-p, 0.0, 0.0])
+            row_axis = np.array([0.0, -p, 0.0])
+        elif self.orthogonalize_taught_grid:
             # [2026-09-11] 세 점 수동 티칭이 만든 격자는 두 축 사이각이 84.26° 이고 행마다 z 가 2.5mm
             # 내려간다 (09-10 런 5 분석). 강체 계란판은 그럴 수 없으므로 티칭 오차다. 피치 크기만 남기고
             # 축을 -x / -y, z 를 수평으로 둔다. slot 0 자체는 그대로다.
             col_axis = np.array([-float(np.linalg.norm(col_axis[:2])), 0.0, 0.0])
             row_axis = np.array([0.0, -float(np.linalg.norm(row_axis[:2])), 0.0])
         offset_mm = horizontal_idx * row_axis + vertical_idx * col_axis
+        # [2026-09-11] 격자 전체(slot 0 포함)를 world y 로 평행이동. 기본 0 = 실기 그대로. 시뮬은 계란판의
+        # 수평 중점을 테이블 중심축(y=0)에 맞추기 위해 +10.8mm 를 준다 — 값은 계란판 생성기가 계산해 준다
+        # (egg_carton_geom.GRID_SHIFT_Y_M). 직교화와 독립이지만 시뮬에서는 둘을 같이 켠다.
+        offset_mm = offset_mm + np.array([0.0, self.taught_grid_shift_y_m * 1000.0, 0.0])
         return (offset_mm / 1000.0).tolist()
 
     @staticmethod

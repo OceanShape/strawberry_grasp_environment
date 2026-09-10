@@ -1,11 +1,11 @@
-"""assets/props/egg_carton.usd 생성기 (T4-3 계란판 시각 메쉬, 2차).
+"""assets/props/egg_carton.usd 생성기 (T4-3 계란판 시각 메쉬, 4차).
 
     python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py \
         [strawberry_harvest/assets/props/egg_carton.usd]
 
 일반 python3 + numpy (Isaac 불필요). 형상·좌표·fit 은 전부 egg_carton_geom.py.
 물리·콜라이더 없음 — 시각 전용 (SUBMISSION_PLAN §2 게이트: 플래너 입출력 불변).
-씬 배치값(translate, orient)을 같이 출력한다 → layout_layer.usd 에 옮긴다.
+씬 배치값(translate, orient)과 플래너 파라미터(taught_grid_pitch_override_m, taught_grid_shift_y_m, taught_slot_sequence)를 같이 출력한다 → layout_layer.usd / run_nodes.sh 에 옮긴다.
 """
 import os
 import sys
@@ -70,8 +70,7 @@ def build():
     for k in range(4):
         add_poly([inner[k], inner[(k + 1) % 4], outer[(k + 1) % 4], outer[k]])
     bottom = outer.copy(); bottom[:, 2] = G.SKIRT_BOTTOM_Z_M
-    add_strip(outer, bottom)                         # 스커트
-    add_poly(list(bottom), reverse=True)             # 밑면 (아래를 향함)
+    add_strip(outer, bottom)                         # 스커트 — 밑변 z=0 = 테이블 상판 (4차). 밑면은 상판과 겹치므로 만들지 않는다.
     return np.array(verts), np.array(counts), np.array(idx)
 
 
@@ -88,30 +87,33 @@ def main():
     q = (float(np.cos(yaw / 2)), 0.0, 0.0, float(np.sin(yaw / 2)))
     header = f'''#usda 1.0
 (
-    "계란판 시각 메쉬 — 수평·직사각·컵 15개 동일. 피치만 플래너 티칭 상수, 자세는 씬 배치(layout_layer)에서. 물리 없음"
+    "계란판 시각 메쉬 — 수평·정사각 격자 68mm·컵 15개 동일·과실 형상을 따르는 깊은 컵(4차). 자세는 씬 배치(layout_layer)에서. 물리 없음"
     defaultPrim = "egg_carton"
     metersPerUnit = 1
     upAxis = "Z"
 )
 
-# [T4-3 2026-09-11, 2차] 계란판 — **시각 전용**. 생성기: scripts/scene_tools/gen_egg_carton_asset.py
+# [T4-3 2026-09-11, 4차] 계란판 — **시각 전용**. 생성기: scripts/scene_tools/gen_egg_carton_asset.py, 형상 단일 출처 egg_carton_geom.py
 #
-# 1차(같은 날 폐기)는 컵 격자를 티칭 격자 그대로(사이각 84.26°, z 기울기) 만들고 점유 컵을 실측 과실에
-# 맞췄다. 사용자 지적: 계란판을 쓰는 이유가 "가로세로 균일한 컨테이너" 인데, 기울고 평행사변형이고
-# 컵이 제각각이면 그 이유가 사라진다. 맞는 지적이다 — 격자 왜곡은 로봇 티칭 오차이지 컨테이너의 성질이
-# 아니고, 컨테이너에 구워 넣으면 오차가 숨는다. 2차는 컨테이너를 규칙적으로 두고 과실이 벗어나는 모습을
-# 그대로 보인다.
+# 1차(폐기): 티칭 격자 왜곡을 판에 그대로 구움 → "균일한 컨테이너" 라는 존재 이유가 사라짐(사용자 지적).
+# 2차: 수평·직사각·컵 동일, 얕은 컵(21mm). 3차: 실기 15구 계란판처럼 깊은 컵(56mm) — 그러나 과실(y 전폭 53.8)이
+# 실기 행 피치(51.2)보다 넓어 적도가 벽을 뚫었고, 런 8 에서 옆의 빈 컵으로 그것이 보였다.
+# 4차: ① 컵이 과실의 수평 최대 지름을 담는다 — 피치를 시뮬 전용 정사각 {G.PITCH_M*1000:.0f}mm 로(플래너 taught_grid_pitch_override_m,
+#       실기 컵에는 실기 모형 과실이 인접 3칸에 들어갔으므로 이것은 과실 애셋 치수의 불일치다) ② 컵 안쪽은 과실 프로파일 +
+#       착지 치우침 + 여유 {G.CUP_CLEARANCE_M*1000:.1f}mm 를 따르고 바닥은 가장 낮게 놓인 과실 밑끝(z {G.CUP_FLOOR_Z_M*1000:.1f}mm)에 맞춘다 ③ 밑변 z0 = 테이블 상판
+#       ④ 인접 칸 배치(taught_slot_sequence {",".join(map(str, G.PLACE_SLOT_SEQUENCE))}).
 #
 # 이 애셋 = 계란판 자체 프레임. 원점 = slot 0 컵 중심 아래 테이블 상판(z=0). 열은 -x, 행은 -y.
-#   피치 열 {G.PITCH_COL_M*1000:.1f} / 행 {G.PITCH_ROW_M*1000:.1f} mm (플래너 상수 TAUGHT_SLOT{{0,1,3}} 의 크기만; 각도는 쓰지 않는다)
-#   컵 15개 동일: 림 rx{G.CUP_RINGS_M[0][1]*1000:.0f}/ry{G.CUP_RINGS_M[0][2]*1000:.0f} @ z{G.PLATE_TOP_Z_M*1000:.0f} → 바닥 rx{G.CUP_RINGS_M[-1][1]*1000:.0f}/ry{G.CUP_RINGS_M[-1][2]*1000:.0f} @ z{G.CUP_FLOOR_Z_M*1000:.0f} mm, 깊이 {(G.PLATE_TOP_Z_M-G.CUP_FLOOR_Z_M)*1000:.0f}mm
-#   판 윗면 z{G.PLATE_TOP_Z_M*1000:.0f}mm 은 가장 낮게 놓이는 과실(중심 z≈24mm)이 림에 걸리지 않는 상한이다. 스커트는 상판 {-G.SKIRT_BOTTOM_Z_M*1000:.0f}mm 아래.
+#   피치 {G.PITCH_COL_M*1000:.1f} × {G.PITCH_ROW_M*1000:.1f} mm (시뮬 전용; 실기 티칭 피치는 {G.REAL_PITCH_COL_M*1000:.1f} × {G.REAL_PITCH_ROW_M*1000:.1f})
+#   컵 15개 동일: 림 rx{G.CUP_RINGS_M[0][1]*1000:.1f}/ry{G.CUP_RINGS_M[0][2]*1000:.1f} @ z{G.PLATE_TOP_Z_M*1000:.0f} → 바닥 rx{G.CUP_RINGS_M[-1][1]*1000:.1f}/ry{G.CUP_RINGS_M[-1][2]*1000:.1f} @ z{G.CUP_FLOOR_Z_M*1000:.1f} mm, 깊이 {(G.PLATE_TOP_Z_M-G.CUP_FLOOR_Z_M)*1000:.1f}mm, 링 {len(G.CUP_RINGS_M)}단
+#   능선 x {(G.PITCH_COL_M-2*G.CUP_RINGS_M[0][1])*1000:.1f} / y {(G.PITCH_ROW_M-2*G.CUP_RINGS_M[0][2])*1000:.1f} mm. 림 위로는 과실 어깨·줄기만 보인다. 스커트 밑변 z{G.SKIRT_BOTTOM_Z_M*1000:.0f} (밑면 없음).
 #
-# 씬 배치 (layout_layer.usd) — 티칭 ee 격자 15점 + 평균 ee→과실 변위(런 {G.RUN_ID}) 에 강체 최소자승(Kabsch):
+# 씬 배치 (layout_layer.usd) — 플래너 겨냥 ee 격자 15점(정사각 {G.PITCH_M*1000:.0f}mm + y {G.GRID_SHIFT_Y_M*1000:+.1f}mm) + 평균 ee→과실 변위(런 {G.RUN_ID}) 에 강체 최소자승(Kabsch):
 #   translate = {np.round(t, 4).tolist()} m,  yaw = {np.degrees(yaw):+.2f}° (orient wxyz = {tuple(round(v, 6) for v in q)})
-#   격자 왜곡을 fit 이 양쪽 축으로 나눠 가진 잔차(티칭 목표 − 컵 중심, mm):
+#   컵 격자 수평 중점 (world) = {np.round(G.carton_center_world_m(t, yaw) * 1000, 1).tolist()} mm — y 가 테이블 중심축 0 위에 있다.
+#   플래너 파라미터와 쌍: taught_grid_pitch_override_m={G.PITCH_M:.4f}, taught_grid_shift_y_m={G.GRID_SHIFT_Y_M:.4f}, taught_slot_sequence={",".join(map(str, G.PLACE_SLOT_SEQUENCE))} (run_nodes.sh)
+#   잔차(겨냥 목표 − 컵 중심, mm) — 두 격자가 합동이라 0:
 {chr(10).join("#     slot %2d  %s" % (s, np.round(r, 1).tolist()) for s, r in sorted(res.items()))}
-#   → 행 0 과 행 4 가 x 로 반대 방향으로 벗어난다. 이것이 티칭 격자 5.74° 왜곡의 눈에 보이는 크기다.
 #     과실 정지 위치(런 실측)는 건드리지 않는다. 컵에서 벗어난 과실이 림·능선과 겹치는 것은 콜라이더가 없어 물리 영향이 없다.
 
 def Xform "egg_carton"
@@ -161,8 +163,12 @@ def Xform "egg_carton"
         f.write(header + "\n".join(body) + "\n" + footer)
     print("wrote %s  (%d points, %d faces)" % (os.path.normpath(out), len(V), len(counts)))
     print("layout_layer: translate = %s  yaw = %+.2f deg  orient(wxyz) = %s" % (np.round(t, 4).tolist(), np.degrees(yaw), tuple(round(v, 6) for v in q)))
+    print("run_nodes.sh: -p taught_grid_pitch_override_m:=%.4f -p taught_grid_shift_y_m:=%.4f -p taught_slot_sequence:=%s   (ideal shift %.4f, 컵 격자 중점 world %s mm)"
+          % (G.PITCH_M, G.GRID_SHIFT_Y_M, ",".join(map(str, G.PLACE_SLOT_SEQUENCE)), G.ideal_grid_shift_y_m(),
+             np.round(G.carton_center_world_m(t, yaw) * 1000, 2).tolist()))
+    print("cup: floor z %.1fmm, rim rx%.1f/ry%.1f, rings %d" % (G.CUP_FLOOR_Z_M * 1000, G.CUP_RINGS_M[0][1] * 1000, G.CUP_RINGS_M[0][2] * 1000, len(G.CUP_RINGS_M)))
     for s in sorted(res):
-        print("  slot %2d 티칭−컵 잔차 %s mm%s" % (s, np.round(res[s], 1).tolist(), "  ← 점유" if s in G.FRUIT_REST_M else ""))
+        print("  slot %2d 겨냥−컵 잔차 %s mm%s" % (s, np.round(res[s], 1).tolist(), "  ← 점유" if s in G.PLACE_SLOT_SEQUENCE else ""))
 
 
 if __name__ == "__main__":

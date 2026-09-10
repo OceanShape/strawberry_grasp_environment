@@ -379,22 +379,28 @@ over "World"
         }
     }
 
-    # [T4-3 2026-09-11, 2차] 계란판 — 시각 전용. 조립은 main_scene.usd, 형상은 assets/props/egg_carton.usd.
+    # [T4-3 2026-09-11, 3차] 계란판 — 시각 전용. 조립은 main_scene.usd, 형상은 assets/props/egg_carton.usd.
     #
     # 계란판은 **수평·직사각·컵 15개 동일**한 강체다 (1차의 "티칭 격자 그대로 기울인 판" 은 사용자 지적으로 폐기 —
     # 격자 왜곡은 로봇 티칭 오차이지 컨테이너의 성질이 아니다). 왜곡은 여기 배치가 아니라 **과실이 컵에서 벗어나는
     # 모습**으로 드러난다.
     #
     # [2026-09-11 사용자 결정] yaw 0 (베이스 축 정렬) + 플래너 orthogonalize_taught_grid=true 로 배치 격자도 직교화.
-    #   두 격자가 합동이므로 translate = 직교화 격자의 slot 0 겨냥 ee + 평균 ee→과실 변위(런 7) — slot 0 컵 중심 아래 상판.
+    #   두 격자가 합동이므로 translate = 겨냥 격자의 slot 0 ee + 평균 ee→과실 변위(런 7) — slot 0 컵 중심 아래 상판.
     #   z 는 0 — 테이블 위에 놓인다. (직교화 전 티칭 격자에 맞출 때는 Kabsch fit 이 yaw -7.24° 를 냈다.)
     #   격자 상수 자리(ee, x≈520)에 놓으면 250mm 어긋난다.
-    # 값을 다시 만들려면: python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py  (출력의 layout_layer 줄)
+    # [2026-09-11 3차, 사용자 결정] 컵 격자의 수평 중점을 **테이블 중심축 y=0** 에 맞춘다 (2차는 y −10.8mm 옆). 계란판은 배치
+    #   격자에 합동으로 따라가므로 플래너 파라미터 taught_grid_shift_y_m (run_nodes.sh) 로 격자를 y 로 옮긴다. translate.y = 2·행피치.
+    # [2026-09-11 4차] 런 8 에서 과실 적도가 옆 컵으로 뚫고 나와 보였다 — 과실 y 전폭 53.8 > 실기 행 피치 51.2 는 애셋 치수 불일치.
+    #   배치 격자를 시뮬 전용 정사각 68mm(taught_grid_pitch_override_m) 로 바꾸고 컵도 과실 형상을 따르게 했다(형상은 애셋).
+    #   translate.y 0.1024 → 0.1360 (= 2·68mm; shift +45.2mm), x 는 런 8 평균 매달림 변위로 0.7711 → 0.7705. 밑변 z0 = 테이블 상판.
+    #   런 9 실측으로 갱신: translate (0.7710, 0.1366) — 평균 변위 차 0.5mm 수준, 컵 rx 는 slot 4 의 x 치우침 +7.4mm 를 담느라 28.5 → 31.2.
+    # 값을 다시 만들려면: python3 strawberry_harvest/scripts/scene_tools/gen_egg_carton_asset.py  (출력의 layout_layer / run_nodes.sh 줄)
     # ⚠️ scale 없음. 배치 슬롯·과실 위치가 바뀌면 egg_carton_geom.py 의 FRUIT_REST_M 갱신 후 재생성.
     over "egg_carton"
     {
         quatf xformOp:orient = (1.0, 0, 0, 0.0)
-        double3 xformOp:translate = (0.7711, 0.0915, 0.0)
+        double3 xformOp:translate = (0.7710, 0.1366, 0.0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
     }
 }
