@@ -1,7 +1,7 @@
 # PORTFOLIO_SPRINT.md — 포트폴리오 제출용 마무리 스프린트
 
 > **담당: 마일스톤 이력과 판정 기준.**
-> **제출 범위·작업 순서·착수 금지 목록은 2026-09-10 부터 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md) 가 기준이다.**
+> **제출 범위·작업 순서는 2026-09-10 부터 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md), 착수 금지 목록과 근거는 2026-09-11 부터 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 가 기준이다.**
 > 이 문서와 충돌하면 그쪽이 우선한다. 수치는 [`docs/parameters.md`](docs/parameters.md), 실행은 [`docs/run_guide.md`](docs/run_guide.md),
 > 변경 근거는 [`PLANNER_CHANGES.md`](PLANNER_CHANGES.md) 가 기준이다.
 >
@@ -317,14 +317,14 @@
 - CONTACT 판정 시점의 `T_tcp→berry` **상대 트랜스폼을 캡처해 유지**, 매 프레임 `world = T_tcp_world · T_rel`
 - **TCP 중심으로 스냅하지 않는다** — 접근이 5mm 빗나갔으면 딸기도 5mm 빗나간 채 매달려야 실기와 같다. 이 오차가 화면에 보이는 것이 검증 루프의 증거다
 - release 시 해제하고 그 자리에 정지. 부착 중에는 해당 딸기 콜라이더 비활성
-- **런타임 FixedJoint 생성 금지** — 조우가 콜라이더와 겹친 스텝에 "겹치지 마라"와 "붙어 있어라"가 동시에 걸려 떨림·튐이 난다 (SUBMISSION_PLAN §5)
+- **런타임 FixedJoint 생성 금지** — 조우가 콜라이더와 겹친 스텝에 "겹치지 마라"와 "붙어 있어라"가 동시에 걸려 떨림·튐이 난다 (`portfolio/H_scope_decisions.md` §2)
 - 구현 위치: 부착·해제는 Isaac 스크립트(`strawberry_harvest/scripts/`). CONTACT/release 는 `sim_executor_bridge` 가 이미 `_judge_grasp()` 로
   판정하므로 **ROS 토픽으로 내보내 Isaac 스크립트가 구독**한다. 판정 로직을 Isaac 쪽에 다시 만들지 않는다
 - **폐기 조건**: 하루를 넘기면 중단하고 HUD 판정 표시로 대체한다. 영상 설득력은 떨어지지만 제출은 가능하다
 - **물리 파지는 불가능**: 조우가 완전히 닫혀도 최소 간격이 14.9mm 이고 팁 부근은 36.6~40.9mm
   인데 과실 단면은 54×62.6mm 다. 어디서도 감싸지지 않는다
 
-#### Stage 4 — 물리 파지 (**착수 금지** — SUBMISSION_PLAN §5 "파지 접촉 물리" 영구 범위 밖)
+#### Stage 4 — 물리 파지 (**착수 금지** — `portfolio/H_scope_decisions.md` §2 "파지 접촉 물리" 영구 범위 밖)
 
 물리로 집으려면 대상이 **약 15~25mm 두께**이고 손가락 밑동(플랜지+120~140mm)에 와야 한다.
 실기 상수 주석의 *"calibrated mock stem contact ~670"* 이 이 두께와 맞아, 실기도 굵은
@@ -392,7 +392,7 @@
 - 문서 재작성 (기존 7종으로 충분)
 - **파지 접촉 물리의 사실성** (PhysX deformable 딸기, 접촉력·마찰·슬립 재현) — **영구 범위 밖**
 
-**2026-09-10 추가 — 착수 금지, 재론하지 않는다** (근거는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md) §5):
+**2026-09-10 추가 — 착수 금지, 재론하지 않는다** (근거는 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2):
 - **병든 딸기 에셋·솎아내기 분기 (원안 C·D)** — 지원 직군 가점 0. 검증 안 된 변경 60건 위에 새 에셋·비전 클래스·폐기 분기를 얹으면
   재완주 실패 시 원인 후보가 두 배가 된다. 실물 대조를 발표 영상 전체 → 단계별 클립으로 바꾸면서 맞출 이유도 사라졌다.
   포트폴리오 잔여 이슈에 한 줄: "병든 과실 폐기 분기는 검증 범위에서 제외 — 수확 핵심 경로 아님"

@@ -12,6 +12,7 @@
 | E | `E_metrics.md` | ✅ (2026-09-10 수치 갱신, 완주 횟수·결함 집계는 T6 에서 확정) |
 | F | `F_code_walkthrough.md` — **면접용 코드 워크스루** (제출물 아님) | ✅ (2026-09-10 작성) |
 | G | `G_quadtree_interview.md` — **면접용 쿼드트리 설계 근거·적응 분할 시나리오** (제출물 아님) | ✅ (2026-09-10 작성, §6 수정 계획은 미구현) |
+| H | `H_scope_decisions.md` — **면접용 범위 판정: 무엇을 재현하지 않았나** (제출물 아님) | ✅ (2026-09-11 작성, `SUBMISSION_PLAN.md` §5 를 옮기고 원본 삭제) |
 
 - `.svg`가 원본이다. 텍스트를 고칠 일이 생기면 SVG를 열어 고친다.
 - `.png`는 PPT에 바로 붙이는 용도 (3200×1800, 2배 해상도).
@@ -24,7 +25,7 @@
 - **영상 파일은 리포에 커밋하지 않는다** (용량). 링크로 참조하고, 런 로그만 `log/m3/` 에 보존한다.
 - **F 는 제출 산출물이 아니다.** A~E 와 달리 PPT 에 넣지 않는다. 면접에서 "코드를 보여 달라 /
   구조를 설명해 달라"가 나왔을 때 그 자리에서 여는 자료다. T1~T6 순서를 바꾸지 않는다.
-  → **면접 준비 자료를 모을 때는 [`F_code_walkthrough.md`](F_code_walkthrough.md) 와 [`G_quadtree_interview.md`](G_quadtree_interview.md) 를 반드시 포함한다.**
+  → **면접 준비 자료를 모을 때는 [`F_code_walkthrough.md`](F_code_walkthrough.md), [`G_quadtree_interview.md`](G_quadtree_interview.md), [`H_scope_decisions.md`](H_scope_decisions.md) 를 반드시 포함한다.**
 
 ---
 

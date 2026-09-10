@@ -7,7 +7,7 @@ Isaac Sim 5.1.0 기반 딸기 수확 전체 시뮬레이션 스택. 두산 e0509
 **현재 상태 (2026-09-10)** — 스캔 → 탐지 → 계획 → 접근 → 파지 → **배치(release)** → 복귀의 수확 핵심 경로가
 익은 딸기 4개 연속으로 완주했습니다 (2026-09-07, `log/m2_5/`). 그 뒤 노드 시퀀스와 시뮬을 정합한 09-08~09 수정본은
 END-TO-END 재완주 검증 대기 중이며, 남은 작업은 **재완주 → 딸기 부착 → 녹화 → 수치 갱신·푸시** 입니다.
-제출 범위·작업 순서·착수 금지 목록은 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md) 가 기준입니다.
+제출 범위·작업 순서는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md), 착수 금지 목록과 그 근거는 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) 가 기준입니다.
 
 ---
 
@@ -86,7 +86,7 @@ strawberry_grasp_environment/
 
 | 문서 | 기준 | 내용 |
 |---|---|---|
-| **[`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md)** | **제출 범위·작업 순서 (최우선)** | 산출물 A(영상)까지로 범위 확정, sim2real 게이트, T1~T7 순서·타임박스, **착수 금지 목록**. 다른 문서와 충돌하면 이 문서가 이긴다 |
+| **[`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md)** | **제출 범위·작업 순서 (최우선)** | 산출물 A(영상)까지로 범위 확정, sim2real 게이트, T1~T7 순서·타임박스. 착수 금지 목록은 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 로 옮겼다. 다른 문서와 충돌하면 이 문서가 이긴다 |
 | **[`docs/parameters.md`](docs/parameters.md)** + `check_params.py` | **모든 수치** | 보드 위치·툴 오프셋·그리퍼 개도·속도·관절 가드. **숫자가 헷갈리면 여기만 본다.** 보드를 옮길 때 같이 고칠 6개 파일 목록 포함. `python3 check_params.py` 로 정합 자동 검사 |
 | **[`docs/run_guide.md`](docs/run_guide.md)** | **실행 절차** | 터미널 3개 실행 절차, 노드별 파라미터 참고사항, 기동 시 대조할 로그, 증상별 대처표 |
 | **[`PROGRESS_REPORT.md`](PROGRESS_REPORT.md)** | **수치·근거 1차 출처** | 09-09 재계측 지표, 해결한 문제 목록, 표현 가이드 |
