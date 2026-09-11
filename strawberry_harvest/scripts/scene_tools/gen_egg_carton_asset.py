@@ -101,7 +101,7 @@ def main():
 # 4차: ① 컵이 과실의 수평 최대 지름을 담는다 — 피치를 시뮬 전용 정사각 {G.PITCH_M*1000:.0f}mm 로(플래너 taught_grid_pitch_override_m,
 #       실기 컵에는 실기 모형 과실이 인접 3칸에 들어갔으므로 이것은 과실 애셋 치수의 불일치다) ② 컵 안쪽은 과실 프로파일 +
 #       착지 치우침 + 여유 {G.CUP_CLEARANCE_M*1000:.1f}mm 를 따르고 바닥은 가장 낮게 놓인 과실 밑끝(z {G.CUP_FLOOR_Z_M*1000:.1f}mm)에 맞춘다 ③ 밑변 z0 = 테이블 상판
-#       ④ 인접 칸 배치(taught_slot_sequence {",".join(map(str, G.PLACE_SLOT_SEQUENCE))}).
+#       ④ 인접 칸 배치(taught_slot_sequence {",".join(map(str, G.PLACE_SLOT_SEQUENCE))}; 09-11 익은 8/4 전환으로 8칸).
 #
 # 이 애셋 = 계란판 자체 프레임. 원점 = slot 0 컵 중심 아래 테이블 상판(z=0). 열은 -x, 행은 -y.
 #   피치 {G.PITCH_COL_M*1000:.1f} × {G.PITCH_ROW_M*1000:.1f} mm (시뮬 전용; 실기 티칭 피치는 {G.REAL_PITCH_COL_M*1000:.1f} × {G.REAL_PITCH_ROW_M*1000:.1f})

@@ -235,7 +235,7 @@ over "World"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
 
-    over "strawberry_unripe_01"   # unripe / 보드 nw
+    over "strawberry_ripe_07"   # ripe / 보드 nw — 2026-09-11 unripe_01 전환, 위치 그대로
     {
         quatf xformOp:orient = (1, 0, 0, 0)
         float3 xformOp:scale = (0.5, 0.5, 0.5)
@@ -251,7 +251,7 @@ over "World"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
 
-    over "strawberry_unripe_03"   # unripe / 보드 ne
+    over "strawberry_ripe_08"   # ripe / 보드 ne — 2026-09-11 unripe_03 전환, 위치 그대로
     {
         quatf xformOp:orient = (1, 0, 0, 0)
         float3 xformOp:scale = (0.5, 0.5, 0.5)
@@ -336,7 +336,7 @@ over "World"
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
         }
 
-        over "vine_unripe_01"   # unripe / 보드 nw
+        over "vine_ripe_07"   # ripe / 보드 nw (종전 vine_unripe_01)
         {
             quatf xformOp:orient = (1, 0, 0, 0)
             double3 xformOp:translate = (-0.38, 0.7828, 0.72)
@@ -350,7 +350,7 @@ over "World"
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient"]
         }
 
-        over "vine_unripe_03"   # unripe / 보드 ne
+        over "vine_ripe_08"   # ripe / 보드 ne (종전 vine_unripe_03)
         {
             quatf xformOp:orient = (1, 0, 0, 0)
             double3 xformOp:translate = (0.28, 0.7828, 0.7)

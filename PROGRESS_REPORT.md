@@ -156,7 +156,7 @@
 | 직접 구현한 Isaac Sim 스크립트 | **8파일 / 1,736줄** (HUD 5파일 912줄 포함) | `strawberry_harvest/scripts/` |
 | 플래너·씬 변경 로그 | **101건** (한 줄 형식) | `PLANNER_CHANGES.md` |
 | 원본 스냅샷 대비 diff | 09-07 기준 494줄 (이후 증가, 재생성 필요) | `bash scripts/check_planner.sh` |
-| USD 애셋·씬 파일 | **19개**, 딸기 prim **12개**(익은 6/안 익은 6) | `strawberry_harvest/` |
+| USD 애셋·씬 파일 | **19개**, 딸기 prim **12개**(익은 **8**/안 익은 **4** — 09-11 unripe 2개를 위치 그대로 전환; 런 1~9 는 6/6) | `strawberry_harvest/` |
 | END-TO-END 완주 | **5회** (07-10 / 07-16 / 08-29×2 / 09-07) | `log/m1/`, `log/m2_5/` |
 | 최고 성적 런 | 익은 딸기 6개 시도 → **4개** 파지·이송·release 완주 | `log/m2_5/README.md` |
 | 파지 판정 거리 | d_tcp 13.5~28.9mm (반경 35mm, 당시 기준) | `log/m2_5/sim_executor_bridge.log` |

@@ -125,11 +125,11 @@ over "World"
             quatf physics:localRot1 = (1, 0, 0, 0)
         }
 
-        def PhysicsFixedJoint "stem_unripe_01" (
-            "unripe 딸기 줄기 (보드 nw) — body0 미지정 = 월드 고정"
+        def PhysicsFixedJoint "stem_ripe_07" (
+            "ripe 딸기 줄기 (보드 nw, 2026-09-11 unripe_01 전환) — body0 미지정 = 월드 고정"
         )
         {
-            rel physics:body1 = </World/strawberry_unripe_01>
+            rel physics:body1 = </World/strawberry_ripe_07>
             float physics:breakForce = 20
             float physics:breakTorque = 5
             point3f physics:localPos0 = (-0.38, 0.7828, 0.72)
@@ -151,11 +151,11 @@ over "World"
             quatf physics:localRot1 = (1, 0, 0, 0)
         }
 
-        def PhysicsFixedJoint "stem_unripe_03" (
-            "unripe 딸기 줄기 (보드 ne) — body0 미지정 = 월드 고정"
+        def PhysicsFixedJoint "stem_ripe_08" (
+            "ripe 딸기 줄기 (보드 ne, 2026-09-11 unripe_03 전환) — body0 미지정 = 월드 고정"
         )
         {
-            rel physics:body1 = </World/strawberry_unripe_03>
+            rel physics:body1 = </World/strawberry_ripe_08>
             float physics:breakForce = 20
             float physics:breakTorque = 5
             point3f physics:localPos0 = (0.28, 0.7828, 0.7)

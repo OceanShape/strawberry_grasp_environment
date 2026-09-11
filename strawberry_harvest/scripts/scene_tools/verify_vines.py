@@ -29,7 +29,8 @@ print("[1] 플래너 입출력 불변 — 브릿지 좌표 발행 필터")
 pub = [p.GetName() for p in st.Traverse()
        if "strawberry" in p.GetName().lower() and "robot" not in p.GetName().lower()
        and "unripe" not in p.GetName().lower()]
-chk(len(pub) == 6 and not any("vine" in n for n in pub), "발행 대상 6개 (덩굴 0개): %s" % pub)
+RIPE_COUNT = 8   # 2026-09-11 익은 8/4 전환 (unripe_01→ripe_07, unripe_03→ripe_08). 그 전 런 1~9 는 6
+chk(len(pub) == RIPE_COUNT and not any("vine" in n for n in pub), "발행 대상 %d개 (덩굴 0개): %s" % (RIPE_COUNT, pub))
 
 print("[2] 물리 없음")
 vines = [p for p in st.Traverse() if p.GetName().startswith("vine_")]

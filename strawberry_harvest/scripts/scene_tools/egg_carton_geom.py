@@ -91,8 +91,11 @@ FRUIT_REST_M = {                              # 런 9 슬롯 → 과실 중심 (
 #        12 (0.7743,-0.1014,0.0338) 13 (0.7151,-0.1016,0.0362). 런 8 변위로 예측한 4차 착지와 런 9 실측의 차: x ≤ 4.0(slot 4), y ≤ 1.0, z ≤ 1.8mm.
 # (이력) 런 7 20260910T140636-71389d3a: 0 (0.7683,0.0883,0.0365) 1 (0.7066,0.0946,0.0372) 6 (0.7505,-0.0087,0.0310)
 #        7 (0.7012,-0.0052,0.0308) 12 (0.7425,-0.1095,0.0242) 13 (0.6821,-0.1066,0.0256) — 격자 직교화 전, 평행이동 0
-# 4차 배치 시퀀스 (run_nodes.sh taught_slot_sequence). 수확 i번째 과실이 PLACE_SLOT_SEQUENCE[i] 에 놓인다.
-PLACE_SLOT_SEQUENCE = [0, 1, 3, 4, 6, 7]
+# 배치 시퀀스 (run_nodes.sh taught_slot_sequence). 수확 i번째 과실이 PLACE_SLOT_SEQUENCE[i] 에 놓인다.
+#   2026-09-11 익은 8/4 전환(unripe_01→ripe_07, unripe_03→ripe_08, 위치 불변)으로 6 → 8칸. slot 9·10 은 사전 검사 7/7.
+#   수확 순서는 분면 순회(nw 3 → ne 2 → sw 3)라 런 9 와 달라진다 → 어느 과실이 어느 칸에 가는지 미리 알 수 없다.
+#   그래서 컵 설계·검증은 "8칸 × 실측 편차 6개" 후보 전체(landing_candidates)로 한다 — 매핑에 무관한 보수적 봉투.
+PLACE_SLOT_SEQUENCE = [0, 1, 3, 4, 6, 7, 9, 10]
 
 # 과실 정지 자세: 파지 자세에서 수직축 기준 ~82° 회전(장축은 수직 유지). 중심 기준 밑끝 -33.0mm, 줄기끝 +29.5mm.
 # 높이별 반폭 (mm 단위 2mm 구간, strawberry_ripe_01 메쉬 ×0.005 를 z −81.5° 회전 — verify 와 같은 규약).
@@ -183,17 +186,28 @@ def fruit_hang_offsets_m():
     return [FRUIT_REST_M[s] - ee_run_m(s) for s in RUN_SLOT_SEQUENCE]
 
 
-def predicted_landings():
-    """[(slot, 과실 중심 world)] — 4차 시퀀스로 놓았을 때의 예상 착지 = 겨냥 ee + 수확 순서가 같은 과실의 실측 변위."""
+def hang_deviations_m():
+    """실측 변위 − 평균 (world). 분면별 매달린 깊이 차 + 팔 산포. 컵 봉투와 착지 후보의 재료."""
     d = fruit_hang_offsets_m()
-    return [(slot, ee_placed_m(slot) + d[i]) for i, slot in enumerate(PLACE_SLOT_SEQUENCE)]
+    m = np.mean(d, axis=0)
+    return [v - m for v in d]
 
 
-def predicted_fruit_rest_m(slot):
-    for s, f in predicted_landings():
-        if s == slot:
-            return f
-    raise KeyError(slot)
+def landing_candidates():
+    """[(slot, 과실 중심 world)] — 배치 슬롯 8칸 × 실측 편차 6개 = 48 후보. 어느 과실이 어느 칸에 가든 이 안에 든다고 본다
+    (편차가 그리퍼–과실 상대자세의 성질이라 슬롯 무관하다는 가정, 런 8→9 대조에서 ±4mm 수준)."""
+    m = np.mean(fruit_hang_offsets_m(), axis=0)
+    return [(slot, ee_placed_m(slot) + m + dev) for slot in PLACE_SLOT_SEQUENCE for dev in hang_deviations_m()]
+
+
+def measured_landings():
+    """[(slot, 과실 중심 world)] — 실측 런(RUN_ID)의 실제 착지. 런 격자가 지금 격자와 같을 때만 지금 컵과 직접 비교 가능."""
+    return [(s, FRUIT_REST_M[s]) for s in RUN_SLOT_SEQUENCE]
+
+
+def predicted_landings():
+    """호환용: 후보 전체."""
+    return landing_candidates()
 
 
 def ideal_grid_shift_y_m():
@@ -258,7 +272,7 @@ def _build_cup():
     바닥 = 가장 낮게 놓인 과실의 밑끝 높이(0.1mm 단위, 0 이상). 착지 치우침은 fit 으로 놓인 컵 중심 기준."""
     t, yaw, _ = fit_pose()
     land = []
-    for slot, f in predicted_landings():
+    for slot, f in landing_candidates():
         c = t + cup_center_asset_m(slot)
         land.append((f[2], f[0] - c[0], f[1] - c[1]))
     floor = max(0.0, np.floor(min(cz - FRUIT_BOTTOM_BELOW_CENTER_M for cz, _, _ in land) * 1e4) / 1e4)

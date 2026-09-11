@@ -16,7 +16,7 @@
 | 직접 구현한 가상 제어기 (ROS 측) | **10파일 / 1,532줄** | `src/strawberry_sim_core/` |
 | 직접 구현한 Isaac Sim 스크립트 | **8파일 / 1,736줄** (HUD 5파일 912줄 포함) | `strawberry_harvest/scripts/` |
 | USD 애셋·씬 파일 | **19개** | `find strawberry_harvest -name '*.usd' \| wc -l` |
-| 씬의 딸기 prim | **12개** (익은 6 / 안 익은 6) | `scenes/layers/layout_layer.usd` |
+| 씬의 딸기 prim | **12개** (익은 8 / 안 익은 4 — 2026-09-11 unripe 2개 전환, 위치 불변; 런 1~9 는 6/6) | `scenes/layers/layout_layer.usd` |
 | 프로젝트 문서 | **16종** (`docs/` 8 + 루트 8) | `ls docs/*.md *.md` |
 
 > ⚠️ **혼동 주의**: 로그의 `TARGET_FOUND ... 72 pick candidate(s)`는 **딸기 개수가 아니라**

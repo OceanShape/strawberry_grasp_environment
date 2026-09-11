@@ -33,7 +33,7 @@ def chk(c, m):
 print("[1] 플래너 입출력 불변")
 pub = [p.GetName() for p in st.Traverse() if "strawberry" in p.GetName().lower()
        and "robot" not in p.GetName().lower() and "unripe" not in p.GetName().lower()]
-chk(len(pub) == 6, "브릿지 발행 대상 6개 (계란판 무관)")
+chk(len(pub) == len(G.PLACE_SLOT_SEQUENCE), "브릿지 발행 대상(익은 과실) %d개 = 배치 슬롯 수 %d (계란판 무관; 09-11 익은 8/4)" % (len(pub), len(G.PLACE_SLOT_SEQUENCE)))
 carton = st.GetPrimAtPath("/World/egg_carton")
 chk(carton and carton.IsValid(), "/World/egg_carton 존재")
 phys = [a for q in Usd.PrimRange(carton) for a in q.GetAppliedSchemas() if "Physics" in a]
@@ -89,49 +89,60 @@ table_top = UsdGeom.BBoxCache(0, [UsdGeom.Tokens.default_, UsdGeom.Tokens.render
     st.GetPrimAtPath("/World/lab_environment/table")).ComputeAlignedRange().GetMax()[2]
 chk(abs(t_scene[2] + G.SKIRT_BOTTOM_Z_M - table_top) < 1e-6, "계란판 밑변 world z %.1fmm = 테이블 상판 %.1fmm" % ((t_scene[2] + G.SKIRT_BOTTOM_Z_M) * 1000, table_top * 1000))
 
-print("[4] 과실 6개 **예상** 착지 = 겨냥 격자 ee(정사각 %.0fmm + y %+.1fmm) + 런 %s 실측 매달림 변위(수확 순서 재배정, 시퀀스 %s)"
-      % (G.PITCH_M * 1000, G.GRID_SHIFT_Y_M * 1000, G.RUN_ID, G.PLACE_SLOT_SEQUENCE))
+print("[4] 착지 후보 = 배치 슬롯 %d칸 × 런 %s 실측 편차 %d개 (정사각 %.0fmm + y %+.1fmm; 어느 과실이 어느 칸에 가든 이 봉투 안이라고 본다)"
+      % (len(G.PLACE_SLOT_SEQUENCE), G.RUN_ID, len(G.RUN_SLOT_SEQUENCE), G.PITCH_M * 1000, G.GRID_SHIFT_Y_M * 1000))
 fl = np.array(UsdGeom.Mesh(st.GetPrimAtPath("/World/strawberry_ripe_01/geo/fruit/mesh")).GetPointsAttr().Get()) * 0.005
 fp_world = R.from_euler("z", -81.5, degrees=True).apply(fl)          # 파지→배치 회전 (world)
 hx, hy = G.PITCH_COL_M / 2, G.PITCH_ROW_M / 2
-in_cell = True; min_wall = np.inf; min_rim_gap = np.inf; min_visible = np.inf; min_bottom = np.inf; max_bottom = -np.inf
-for slot, f in G.predicted_landings():
+Ra = R.from_euler("z", -yaw_scene).as_matrix()
+
+def _assess(slot, f):
+    """한 후보의 (셀 안, 벽 여유, 림 여유, 밑끝−바닥, 림 위 노출, 치우침 xy)."""
     fa = G.world_to_asset(f, t_scene, yaw_scene)
     c = G.cup_center_asset_m(slot)
     off = (fa - c)[:2] * 1000
     inside = abs(off[0]) < hx * 1000 and abs(off[1]) < hy * 1000
-    in_cell &= inside
-    Ra = R.from_euler("z", -yaw_scene).as_matrix()
     surf = (fp_world @ Ra.T) + fa
-    # (a) 림 여유: 림 높이 ±1mm 대역의 표면점이 림 타원 안쪽에 얼마나 남는가 (중심 방향 거리, mm). 음수 = 림에 걸림
     band = surf[np.abs(surf[:, 2] - G.PLATE_TOP_Z_M) < 0.001]
     if len(band) == 0:
         band = surf[np.argsort(np.abs(surf[:, 2] - G.PLATE_TOP_Z_M))[:8]]
     sd = np.hypot((band[:, 0] - c[0]) / rim_rx, (band[:, 1] - c[1]) / rim_ry)
     dist = np.hypot(band[:, 0] - c[0], band[:, 1] - c[1])
-    rim_gap = float(((1.0 / np.maximum(sd, 1e-9) - 1.0) * dist * 1000).min()); min_rim_gap = min(min_rim_gap, rim_gap)
-    # (b) 벽 여유 (림 아래 전체): 표면점이 그 높이의 벽 타원 안쪽에 남는 거리. 음수 = 뚫고 나감 (4차 게이트)
+    rim_gap = float(((1.0 / np.maximum(sd, 1e-9) - 1.0) * dist * 1000).min())
     below = surf[surf[:, 2] < G.PLATE_TOP_Z_M - 0.001]
-    wall = np.inf; wall_z = None
+    wall = np.inf
     for q in below:
         w = G.cup_radii_at_z(q[2])
-        if w is None:                                                  # 바닥보다 아래 — 밑끝 검사에서 잡는다
+        if w is None:
             continue
         sdist = np.hypot((q[0] - c[0]) / w[0], (q[1] - c[1]) / w[1])
-        d = (1.0 / max(sdist, 1e-9) - 1.0) * np.hypot(q[0] - c[0], q[1] - c[1]) * 1000
-        if d < wall:
-            wall, wall_z = d, q[2]
-    min_wall = min(min_wall, wall)
-    bottom = (f[2] - G.FRUIT_BOTTOM_BELOW_CENTER_M - G.CUP_FLOOR_Z_M) * 1000; min_bottom = min(min_bottom, bottom); max_bottom = max(max_bottom, bottom)
-    visible = (f[2] + G.FRUIT_TOP_ABOVE_CENTER_M - G.PLATE_TOP_Z_M) * 1000; min_visible = min(min_visible, visible)
-    print("     slot %2d  컵 중심 치우침 (%+5.1f, %+5.1f) mm  %s  벽 여유 %+.1fmm (z %.0f)  림 여유 %+.1fmm  밑끝−바닥 %+.1fmm  림 위로 %.1fmm"
-          % (slot, off[0], off[1], "셀 안" if inside else "셀 밖!", wall, (wall_z or 0) * 1000, rim_gap, bottom, visible))
-chk(in_cell, "예상 착지 6개 전부 자기 셀 안 (반폭 %.1f × %.1f mm)" % (hx * 1000, hy * 1000))
-chk(min_wall >= 0.0, "과실 표면이 컵 벽을 어디서도 뚫지 않는다 (최소 여유 %+.1fmm; 설계 여유 %.1fmm − 프로파일 보간 오차)" % (min_wall, G.CUP_CLEARANCE_M * 1000))
+        wall = min(wall, (1.0 / max(sdist, 1e-9) - 1.0) * np.hypot(q[0] - c[0], q[1] - c[1]) * 1000)
+    bottom = (f[2] - G.FRUIT_BOTTOM_BELOW_CENTER_M - G.CUP_FLOOR_Z_M) * 1000
+    visible = (f[2] + G.FRUIT_TOP_ABOVE_CENTER_M - G.PLATE_TOP_Z_M) * 1000
+    return inside, wall, rim_gap, bottom, visible, off
+
+in_cell = True; min_wall = np.inf; min_rim_gap = np.inf; min_visible = np.inf; min_bottom = np.inf; max_bottom = -np.inf
+by_slot = {}
+for slot, f in G.landing_candidates():
+    r = _assess(slot, f)
+    by_slot.setdefault(slot, []).append(r)
+    in_cell &= r[0]; min_wall = min(min_wall, r[1]); min_rim_gap = min(min_rim_gap, r[2])
+    min_bottom = min(min_bottom, r[3]); max_bottom = max(max_bottom, r[3]); min_visible = min(min_visible, r[4])
+for slot in G.PLACE_SLOT_SEQUENCE:
+    rs = by_slot[slot]
+    print("     slot %2d  후보 %d  치우침 x %+.1f~%+.1f y %+.1f~%+.1f  벽 여유 최소 %+.1fmm  림 여유 최소 %+.1f  밑끝−바닥 %+.1f~%+.1f  림 위로 ≥ %.1fmm"
+          % (slot, len(rs), min(r[5][0] for r in rs), max(r[5][0] for r in rs), min(r[5][1] for r in rs), max(r[5][1] for r in rs),
+             min(r[1] for r in rs), min(r[2] for r in rs), min(r[3] for r in rs), max(r[3] for r in rs), min(r[4] for r in rs)))
+chk(in_cell, "후보 전부 자기 셀 안 (반폭 %.1f × %.1f mm)" % (hx * 1000, hy * 1000))
+chk(min_wall >= 0.0, "과실 표면이 컵 벽을 어디서도 뚫지 않는다 (후보 최소 여유 %+.1fmm; 설계 여유 %.1fmm − 프로파일 보간 오차)" % (min_wall, G.CUP_CLEARANCE_M * 1000))
 chk(min_rim_gap >= 1.0, "림 높이 z%.0f 에서 과실 표면–림 여유 ≥1mm (최소 %+.1fmm)" % (G.PLATE_TOP_Z_M * 1000, min_rim_gap))
-chk(min_bottom >= -0.1 and min_bottom <= 0.2, "컵 바닥이 가장 낮은 과실 밑끝에 딱 맞는다 (밑끝−바닥 최소 %+.1f, 최대 %+.1fmm — 나머지는 그만큼 떠 있으나 컵 안이라 안 보인다)" % (min_bottom, max_bottom))
-chk(min_visible > 0.0, "과실 꼭지가 림 위로 나온다 (최소 %.1fmm) — 컵에 완전히 잠기지 않음" % min_visible)
-print("     (치우침 = 분면별 매달린 깊이 차 + 런 간 팔 산포. 벽 형상은 이 치우침을 포함해 유도했으므로 다음 런에서 산포가 커지면 여유가 줄 수 있다)")
+chk(min_bottom >= -0.1 and min_bottom <= 0.2, "컵 바닥이 가장 낮은 후보 밑끝에 딱 맞는다 (밑끝−바닥 최소 %+.1f, 최대 %+.1fmm)" % (min_bottom, max_bottom))
+chk(min_visible > 0.0, "과실 꼭지가 림 위로 나온다 (최소 %.1fmm)" % min_visible)
+# 실측 착지 (런 격자 = 지금 격자일 때만 의미)
+if G.RUN_GRID["pitch_col"] == G.PITCH_COL_M and abs(G.RUN_GRID["shift_y"] - G.GRID_SHIFT_Y_M) < 1e-9:
+    worst = min(_assess(s, f)[1] for s, f in G.measured_landings())
+    chk(worst >= 0.0, "런 %s 실측 착지 %d개도 지금 컵 안 (벽 여유 최소 %+.1fmm)" % (G.RUN_ID, len(G.RUN_SLOT_SEQUENCE), worst))
+print("     (편차 = 분면별 매달린 깊이 차 + 런 간 팔 산포. 다음 런에서 편차가 커지면 여유가 줄 수 있다 — 그때 FRUIT_REST_M 갱신·재생성)")
 
 print("[5] 정렬 — 계란판 중점 = 테이블 중심축, 평행이동 파라미터 일치")
 center_w = G.carton_center_world_m(t_scene, yaw_scene)

@@ -116,7 +116,9 @@ for _ in $(seq 1 240); do
 done
 
 # planner 는 flat import 구조라 scripts/ 에서 실행해야 한다.
-# taught_slot_sequence (T4-1, 2026-09-10): 0,0,0,0,0,0 -> 0,1,3,4,6,7 -> 0,1,6,7,12,13 -> **0,1,3,4,6,7 (09-11 4차, 아래)**.
+# taught_slot_sequence (T4-1, 2026-09-10): 0,0,0,0,0,0 -> 0,1,3,4,6,7 -> 0,1,6,7,12,13 -> 0,1,3,4,6,7 (09-11 4차) -> **0,1,3,4,6,7,9,10 (09-11 익은 8/4)**.
+#   익은 8/4 (2026-09-11 사용자 결정): unripe_01(nw)·unripe_03(ne) 을 익은 것으로 전환 — 위치 불변, 총 12개 유지. 인접 8칸(열 0·1 × 행 0~3).
+#     slot 9·10 은 사전 검사(정사각 68mm + shift 45.2, 런 8 retreat 시작) 7/7. 분면별 익은 수 nw 3 / ne 2 / sw 3 / se 0 → se 가지치기 유지.
 #   4차(0,1,3,4,6,7, 2026-09-11): 실기 부트캠프 영상은 과실 3개를 인접 칸(slot 0·1·3)에 넣었고 닿지 않았다(사용자 제공 정보).
 #     시뮬에서 행 이웃이 닿았던 원인은 과실 애셋 y 전폭 53.8 > 실기 행 피치 51.2 — 애셋 치수 불일치다. 4차 계란판은
 #     시뮬 전용 정사각 피치 68mm(taught_grid_pitch_override_m) + 과실 형상을 따르는 컵이라 인접 칸에 넣어도 컵 안에 든다.
@@ -155,7 +157,7 @@ done
     -p use_taught_slot0_place_reference:=true \
     -p execute_marker_place_release:=true \
     -p hold_after_taught_slot0_place:=false \
-    -p taught_slot_sequence:=0,1,3,4,6,7 \
+    -p taught_slot_sequence:=0,1,3,4,6,7,9,10 \
     -p orthogonalize_taught_grid:=true \
     -p taught_grid_pitch_override_m:=0.068 \
     -p taught_grid_shift_y_m:=0.0452 \
@@ -199,7 +201,7 @@ need bridge.log  "arm_arrival_tol=0.30deg"            "도착 판정 허용오�
 need planner.log "EE_TO_TCP_OFFSET_OVERRIDE"          "플래너 TCP 오프셋 160→236mm (없으면 툴을 짧게 보고 관통)"
 need planner.log "open_stem_descent=True"             "열린 조우 하강 단계"
 need planner.log "straight_reverse_retreat=True"      "진입 역순 후퇴 단계"
-need planner.log "slot_sequence=\[0, 1, 3, 4, 6, 7\]"  "배치 슬롯 진행 0,1,3,4,6,7 (인접 칸 — 4차 계란판은 컵이 과실보다 넓어 인접 배치 가능; 열 2·5·8 은 IK_FAIL)"
+need planner.log "slot_sequence=\[0, 1, 3, 4, 6, 7, 9, 10\]"  "배치 슬롯 진행 0,1,3,4,6,7,9,10 (인접 8칸 — 익은 과실 8개; 열 2·5·8 은 IK_FAIL)"
 need planner.log "orthogonalize_taught_grid=True"     "배치 격자 직교화 (false 면 티칭 평행사변형 84.26° 그대로 — 계란판과 어긋난다)"
 need planner.log "taught_grid_pitch_override_m=0.0680" "배치 격자 정사각 피치 68mm (0 이면 실기 59.8×51.2 — 4차 계란판 컵 격자와 어긋나 과실이 옆 컵으로 간다)"
 need planner.log "taught_grid_shift_y_m=0.0452"       "배치 격자 y +45.2mm 평행이동 (계란판 중점 = 테이블 중심축; 0 이면 과실이 컵에서 y 로 45mm 벗어난다)"

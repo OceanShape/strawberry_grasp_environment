@@ -92,10 +92,10 @@ def Xform "World"
     {
     }
 
-    def "strawberry_unripe_01" (          # unripe / 보드 nw
+    def "strawberry_ripe_07" (          # ripe / 보드 nw — 2026-09-11 unripe_01 을 익은 것으로 전환 (위치 불변, 사용자 결정 8/4)
         prepend references = @../assets/strawberry/strawberry.usd@
         variants = {
-            string ripeness = "unripe"
+            string ripeness = "ripe"
         }
     )
     {
@@ -110,10 +110,10 @@ def Xform "World"
     {
     }
 
-    def "strawberry_unripe_03" (          # unripe / 보드 ne
+    def "strawberry_ripe_08" (          # ripe / 보드 ne — 2026-09-11 unripe_03 을 익은 것으로 전환 (위치 불변, 사용자 결정 8/4)
         prepend references = @../assets/strawberry/strawberry.usd@
         variants = {
-            string ripeness = "unripe"
+            string ripeness = "ripe"
         }
     )
     {
@@ -197,7 +197,7 @@ def Xform "World"
         {
         }
 
-        def "vine_unripe_01" (          # unripe / 보드 nw
+        def "vine_ripe_07" (          # ripe / 보드 nw (종전 vine_unripe_01)
             prepend references = @../assets/props/vine.usd@
         )
         {
@@ -209,7 +209,7 @@ def Xform "World"
         {
         }
 
-        def "vine_unripe_03" (          # unripe / 보드 ne
+        def "vine_ripe_08" (          # ripe / 보드 ne (종전 vine_unripe_03)
             prepend references = @../assets/props/vine.usd@
         )
         {
