@@ -99,8 +99,11 @@ def declare_and_load_params(node, safe_grasp_available: bool) -> None:
     node.declare_parameter("use_taught_slot0_place_reference", False)
     node.declare_parameter("hold_after_taught_slot0_place", True)
     # place가 실패/차단됐을 때 시퀀스 전체를 잠글지. False면 그 자리에서
-    # 과실을 놓고 다음 타겟으로 계속한다 (시뮬 완주 영상용 기본값).
-    node.declare_parameter("hold_on_place_failure", False)
+    # 과실을 놓고 다음 타겟으로 계속한다.
+    # [2026-09-14] 기본값 False -> True(실기 원본의 fail-closed 래치). 부수 규칙 1: 실기 기본 동작은
+    # 기본값으로 보존한다. 시뮬은 run_nodes.sh 에서 false 를 명시한다 — 설계 시퀀스(PROJECT_GOAL §3
+    # "익은 딸기를 모두 파지/배치")상 과실 하나의 배치 실패로 런을 멈추는 것은 설계에 어긋난다는 판단.
+    node.declare_parameter("hold_on_place_failure", True)
     # [Stage2 2026-09-07] open-stem descent (crane z offset + 열린 채 하강).
     # 설계 시퀀스: 줄기 위로 crane_z_offset 만큼 올라가 수평 진입 -> 열린 조우로
     # BASE -Z 하강해 KP1 정렬 -> 닫기 -> BASE -Z 당겨 분리.

@@ -157,6 +157,7 @@ done
     -p use_taught_slot0_place_reference:=true \
     -p execute_marker_place_release:=true \
     -p hold_after_taught_slot0_place:=false \
+    -p hold_on_place_failure:=false \
     -p taught_slot_sequence:=0,1,3,4,6,7,9,10 \
     -p orthogonalize_taught_grid:=true \
     -p taught_grid_pitch_override_m:=0.068 \
