@@ -5,8 +5,8 @@
 > 이 문서와 충돌하면 그쪽이 우선한다. 수치는 [`docs/parameters.md`](docs/parameters.md), 실행은 [`docs/run_guide.md`](docs/run_guide.md),
 > 변경 근거는 [`PLANNER_CHANGES.md`](PLANNER_CHANGES.md) 가 기준이다.
 >
-> **지금 할 일 (SUBMISSION_PLAN §4 순서)**: **T1** 09-09 수정본 END-TO-END 재완주(블로커, Step 0 = 09-09 17:23 런 로그부터 읽기)
-> → T2 딸기 키네마틱 부착 → T3 정적 덩굴 메쉬 → T4 계란판 + slot≥1 조사 → T5 녹화(카메라 2대) → T6 수치 갱신·푸시 → (선택) T7.
+> **M 번호는 2026-09-14 부로 동결(이력).** 현행 순서는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md) **§4-0 표**의 T 번호만 쓴다.
+> 대응: M1·M2·M2.5·M2.7 = 완료된 이력, **M3 = T1~T6**, M4 = 제출 이후(착수 금지). 지금 위치: T1~T4b 완료, 다음은 T4c(정직한 실패 표현 + 런 12) → T4d(무작위 배치 N 회) → T5 → T6.
 
 > **이 문서의 목적**: 이력서 제출용 포트폴리오 PPT를 만드는 데 필요한 최소 작업만 정의한다.
 > 프로젝트 완결이 목적이 아니다. **제출 가능한 상태**가 목적이다.

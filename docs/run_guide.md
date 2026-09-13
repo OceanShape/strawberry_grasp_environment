@@ -459,7 +459,7 @@ sim2real 주장이 깨진다 (`SUBMISSION_PLAN.md` §2 부수규칙 2). 자세�
 결함이 아니라 **실기 노드 설정의 결함**이다 — 같은 값이면 실기도 한 칸에 떨어뜨리는데, 부트캠프 최종은 과실 1~2개만 배치해 드러나지 않았다.
 격자는 플래너 상수 `TAUGHT_SLOT{0,1,3}_PLACE_REFERENCE_POSX_MM_DEG` 로 만든다 (열 = slot%3, 행 = slot//3; 열 피치 ≈ 59.7mm(-x), 행 피치
 ≈ 50.6mm(-y)). 열 2·5·8(x≈400, 베이스 최근접 열, `is_row2` — 15° 피치 틸트가 붙는다)은 09-10 03:11 런에서 `IK_FAIL` 이라 뺐다.
-09-07 의 `J6 spline jump` 거부는 J6 운용 한계 ±225° 탓이었고 **09-08 에 ±360 으로 고쳤다**.
+09-07 의 `J6 spline jump` 거부는 J6 운용 한계 ±225° 탓이었고 09-08 에 ±360 으로 넓혔었다. **09-14 에 ±225 로 원복했다(C4)** — 실기 원본 값이고, 넓힌 것은 시뮬을 실기보다 관대하게 만든 것이었다. 그래서 배치 이송 거부가 다시 난다(런 10 기준 배치 4/8). 실기 노드의 동작이며 고치지 않는다.
 슬롯 인덱스는 **place 가 끝날 때마다** 시퀀스를 따라 진행하고, 시퀀스가 끝나면 다음 자동 슬롯(8 = 열 2)으로 간다 —
 그래서 여섯 개보다 많이 배치하지 않는다. 런 전 사전 검증: `cd src/strawberry_motion/scripts && python3 check_tray_slot_reachability.py <runtime JSONL>`.
 
@@ -726,7 +726,7 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | **HUD `타겟` 총수가 한 번에 6 이 되지 않는다** | **정상이다.** 2026-09-09 분면 필터 이후 이 값은 **지금 스캔 중인 분면**의 개수다. `Isaac→fake` 쪽이 전체(6)다 |
 | **첫 분면에서 6개를 다 시도하고 나머지 분면은 후보 없음** | 분면 필터가 꺼져 있다. `fake_vision_node` 의 `quadrant_filter_enabled` 확인. 기동 로그의 `quadrant_filter=True` 도 같이 본다 |
 | **파지/배치 실패 후 scan pose 로 안 돌아오고 바로 다음 딸기로 이동** | `_abort_pick_with_complete` 가 로봇을 두고 `pick_complete` 만 발행했다. scan_executor 는 그 즉시 다음 타겟을 쏜다. 쿼드트리 스캔은 **모든 pick 이 세부영역 scan pose 에서 시작**하는 것을 전제로 보드와의 y 여유를 확보한다. 2026-09-09 수정 — 중단 경로도 복귀 후 발행 |
-| **파지는 성공했는데 보드 앞에서 놓는다** | `spline_jump` 거부. J6 랩 문제 — `OPERATIONAL_JOINT_LIMITS_DEG[5]` 가 ±360 인지 확인 (URDF 실제 한계와 동일). ±225 면 연속 해를 못 고른다 |
+| **파지는 성공했는데 보드 앞에서 놓는다** | `spline_jump J6` 또는 `swing J3/J6` 거부. **09-14 부터 정상 동작이다** — 운용 한계 J6 ±225(실기 원본)에서 트레이 이송 일부가 거부되고 과실을 그 자리에서 놓는다. 고치지 않는다(`docs/e0509_spec_audit.md` §7, H §9). 런당 몇 건인지는 기록한다 |
 | **배치 경로가 보드를 스친다** | 플래너가 궤적을 12점으로 다운샘플해 보낸다. 브릿지 `move_spline_cb` 가 그 사이를 보간하는지 확인 |
 | **이동 중 그리퍼가 보드를 통과한다** | 브릿지 기동 로그에 `MOVELINE_COLLISION_WORLD:` 가 없다. IK 솔버가 충돌 월드 없이 생성된 것 |
 | **딸기를 제대로 집었는데 빈손 판정** | `d_tcp` 와 `capture_radius` 를 대조. `pick_target_z_bias_m` 을 바꿨으면 `grasp_capture_radius_m` 도 같이 봐야 한다 |
@@ -737,6 +737,6 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | `TAUGHT_TRAY_PLACE_COMPLETE_HOLD` — 놓고 나서 정지 | 플래너 인자에서 `-p hold_after_taught_slot0_place:=false` 누락 |
 | place 게이트에서 `GRASP_EMPTY`로 차단 | 파지가 실제로 실패한 것. `GRASP_JUDGE` 로그의 `d_tcp`를 보고 "파지 판정 튜닝" 절대로 조정. `allow_unverified_grasp_place`로는 안 뚫린다 |
 | place 도중 `IK_FAIL` / 바닥 간섭 | 티칭 슬롯(z=66mm)이 시뮬 좌표계에서 도달 불가. 고정 자세 release로 후퇴 (`curobo_planner_node` 절 참조) |
-| `Cartesian plan rejected: J6 spline jump ...deg` | J6 랩 불연속. 운용 한계는 09-08 부터 ±360 이라 배치에서는 더 안 난다. 파지 접근 후보 탐색 중에는 정상적으로 나올 수 있다(다음 후보로 넘어감) |
+| `Cartesian plan rejected: J6 spline jump ...deg` | J6 랩 불연속. 운용 한계 ±225(09-14 원복)에서 배치 이송·파지 접근 모두에서 날 수 있다. 실기 노드의 거부이며 기록만 한다 |
 | `PICK_SEQUENCE_HOLD_LATCHED` | 2026-09-07 이전 코드가 돌고 있다. `colcon build` 후 터미널 2 재시작 (지금은 place 실패 시 놓고 계속 진행한다) |
 | `Pick target ignored: sequence hold` | 위와 같음. 래치가 걸리면 **플래너 재시작 외에는 풀 방법이 없다** |
