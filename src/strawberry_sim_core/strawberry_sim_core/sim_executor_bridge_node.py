@@ -30,6 +30,83 @@ except ImportError:
     CUROBO_AVAILABLE = False
 
 
+def spec_exceedance(deltas_deg, vel_deg_s, acc_deg_s2, max_vel, max_acc):
+    """[D3 2026-09-14] MoveJoint 요청이 두산 공식 MoveIt 설정을 넘는 관절 목록.
+
+    동기 이동이라 관절 j 의 최대 속도·가속도는 (|delta_j| / span) 비율로 줄어든다.
+    자르지 않고 기록만 하므로 반환값은 로그 문자열 조각이다. 순수 함수.
+    """
+    span = max((abs(d) for d in deltas_deg), default=0.0)
+    if span < 1e-6:
+        return []
+    out = []
+    for j, d in enumerate(deltas_deg):
+        f = abs(d) / span
+        v, a = vel_deg_s * f, acc_deg_s2 * f
+        parts = []
+        if v > max_vel[j] + 1e-6:
+            parts.append("vel %.0f>%.0f" % (v, max_vel[j]))
+        if a > max_acc[j] + 1e-6:
+            parts.append("acc %.0f>%.0f" % (a, max_acc[j]))
+        if parts:
+            out.append("J%d %s" % (j + 1, " ".join(parts)))
+    return out
+
+
+def movej_profile(cur_deg, target_deg, vel_deg_s, acc_deg_s2, time_sec=0.0,
+                  step_sec=0.005, speed_scale=1.0):
+    """[C2 2026-09-14] 관절 공간 사다리꼴 프로파일 — [(t, positions_deg), ...].
+
+    이동량이 가장 큰 관절이 vel/acc 를 정확히 쓰고 나머지 관절은 같은 시간에 비례 이동한다
+    (DRL movej 와 같은 동기 이동). 이동량이 vel^2/acc 보다 작으면 삼각 프로파일.
+    time_sec > 0 이면 그 시간에 맞는 등속 속도를 acc 고정으로 풀어 쓴다(가속도로 그 시간을
+    못 맞추면 삼각 최소 시간). speed_scale 은 시간축을 나눈다 (= vel*scale, acc*scale^2).
+    순수 함수 — rclpy 없이 시험할 수 있다.
+    """
+    deltas = [t - c for c, t in zip(cur_deg, target_deg)]
+    span = max(abs(d) for d in deltas) if deltas else 0.0
+    if span < 1e-6:
+        return [(0.0, list(target_deg))]
+    k = max(float(speed_scale), 1e-6)
+    v = max(float(vel_deg_s), 1e-6) * k
+    a = max(float(acc_deg_s2), 1e-6) * k * k
+    if time_sec > 0:
+        t_total = float(time_sec) / k
+        disc = a * a * t_total * t_total - 4.0 * a * span
+        if disc >= 0.0:
+            v = (a * t_total - math.sqrt(disc)) / 2.0     # S = v*T - v^2/a 의 작은 근
+        else:
+            t_total = 2.0 * math.sqrt(span / a)             # 그 시간엔 못 감 → 삼각 최소 시간
+            v = a * t_total / 2.0
+    if span <= v * v / a:                                   # 삼각
+        t_acc = math.sqrt(span / a)
+        v = a * t_acc
+        t_total = 2.0 * t_acc
+    else:                                                   # 사다리꼴
+        t_acc = v / a
+        t_total = span / v + t_acc
+    d_acc = 0.5 * a * t_acc * t_acc
+
+    def s_of(t):
+        if t >= t_total:
+            return span
+        if t < t_acc:
+            return 0.5 * a * t * t
+        if t <= t_total - t_acc:
+            return d_acc + v * (t - t_acc)
+        tr = t_total - t
+        return span - 0.5 * a * tr * tr
+
+    out = []
+    n = max(1, int(math.ceil(t_total / step_sec)))
+    dt = t_total / n                                        # 균일 간격 (마지막 스텝만 짧아지지 않게)
+    for i in range(1, n + 1):
+        t = i * dt
+        f = s_of(t) / span
+        out.append((t, [c + d * f for c, d in zip(cur_deg, deltas)]))
+    return out
+
+
 class SimExecutorBridgeNode(Node):
     # MoveLine은 45mm급 미세 직선 이동이므로 관절이 이보다 크게 움직이는 해는
     # elbow-flip(반대 브랜치) 해다 — 실행하면 팔 전체가 휘둘리며 바닥을 뚫는다
@@ -44,7 +121,7 @@ class SimExecutorBridgeNode(Node):
     # [SPEED 2026-09-09] 아티큘레이션 드라이브 게인을 10배로 올렸으므로
     # (robot_assembly.usd: 팔 stiffness 1e5->1e6 / damping 1e4->1e5) 팔이 훨씬
     # 빨리 따라온다. 그에 맞춰 시간 상수도 줄인다. 실행 시간은 sim_speed_scale
-    # 파라미터로 한 번에 조절한다 (기본 2.0 = 종전의 2배 속도).
+    # 파라미터로 한 번에 조절한다 (기본 1.0 — 2026-09-14 까지는 2.0 이었다, C3).
     SPLINE_MIN_TOTAL_SEC = 0.35       # req.time 이 없거나 너무 짧을 때의 하한
     SPLINE_MIN_STEP_SLEEP_SEC = 0.003
     # ★ [FIX 2026-09-10] 관절 속도 상한으로 실행 시간의 **바닥**을 잡는다.
@@ -172,7 +249,10 @@ class SimExecutorBridgeNode(Node):
         self.declare_parameter("grasp_target_z_bias_m", 0.035)
         self.declare_parameter("grasp_judgement_enabled", True)
         # 실행 속도 배율. 클수록 빠르다. 1.0 = 2026-09-09 이전 속도.
-        self.declare_parameter("sim_speed_scale", 2.0)
+        # [C3 2026-09-14] 2.0 -> 1.0. 실기 노드가 요청한 시간이 곧 실제 로봇의 실행 시간이다.
+        # 2.0 은 영상 길이를 줄이려는 시간 압축이었고 MoveLine·짧은 스플라인을 실기보다 2배 빠르게
+        # 만들었다 (docs/e0509_spec_audit.md C3, PLANNER_POLICY_v2 §0-1).
+        self.declare_parameter("sim_speed_scale", 1.0)
         # stroke 700(완전 닫힘)이 몇 rad 인가. 1.0 = 실기 스톡 상한(파츠 간격 9.4mm),
         # 1.08 = 커스텀 파츠가 실제로 무는 값(0.7mm). USD 관절 상한도 같이 맞춰야 한다.
         self.declare_parameter("gripper_close_rad", 1.08)
@@ -237,6 +317,11 @@ class SimExecutorBridgeNode(Node):
             "— planner 의 ee_to_tcp_offset_m 과 반드시 같아야 한다 (다르면 전 타겟 GRASP_EMPTY)"
             % (self.tool_offset * 1000, self.grasp_radius * 1000, self.grasp_judgement,
                self.speed_scale, self.gripper_close_rad, self.arm_arrival_tol_deg))
+        self.get_logger().warn(
+            "DOOSAN_MOVEIT_REF: vel=%s acc=%s deg/s,deg/s^2 "
+            "(dsr_moveit_config_e0509/config/joint_limits.yaml) — 초과해도 자르지 않고 기록만 (D3)"
+            % ([int(v) for v in self.DOOSAN_MOVEIT_MAX_VEL_DEG_S],
+               [int(a) for a in self.DOOSAN_MOVEIT_MAX_ACC_DEG_S2]))
         self.get_logger().info("Sim Executor Bridge Node Ready! (Listening to Doosan & Gripper services)")
 
         try:    # ── HUD 계측 (제거: 이 4줄만 지우면 된다) ──
@@ -332,8 +417,13 @@ class SimExecutorBridgeNode(Node):
     # 이제 팔 관절과 함께 그리퍼 관절도 /joint_command 로 발행한다.
     # 이름은 main_scene.usd 의 articulation DOF 이름과 같아야 한다
     # (layout_layer.usd 의 over "joints" 아래 프림 이름).
-    # robot.urdf 의 팔 6축 한계(deg) + 여유 5도. _publish_joint_command 의 방어선.
-    ARM_JOINT_LIMIT_DEG = [365.0, 100.0, 160.0, 365.0, 140.0, 365.0]
+    # _publish_joint_command 의 방어선. [C1 2026-09-14] 종전 '공식 한계 + 5도' 를 공식 URDF 값 그대로로
+    # (J1·J4·J6 365->360, J3 160->155). 방어선이 로봇 한계보다 넓을 이유가 없다 — 실제 제어기는
+    # 한계 밖 명령을 오류로 낸다 (docs/e0509_spec_audit.md C1). J2 100·J5 140 은 종전대로(공식보다 좁음).
+    # [D1 2026-09-14] J5 140 -> 135. 시뮬 로봇 모델(robot.usd)의 J5 한계를 실기 값(cuRobo ±135)으로
+    # 좁혔으므로 방어선도 같이 좁힌다 (공식 URDF ±360, 카탈로그 ±155 보다 실기가 빡빡하다).
+    # [D1 2026-09-14 2차] J2 100 -> 95, J3 155 -> 135. 시뮬 로봇 모델의 J2·J3 도 실기 값으로 좁혔다.
+    ARM_JOINT_LIMIT_DEG = [360.0, 95.0, 135.0, 360.0, 135.0, 360.0]
 
     GRIPPER_JOINT_NAMES = ["rh_p12_rn", "rh_r2", "rh_l1", "rh_l2"]
 
@@ -695,12 +785,68 @@ class SimExecutorBridgeNode(Node):
         res.success = True
         return res
 
+    # [D3 2026-09-14] 두산 공식 ROS 2 MoveIt 설정의 관절 속도·가속도
+    # (dsr_moveit2/dsr_moveit_config_e0509/config/joint_limits.yaml, rad -> deg).
+    # 하드웨어 가속도 상한은 두산이 공개하지 않는다. **자르지 않고 초과 사실만 기록한다** —
+    # 검증 대상은 실기 노드가 보내는 명령이고, 그 명령을 시뮬이 임의로 줄이면 검증이 아니게 된다
+    # (docs/e0509_spec_audit.md D3). 스플라인 실행은 SPLINE_MAX_JOINT_SPEED_DEG_S(120) 로
+    # 이미 이 표 이하라 따로 재지 않는다.
+    DOOSAN_MOVEIT_MAX_VEL_DEG_S = [120.0, 120.0, 150.0, 225.0, 225.0, 225.0]
+    DOOSAN_MOVEIT_MAX_ACC_DEG_S2 = [120.0, 120.0, 150.0, 225.0, 225.0, 225.0]
+
+    # [C2 2026-09-14] MoveJoint 기본 속도·가속도 (req.vel / req.acc 가 0 이하일 때).
+    # DRL 매뉴얼 예제 관행값(set_velj/set_accj 60). 실기 노드는 항상 명시값을 보낸다 (스캔 120/180).
+    MOVEJ_DEFAULT_VEL_DEG_S = 60.0
+    MOVEJ_DEFAULT_ACC_DEG_S2 = 60.0
+    MOVEJ_STEP_SEC = 0.005
+
     def move_joint_cb(self, req, res):
-        self.get_logger().info(f"MoveJoint called to {req.pos}")
-        self._publish_joint_command(req.pos)
-        if req.time > 0:
-            time.sleep(req.time)
-        self._wait_for_arm_arrival(list(req.pos), "MoveJoint")
+        """MoveJoint — [C2 2026-09-14] 요청 vel/acc 로 사다리꼴 프로파일을 만들어 보간 발행한다.
+
+        종전에는 목표를 즉시 발행하고 도착만 기다렸다. 그러면 속도는 드라이브 게인이 정하고
+        PhysX 가 URDF 상한(180/225 deg/s)에서 자르므로, 실기 노드가 120 deg/s 를 명령해도
+        시뮬은 그보다 1.5~1.9배 빠르게 움직였다 (docs/e0509_spec_audit.md C2). 실기 제어기는
+        vel·acc 대로 움직이므로 시뮬도 그 명령을 그대로 따른다. req.time > 0 이면 DRL 과 같이
+        시간이 vel/acc 보다 우선한다. 가속도를 두산 MoveIt 값으로 자르지는 않는다 (D3, 결정 대기).
+        """
+        vel = float(req.vel) if req.vel > 0 else self.MOVEJ_DEFAULT_VEL_DEG_S
+        acc = float(req.acc) if req.acc > 0 else self.MOVEJ_DEFAULT_ACC_DEG_S2
+        target = [float(v) for v in req.pos]
+        if self.joint_state_received and len(self.current_joints) == len(target):
+            cur = [math.degrees(j) for j in self.current_joints]
+        else:
+            cur = None
+        self.get_logger().info(
+            "MoveJoint called to %s (vel=%.0f acc=%.0f time=%.2f)" % (
+                [round(v, 1) for v in target], vel, acc, float(req.time)))
+        if cur is not None:
+            over = spec_exceedance([t - c for c, t in zip(cur, target)], vel, acc,
+                                   self.DOOSAN_MOVEIT_MAX_VEL_DEG_S,
+                                   self.DOOSAN_MOVEIT_MAX_ACC_DEG_S2)
+            if over:
+                # [D3] 자르지 않는다. 실기 명령을 그대로 실행하고 초과만 남긴다.
+                self.get_logger().warn(
+                    "MOVEJ_OVER_DOOSAN_MOVEIT %s — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행"
+                    % "  ".join(over))
+        if cur is None:
+            # /dsr01/joint_states 미수신(Isaac Play 전) — 프로파일을 만들 시작점이 없다. 종전 동작.
+            self._publish_joint_command(target)
+        else:
+            profile = movej_profile(cur, target, vel, acc,
+                                    time_sec=float(req.time) if req.time > 0 else 0.0,
+                                    step_sec=self.MOVEJ_STEP_SEC, speed_scale=self.speed_scale)
+            t_start = time.time()
+            for t, pos in profile:
+                self._publish_joint_command(pos)
+                lag = t_start + t - time.time()
+                if lag > 0:
+                    time.sleep(lag)
+            self._publish_joint_command(target)
+            self.get_logger().info(
+                "MoveJoint profile: span %.1fdeg / %.2fs (%d steps)" % (
+                    max(abs(a - b) for a, b in zip(target, cur)), profile[-1][0] if profile else 0.0,
+                    len(profile)))
+        self._wait_for_arm_arrival(target, "MoveJoint")
         res.success = True
         return res
 

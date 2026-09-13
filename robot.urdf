@@ -121,7 +121,9 @@
     <child link="link_2"/>
     <origin rpy="0 -1.5708 -1.5708" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <limit effort="194" lower="-6.2832" upper="6.2832" velocity="3.1416"/>
+    <!-- [D1 2026-09-14] joint_2 ±360 -> ±95 deg (=1.6581 rad). 실기 cuRobo 설정(e0509_gripper.urdf)의 운용 범위.
+         시뮬 로봇이 실기가 못 가는 자세를 허용하면 안 된다 (docs/e0509_spec_audit.md D1). 속도는 공식·실기 동일 (D2). -->
+    <limit effort="194" lower="-1.6581" upper="1.6581" velocity="3.1416"/>
     <dynamics friction="0"/>
   </joint>
   <link name="link_2">
@@ -165,7 +167,9 @@
     <child link="link_3"/>
     <origin rpy="0 0 1.5708" xyz="0.373 0 0"/>
     <axis xyz="0 0 1"/>
-    <limit effort="194" lower="-2.7053" upper="2.7053" velocity="3.1416"/>
+    <!-- [D1 2026-09-14] joint_3 ±155 -> ±135 deg (=2.3562 rad). 실기 cuRobo 설정(e0509_gripper.urdf)의 운용 범위.
+         시뮬 로봇이 실기가 못 가는 자세를 허용하면 안 된다 (docs/e0509_spec_audit.md D1). 속도는 공식·실기 동일 (D2). -->
+    <limit effort="194" lower="-2.3562" upper="2.3562" velocity="3.1416"/>
     <dynamics friction="0"/>
   </joint>
   <link name="link_3">
@@ -253,7 +257,11 @@
     <child link="link_5"/>
     <origin rpy="-1.5708 0 0" xyz="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <limit effort="66" lower="-6.2832" upper="6.2832" velocity="3.927"/>
+    <!-- [D1 2026-09-14] J5 ±360 -> ±135 (=2.3562 rad). 공식 URDF 는 ±360, 카탈로그는 ±155,
+         실기 cuRobo 설정(e0509_gripper.urdf)은 ±135 로 가장 좁다. 시뮬 로봇이 실기가 못 가는
+         자세를 허용하면 안 되므로 실기 값을 쓴다 (docs/e0509_spec_audit.md D1).
+         속도 3.927(225deg/s)는 공식·실기 동일이라 그대로 (D2). -->
+    <limit effort="66" lower="-2.3562" upper="2.3562" velocity="3.927"/>
     <dynamics friction="0"/>
   </joint>
   <link name="link_5">
