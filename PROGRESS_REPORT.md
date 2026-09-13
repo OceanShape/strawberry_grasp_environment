@@ -163,7 +163,7 @@
 | MoveLine IK FK 검증 | **0.003mm**, FK→IK 왕복 ~1µm, 배치 IK 5/5 | `docs/next_steps.md` |
 | elbow-flip 근본 수정 효과 | 6/6 실패 → **6/6 통과**, 스텝당 1° | `PLANNER_CHANGES.md` 09-08 |
 | 결함 처리 | 09-07 기준 **17건 수정**(가상제어기 6·USD 5·플래너 2·설정 4) + 09-08~09 **약 15건 추가 규명·수정**(집계는 E_metrics 갱신 시 확정) | `portfolio/E_metrics.md` §5 |
-| 미해결 | J1/J2 swing reject, 트레이 slot≥1 J6 한계, 커스텀 파츠 PhysX 콜라이더 부재, 그리퍼 l2/r2 충돌 구체 부재, 09-09 수정본 재완주 미확인 | 〃 |
+| 미해결 | J1/J2 swing reject, 트레이 이송 J3 swing reject(런 10·11 간헐, 09-12 **실기 플래너 한계로 기록** — H §9; 09-14 스윙 가드 3값 원본 원복), 실기 요청 가속도의 두산 MoveIt 설정 초과(09-14 D3, 기록만), 트레이 slot≥1 J6 한계, 커스텀 파츠 PhysX 콜라이더 부재, 그리퍼 l2/r2 충돌 구체 부재, 09-09 수정본 재완주 미확인 | 〃 |
 | 기술 스택 버전 | Isaac Sim 5.1.0 · ROS 2 Humble · cuRobo 0.7.8(소스 빌드) · PyTorch 2.6.0+cu124 · CUDA 12.4 · warp 1.9.1 · Py 3.10/3.11 · Ubuntu 22.04 · RTX 4060 Ti | `E_metrics.md` §6 |
 
 ---
@@ -207,7 +207,7 @@
 
 ## 7. 남은 작업과 리스크
 
-> 작업 순서·타임박스는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md) §4 (T1~T7). 아래 표는 리스크 메모다.
+> 작업 순서는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md) §4 (T1~T7). 아래 표는 리스크 메모다.
 
 | 항목 | 내용 |
 |---|---|

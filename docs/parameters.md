@@ -113,6 +113,7 @@ USD 조인트 프레임이 URDF 와 **0.000°** 로 일치한다. 평행도 실�
 | 셀 간 이동 | `plan_scan_transit=false` (기본, 2026-09-10 변경) — 실기와 동일한 순수 MoveJoint. true 로 켜도 MotionGen 이 없으면 타지 않는다 (선언부 주석) |
 | overview 1차 스캔 | `overview_prescan=true` (시뮬, `run_nodes.sh`). 익은 과실 0개 분면은 순회에서 제외. **기본 false = 실기 최종본과 같은 전수 순회** |
 | 스캔 dwell | `scan_dwell_sec=3.0` (시뮬). 기본 12초는 실기 fusion 안정화용 |
+| 적응 분할 (T4b) | `subdivide_min_candidates=3` (시뮬, `run_nodes.sh`). 분면 근거리 스캔 후보가 3 이상이면 2×2 로 쪼개 **후보 있는 세부 칸만** 부모 자세에서 유도한 세부 자세(FK → x·z 평행이동 → 부모 시드 IK, `execution/subcell_pose.py`)로 MoveJoint 이동·재스캔·pick. 관절 변화 > `subdivide_max_joint_delta_deg`(60) 면 `SUBDIVIDE_REJECTED` 로 부모 자세 pick. **기본 0 = 끔 = 실기(쪼갤지 여부를 사람이 오프라인에서 정해 YAML 에 넣던 정적 방식)**. 오프라인 검사 `scripts/check_subcell_scan_poses.py` |
 | 비인접 분면 폴백 | MoveJoint 폴백 시 overview 경유 (`TRANSIT_VIA_OVERVIEW`). cuRobo 계획 성공 시엔 직행 |
 
 J4/J6 는 **티칭 원본 표현 그대로** YAML 에 둔다 (`J4=−238.52` 등).
@@ -127,7 +128,7 @@ J4/J6 는 **티칭 원본 표현 그대로** YAML 에 둔다 (`J4=−238.52` 등
 |---|---|---|
 | 아티큘레이션 게인(팔) | stiffness **1e6** / damping **1e5** | `robot_assembly.usd` |
 | 〃 (그리퍼) | stiffness 1e5 / damping 1e4 | |
-| 실행 속도 배율 | `sim_speed_scale = 2.0` | T2 `-p sim_speed_scale:=1.0` = 2026-09-09 이전 |
+| 실행 속도 배율 | `sim_speed_scale = 1.0` (09-14 C3, 종전 2.0) | 실기 요청 시간 그대로. 2.0 은 영상용 시간 압축이었다 (`docs/e0509_spec_audit.md` C3) |
 | 스플라인 관절속도 바닥 | `SPLINE_MAX_JOINT_SPEED_DEG_S = 120` | 실행 시간의 **하한**을 스윙으로 정한다. 없으면 큰 스윙에서 아티큘레이션이 못 따라오고, 그 잔차가 다음 **상대** MoveLine 에 전파돼 조우가 파지점 앞에서 닫힌다 |
 | 도착 대기 | `ARM_ARRIVAL_TIMEOUT_SEC = 8.0` | 3.0 이면 큰 스윙에서 타임아웃 |
 | 스캔 이동 | 120 / 180 deg·s | T4 `-p scan_movej_vel_deg_s:=60` = 실기 값 |
@@ -141,8 +142,11 @@ J4/J6 는 **티칭 원본 표현 그대로** YAML 에 둔다 (`J4=−238.52` 등
 | 값 | 현재 |
 |---|---|
 | `OPERATIONAL_JOINT_LIMITS_DEG` | ±225 / ±95 / ±135 / ±360 / ±130 / **±360** |
-| `MAX_HARVEST_JOINT_DELTA_DEG` | `[95, 90, 120, 150, 130, 120]` |
-| `MAX_TAUGHT_PLACE_TRANSFER_JOINT_DELTA_DEG` | `[170, **130**, 175, 150, 130, 180]` — J2 100→130 (2026-09-10). 100 이면 nw 딸기 2개가 트레이 이송에서 막혀 과실을 그 자리에 놓아버린다 |
+| `MAX_HARVEST_JOINT_DELTA_DEG` | `[75, 90, 120, 150, 130, 120]` — 원본. 09-08 J1 95 는 **09-14 원복** |
+| 시뮬 로봇 J2·J3·J5 한계 (`robot.urdf`·`robot.usd`) | ±95 / ±135 / ±135° (09-14 D1, 종전 ±360/±155/±360) — 실기 cuRobo 운용 값. J3 는 기록상 135.0° 까지 쓰여 여유 0. 씬 재로드 필요 |
+| 브릿지 명령 방어선 `ARM_JOINT_LIMIT_DEG` | `[360, 95, 135, 360, 135, 360]` (09-14 C1·D1, 종전 `[365,100,160,365,140,365]`) |
+| 두산 MoveIt 참조값 (기록 전용) | vel·acc `[120,120,150,225,225,225]` — 초과해도 자르지 않고 로그만 (09-14 D3) |
+| `MAX_TAUGHT_PLACE_TRANSFER_JOINT_DELTA_DEG` | `[170, 100, 120, 150, 130, 180]` — 원본. J2 130·J3 175 는 **09-14 원복** (원칙 §0-1). (이력) 100 이면 nw 딸기 2개가 트레이 이송에서 막혀 과실을 그 자리에 놓아버린다 |
 | 브릿지 발행 상한 | `ARM_JOINT_LIMIT_DEG = [365, 100, 160, 365, 140, 365]` — 넘으면 발행 차단 + `JOINT_COMMAND_REJECTED` |
 
 ---
@@ -152,7 +156,7 @@ J4/J6 는 **티칭 원본 표현 그대로** YAML 에 둔다 (`J4=−238.52` 등
 | 어디 | 줄 | 없거나 다르면 |
 |---|---|---|
 | T2 | `BERRY_GEOMETRY: n=6 y=782.8~782.8mm` | 편차 20mm↑ = Isaac 씬을 다시 열지 않은 것 |
-| T2 | `tool_tcp_offset=236mm capture_radius=45mm sim_speed_scale=2.0` | 판정이 헛돈다 |
+| T2 | `tool_tcp_offset=236mm capture_radius=45mm sim_speed_scale=1.0` | 판정이 헛돈다 |
 | T2 | `MOVELINE_COLLISION_WORLD: ['whiteboard']` | 이동 중 보드 관통 |
 | T3 | `EE_TO_TCP_OFFSET_OVERRIDE: 160mm -> 236mm` | 툴을 짧게 본다 |
 | T4 | `TRAVERSAL_SCAN_STARTED cells=[...] (4/4 quadrants)` | 분면 누락 |
@@ -177,5 +181,6 @@ J4/J6 는 **티칭 원본 표현 그대로** YAML 에 둔다 (`J4=−238.52` 등
 | 스캔 이동 | 순수 MoveJoint | **동일** (순수 MoveJoint, 비인접 분면만 overview 경유) | v12 티칭 자세 관절공간 여유 최소 181mm. cuRobo 경유(`plan_scan_transit`)는 죽은 경로라 09-10 기본 false |
 | MoveLine 보간 | 제어기 내부 직선 보간 | 2mm 스텝 IK 연쇄, **스텝 수 상한 24** (`MOVELINE_MAX_STEPS`) | 스텝당 IK ~150ms 가 실소요를 지배. 상한 없이는 120mm 배치 하강이 9.2초 (시뮬 인공물) |
 | 분면 순회 | 4분면 전수 | overview 1차 스캔 후 익은 과실 있는 분면만 (`overview_prescan`) | 원안 1·2단계. `false` 로 실기와 동일하게 가능 |
+| 세부 칸(깊이 2) | NW 4칸 티칭 자세만 있고 쪼갤지 여부는 오프라인 결정(정적) | 후보 밀도 규칙으로 런타임 분할, 세부 자세는 부모 자세에서 계산 (`subdivide_min_candidates`) | 쿼드트리의 적응성. `0` 으로 실기와 동일하게 가능. 시뮬엔 가림 모델이 없어 이득은 수치가 아니라 판정·순회 자체 |
 
 > 위 표의 "툴 오프셋 100mm 오차 + 큰 사다리 상쇄" 는 시뮬이 드러낸 **실기 노드의 숨은 모델 부채**다.

@@ -100,8 +100,9 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
 ```
 노드   ● 인식   ● 플래너   ● 제어   ● 스캔      초록 = 지금 일하는 중 (죽거나 멈추면 빨강)
 ──────────────────────────────────────────
-영역   북서 NW                                 지금 일하는 / 가고 있는 세부영역
-타겟   3 / 6        배치   2                    몇 번째 딸기인지 / 릴리스까지 끝난 수
+트리               [ROOT]                      쿼드트리 순회 (숫자 = 그 칸의 후보 수)
+       [NW 3] [NE 2] [SE 0] [SW 3]             둘째 줄: 방향 = 잎 / 방향(분할) / 방향(제외)
+       [nw 0][ne 0][se 1][sw 2]                가장 최근에 분할한 분면의 세부 칸
 ──────────────────────────────────────────
 단계            파지 + 하강                     단계별 색
        ■■■■□□□□□□□                              11칸 진행 바
@@ -109,7 +110,11 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
           수확 완료  5 / 6 (83%)                완주 후에만 (괄호 = 목표 대비 %)
 ```
 
-- **영역**은 `scan_executor` 의 순회 단위다 (`root/nw` → `북서 NW`). 대기 자세로 돌아가면 `HOME`.
+- **트리**(2026-09-11, 영역·타겟·배치 줄 대체)는 `scan_executor` 의 순회 결정을 실행 중에 그린다. 1차 스캔에서 후보 0 인
+  분면은 `남동(제외)` 꼴, 분면 자세의 후보가 분할 기준(3) 미만이면 방향만(잎), 이상이면 `방향(분할)` 과 함께 세부 칸 줄이 열린다.
+  로봇이 있는 노드·경로는 주황, 끝난 노드는 초록 테두리, 세부 자세가 거부돼 부모 자세에서 딴 세부 칸은 호박색 테두리.
+  순회가 끝나면 세부 칸 줄은 접힌다. 보드 위 주황 하이라이트도 세부 칸에서 일할 때는 그 칸 하나만 켠다(`whiteboard.usd` 세부 칸 16장,
+  **씬 재로드 필요** — 옛 애셋이면 부모 분면을 켠다). 실행기 코드는 안 바뀐다(프로브가 메서드 경계에서 받는다). 규칙·색·문구는 `hud/tree_model.py`, 설명은 `hud/README.md`.
 - **패널 위치**는 `isaac_sim_hud.py` 의 `POS_X` / `POS_Y` (뷰포트 좌상단 기준 픽셀, 기본 24/24).
 - 노드 4개가 `/tmp/harvest_hud_<role>.json` 에 상태를 쓰고 HUD 는 읽기만 하므로
   **터미널 2 보다 먼저 켜도, 나중에 켜도, 도중에 다시 Run 해도** 된다. 몇 번 Run 해도 하나만 남는다.
@@ -117,8 +122,11 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
   `run_nodes.sh` 는 기동 시 `/tmp/harvest_hud_*.json` 을 지운다. 그래서 Isaac 을 다시 열거나 터미널 2 를
   다시 띄우면 트리거 전까지 **대기 상태(램프만 순서대로 초록)** 로 보인다. 완주 후 노드를 그대로 두면
   엔딩(`수확 완료 n/m`)은 남는다 — 살아 있는 노드의 파일은 계속 갱신되기 때문이다. `--kill` 은 파일을 지우지 않는다.
-- **"배치" 는 "성공" 이 아니다.** 딸기를 그리퍼에 붙이는 attach 가 없어(파지는 기하 판정뿐)
-  *파지 판정 통과 + 트레이 슬롯 릴리스 완료* 까지만 센다. 시도와 결과를 일부러 분리해 보여준다.
+- **완료 줄의 수는 "성공" 이 아니다.** 딸기를 그리퍼에 붙이는 attach 가 없어(파지는 기하 판정뿐)
+  *파지 판정 통과 + 트레이 슬롯 릴리스 완료* 까지만 센다.
+- **제원 정합 (2026-09-14)**: 브릿지 기동 로그에 `DOOSAN_MOVEIT_REF` 한 줄이 뜨고, 스캔 MoveJoint 마다 `MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 162>120 J3 acc 180>150` 이 남는다.
+  **정상이다** — 실기 노드가 보낸 가속도를 자르지 않고 그대로 실행하면서 두산 공식 MoveIt 설정 초과만 기록하는 것이다(`docs/e0509_spec_audit.md` D3).
+  시뮬 로봇 J2·J3·J5 한계는 실기 값 ±95·±135·±135 로 좁혔다(D1, **씬 재로드 필요**). J3 는 트레이 위 자세가 정확히 135° 라 한계에 닿는다 — 도착 잔차가 커지면 여기부터 본다.
 - **Kit 은 한글을 못 그린다** (스크립트 에디터조차 `?`). 그래서 한글 라벨은 `hud/labels/` 의 PNG 를 붙인다.
   그 폴더가 없으면 `python3 strawberry_harvest/scripts/hud/make_labels.py` 로 만든다 (없으면 영문 라벨로 자동 전환).
 - 램프가 전부 빨강이면 `ls -l /tmp/harvest_hud_*.json` — 없는 role 은 그 노드에 계측이
@@ -505,6 +513,7 @@ place 관련 파라미터를 모두 빼고 `-p tool_model_profile:=legacy_160mm`
 - 순회 순서는 실기와 동일한 **nw -> ne -> se -> sw -> overview** 다
 - 2026-09-10 부터 `run_nodes.sh` 는 `overview_prescan:=true` 로 띄운다. overview 에서 1차 스캔(`OVERVIEW_SCAN nw:2 ne:1 se:0 sw:3`)을 하고 **익은 과실 0개 분면은 건너뛴다**(`TRAVERSAL_PRUNED skip=[...]`). 4분면 전수 순회로 돌리려면 `-p overview_prescan:=false`
 - 셀 간 이동은 실기와 똑같이 순수 MoveJoint 다 (`plan_scan_transit` 기본 false, 2026-09-10). 비인접 분면 직행만 overview 를 경유한다 (`TRANSIT_VIA_OVERVIEW`)
+- **[T4b] 적응 분할** (2026-09-11): `run_nodes.sh` 는 `subdivide_min_candidates:=3` 으로 띄운다. 분면 근거리 스캔 후보가 3 이상인 분면(현재 배치에서는 sw)만 `SUBDIVIDE root/sw candidates=3 >= 3 cells=[...]` 로 2×2 로 쪼개고, 후보 있는 세부 칸만 `SUBCELL_POSE root/sw/se …` → `MOVING_TO root/sw/se` → `AT_SCAN_POSE root/sw/se` → `SUBCELL_SCAN … unique=1` → pick 순으로 내려간다. 후보가 적은 분면은 `SUBDIVIDE_SKIP`(잎), 빈 세부 칸은 `SUBCELL_EMPTY`(2단 가지치기). 기동 로그 대조에 `SUBDIVIDE_IK_READY` 가 있어야 하며, 없으면 `SUBDIVIDE_DISABLED` 로 분할 없이 종전 흐름으로 돈다. 끄려면 `-p subdivide_min_candidates:=0`
 - **[T2] 딸기 부착 확인** (2026-09-10): 브릿지 로그에 `GRASP_ATTACH 과실 (x, y, z)mm` / `GRASP_RELEASE`, Isaac Script Editor 콘솔(또는 Kit 로그)에
   `[bridge] ATTACH strawberry_ripe_NN  match N mm  offset …` / `[bridge] RELEASE … frozen at … harvested=N` 이 픽마다 한 쌍씩 찍힌다.
   `ATTACH ignored: no ripe fruit within 60 mm` 가 나오면 브릿지 좌표와 씬이 어긋난 것(씬 재로드 누락이 흔한 원인).
@@ -578,7 +587,7 @@ d_tcp = | grasp_offset + (planner 오프셋 − 브릿지 오프셋) |
 43mm 어긋나 전 타겟이 EMPTY 가 된다. 브릿지 기동 시 다음 줄로 확인한다.
 
 ```
-[WARN] GRASP_JUDGE_MODEL: tool_tcp_offset=236mm capture_radius=38mm enabled=True sim_speed_scale=2.0 gripper_close=1.080rad — planner 의 ee_to_tcp_offset_m 과 반드시 같아야 한다 (다르면 전 타겟 GRASP_EMPTY)
+[WARN] GRASP_JUDGE_MODEL: tool_tcp_offset=236mm capture_radius=38mm enabled=True sim_speed_scale=1.0 gripper_close=1.080rad — planner 의 ee_to_tcp_offset_m 과 반드시 같아야 한다 (다르면 전 타겟 GRASP_EMPTY)
 ```
 
 ---
@@ -713,7 +722,7 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | **분리 후 바로 배치로 넘어간다 (역순 후퇴 없음)** | 설계 5단계 누락. `planner.log` 에 `DETACH_PULL_DOWN` 다음 `RETREAT` 줄이 있어야 한다. 없으면 `-p enable_straight_reverse_retreat:=true` 누락 — 실기 코드는 `measured_tcp` 프로파일에만 걸려 있어 legacy 는 기본적으로 생략된다 |
 | **분리까지 성공했는데 배치 안 하고 놔버린다** | `TAUGHT_TRAY_SLOT0_PLACE_BLOCKED: above plan failed` 확인. J2 가드 100°가 nw 딸기(114°, 113°)를 막았다. 2026-09-10 에 **130°** 로 |
 | **보드 위 주황 분면 표시가 안 뜬다 / 안 바뀐다** | HUD 스크립트가 켜고 끈다 — Isaac 콘솔에 `[hud] 보드 하이라이트 prim 을 못 찾았다` 가 있으면 씬을 다시 로드하지 않은 것(`whiteboard.usd` 의 `highlight` 가 2026-09-10 추가). 영역 값 자체가 안 바뀌면 HUD 패널의 "영역" 도 같이 멈춰 있을 것 — scan_executor 계측 문제 |
-| **동작이 너무 느리다 / 빠르다** | 브릿지 `-p sim_speed_scale:=2.0`(기본). 3.0 이면 더 빠르고 1.0 이면 2026-09-09 이전 속도다. 스캔 이동은 scan_executor `-p scan_movej_vel_deg_s:=120`(기본, 실기는 60) |
+| **동작이 너무 느리다 / 빠르다** | 브릿지 `-p sim_speed_scale:=1.0`(기본, 09-14 부터 — 실기 요청 시간 그대로. 2.0 은 검증용으로 쓰지 않는다). 3.0 이면 더 빠르고 1.0 이면 2026-09-09 이전 속도다. 스캔 이동은 scan_executor `-p scan_movej_vel_deg_s:=120`(기본, 실기는 60) |
 | **HUD `타겟` 총수가 한 번에 6 이 되지 않는다** | **정상이다.** 2026-09-09 분면 필터 이후 이 값은 **지금 스캔 중인 분면**의 개수다. `Isaac→fake` 쪽이 전체(6)다 |
 | **첫 분면에서 6개를 다 시도하고 나머지 분면은 후보 없음** | 분면 필터가 꺼져 있다. `fake_vision_node` 의 `quadrant_filter_enabled` 확인. 기동 로그의 `quadrant_filter=True` 도 같이 본다 |
 | **파지/배치 실패 후 scan pose 로 안 돌아오고 바로 다음 딸기로 이동** | `_abort_pick_with_complete` 가 로봇을 두고 `pick_complete` 만 발행했다. scan_executor 는 그 즉시 다음 타겟을 쏜다. 쿼드트리 스캔은 **모든 pick 이 세부영역 scan pose 에서 시작**하는 것을 전제로 보드와의 y 여유를 확보한다. 2026-09-09 수정 — 중단 경로도 복귀 후 발행 |

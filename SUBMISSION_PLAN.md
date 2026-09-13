@@ -5,6 +5,7 @@
 > **관계**: 수치·근거의 1차 출처는 `PROGRESS_REPORT.md`(09-09), 표현 규칙은 `PLANNER_POLICY_v2.md`.
 > 이 문서는 그 위에 **범위와 순서**만 얹는다. 충돌하면 이 문서의 범위 결정이 우선한다.
 > **갱신 규칙**: 각 작업의 `[ ]`를 `[x]`로 바꾸고 결과 한 줄을 그 자리에 추가한다. 새 작업을 넣기 전에 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 표(착수 금지)를 먼저 읽는다.
+> **2026-09-11 계획 변경**: 작업마다 걸어 두었던 타임박스·폐기 조건·시간 폴백을 전부 없앴다. 각 작업은 완료 기준을 채운 뒤에 넘어간다.
 
 ---
 
@@ -40,6 +41,8 @@
 - **달라진다** → 정합 대상. 실기 쪽 값을 1차 출처로 삼아 시뮬을 맞춘다. (예: 툴 길이, 보드 y, 파지 판정 기준, 분면 스캔 자세)
 - **달라지지 않는다** → 시각 표현이거나 범위 밖. 물리로 만들지 말고 정적 메쉬나 로그로 처리한다. (예: 덩굴, 자석 이탈력, 계란판 형상)
 
+**규칙 0 (2026-09-14, 최우선)**: 실기 노드를 고치는 이유는 **"핵심 시퀀스의 설계와 맞지 않아서"뿐**이다. 가드·임계값 완화로 시뮬을 통과시키지 않는다 — 시뮬은 어느 곳에서도 원본보다 관대하면 안 된다. 실기 코드의 실패는 한계로 기록한다 (`PLANNER_POLICY_v2.md` §0-1, `portfolio/H_scope_decisions.md` §9). 09-08·09-10 에 올린 스윙 가드 세 값은 09-14 원복.
+
 부수 규칙 두 가지:
 
 1. **실기 기본 동작은 파라미터 기본값으로 보존한다.** 시뮬 전용 값은 파라미터로 분리한다(`ee_to_tcp_offset_m`, `enable_open_stem_descent` 방식).
@@ -62,9 +65,9 @@
 
 ---
 
-## 4. 작업 순서와 타임박스
+## 4. 작업 순서
 
-### [x] T1 — 09-09 수정본 END-TO-END 재완주  ⏱ 1~3일  🔒 블로커 — **2026-09-10 종료**
+### [x] T1 — 09-09 수정본 END-TO-END 재완주  🔒 블로커 — **2026-09-10 종료**
 
 영상에 찍힐 대상이자 "관통 없이"의 근거. 이게 없으면 나머지가 전부 무의미하다.
 
@@ -131,7 +134,7 @@ Kit 로그 `get_applied_actions` 예외 0건, `scene_positions_received` 413건/
 **남은 것**: 화면상 관통 여부는 로그로 판정할 수 없다. 뷰포트/영상 육안 확인 후 체크박스를 닫는다.
 
 **09-10 범위 변경 (사용자 결정) — 쿼드트리 가지치기 복원, T1 재완주 1회 추가.** 실기 최종본의 4분면 전수 순회는 발표용 축소본이라 원안 1·2단계(overview 1차 스캔 → 익은 과실 있는 분면만 순회)를 `overview_prescan` 파라미터(기본 false, 시뮬 true)로 복원했다. 함께 넣은 것: 비인접 분면 MoveJoint 폴백의 overview 경유, 서브셀 2차 분할 중심선 교정, `scan_dwell_sec:=3.0`. 항목별 근거는 `PLANNER_CHANGES.md` 09-10, 면접 설명은 `portfolio/G_quadtree_interview.md`.
-**완료 기준 추가**: 로그에 `OVERVIEW_SCAN` · `TRAVERSAL_PRUNED skip=['root/se']` · 3분면만 `AT_SCAN_POSE` · `PICK COMPLETE` 6건 · `clamped` 0건. 적응 분할(G §6-2)은 T2 뒤 타임박스 1일로 별도.
+**완료 기준 추가**: 로그에 `OVERVIEW_SCAN` · `TRAVERSAL_PRUNED skip=['root/se']` · 3분면만 `AT_SCAN_POSE` · `PICK COMPLETE` 6건 · `clamped` 0건. 적응 분할(G §6-2)은 T2 뒤 별도 → **09-11 T4b 로 편성**(T 번호가 없어 T2~T4 를 지나며 빠져 있었다).
 
 **09-10 10:13 런 결과 — 9/9 충족, 육안 항목 1개 남음.** (`log/m3/README.md` §런 2 에 상세)
 run_id `20260910T101326-43213d77`. `OVERVIEW_SCAN nw:2 ne:1 se:0 sw:3` → `TRAVERSAL_PRUNED skip=['root/se']`,
@@ -151,7 +154,7 @@ Kit 로그에 09-09 와 같은 부류의 브릿지 초기화 실패가 났으나
 
 ---
 
-### [x] T2 — M2.7 Stage3: 딸기 키네마틱 부착  ⏱ 1일 한도 (초과 시 폐기) — **2026-09-10 완료 (반나절)**
+### [x] T2 — M2.7 Stage3: 딸기 키네마틱 부착 — **2026-09-10 완료 (반나절)**
 
 **설계**:
 - 대상은 딸기 **루트 prim**(줄기+과육 한 덩어리). 줄기만 따로 다루지 않는다.
@@ -161,8 +164,6 @@ Kit 로그에 09-09 와 같은 부류의 브릿지 초기화 실패가 났으나
 - **런타임 FixedJoint 생성 금지** — 근거 `portfolio/H_scope_decisions.md` §2.
 
 **구현 위치**: 부착·해제는 Isaac 스크립트 쪽(`strawberry_harvest/scripts/`, 이미 딸기 좌표를 발행하는 브릿지 존재). CONTACT/release 상태는 `sim_executor_bridge` 가 판정하므로 ROS 토픽으로 내보내 Isaac 스크립트가 구독한다. 새 판정 로직을 Isaac 쪽에 다시 만들지 않는다.
-
-**폐기 조건**: 하루를 넘기면 중단하고 HUD 판정 표시로 대체한다. 영상 설득력은 떨어지지만 제출은 가능하다.
 
 **09-10 구현 완료, 실행 검증 대기.** 브릿지 `/sim/grasp_event`(ATTACH 좌표 / RELEASE) + Isaac 스크립트 부착·추종·해제
 (`PLANNER_CHANGES.md` 09-10 항목 2건). 설계대로 그리퍼 밑동 기준 상대 트랜스폼 캡처, TCP 스냅 없음, 세션 레이어만 수정,
@@ -175,7 +176,7 @@ Isaac 5.1 `SingleRigidPrim` 물리 뷰. 부수 결함 1건(익은 과실이 시�
 
 ---
 
-### [x] T3 — 정적 덩굴 메쉬  ⏱ 2~3시간  (T2 성공 시에만) — **2026-09-10 완료 (반나절 미만)**
+### [x] T3 — 정적 덩굴 메쉬 — **2026-09-10 완료 (반나절 미만)**
 
 보드에서 각 딸기 줄기 끝까지 얇은 곡선 12개. **물리·콜라이더 없음**.
 딸기가 공중에 떠 있는 화면을 고치는 시각 작업이다. T2가 되면 딸기가 덩굴 끝에서 떨어져 나가 "분리"로 읽힌다.
@@ -204,7 +205,7 @@ Isaac 5.1 `SingleRigidPrim` 물리 뷰. 부수 결함 1건(익은 과실이 시�
 
 ---
 
-### [ ] T4 — 배치 슬롯 진행 + 계란판 메쉬  ⏱ 반나절, 타임박스  🔺 **T2 이후 우선순위 상향**
+### [ ] T4 — 배치 슬롯 진행 + 계란판 메쉬  🔺 **T2 이후 우선순위 상향**
 
 **왜 올라갔나 (09-10)**: T2 로 딸기가 실제로 이송되자 **6개가 전부 slot 0 한 자리에 겹쳐 놓이는 것이 화면에 드러났다**
 (런 4 해제 위치 (772~777, 87~105, 36~47)mm, 서로 수 mm 차이 = 접근 오차만큼). T2 전에는 딸기가 안 움직여 보이지 않던
@@ -347,10 +348,8 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
        밑끝−바닥 +0.1~+2.2, 중점 y +0.6mm). **주의**: ripe_05 의 x 변위가 슬롯이 바뀌며 +3.9 → +7.4mm — 런 8 기반 애셋에서는 slot 3 쪽 벽을
        적도에서 ~1.7mm 넘었다(점유 컵 사이라 빈 컵에서 안 보임). 재생성 애셋은 **씬 재로드 시** 반영. 화면 항목(옆 빈 컵·판 접촉·바닥 접촉)은
        사용자 확인. 상세 `log/m3/README.md` §런 9.
-4. **최후 폴백** (1·2 가 타임박스 안에 안 되면): 해제된 딸기를 그리퍼가 80mm 이상 물러난 뒤 동적 강체 + 콜라이더 on 으로 바꿔 물리로
-   쌓이게 한다. 겹침 대신 자연스러운 더미가 된다. 플래너 출력은 그대로(slot 0)이므로 "시뮬 쪽 시각 처리" 로 문서에 적고, 실기 결함
-   (한 칸 반복)은 잔여 이슈에 그대로 남긴다. **1번이 되면 이건 하지 않는다.**
-   → **[x] 해당 없음 (09-10).** 1번이 됐다.
+---
+
 5. **[ ] 익은 딸기 6 → 8 (안 익은 6 → 4) — 2026-09-11 사용자 결정, 런 10 에서 검증.**
    - **왜**: 4차 계란판으로 인접 배치가 되면서 병목이 트레이 도달성(열 0·1 × 5행 = 최대 10칸)으로 옮겨갔고, T4b 적응 분할은 분면당
      후보 3개가 있어야 화면에 보이는데 sw 만 해당했다. 6개는 기능을 구색만 갖춘 수준이라는 사용자 판단.
@@ -363,7 +362,79 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
      (가지치기 시연은 잃는다). 안 익은 것을 늘리거나 13번째 과실을 놓는 것은 하지 않는다(첫 판단 유지: 검증 없는 장식 / 좌표 중복·문서 전면 갱신).
    - 표현: "딸기 12개(익은 8/안 익은 4)". 런 1~9 의 수치는 6/6 기준이라 문서에 시점을 함께 적는다.
 
-### [ ] T5 — 녹화  ⏱ 반나절
+### [ ] T4b — 적응 분할 (G §6-2)  — **2026-09-11 사용자 결정: T5 전에 한다**
+
+**왜 지금**: 09-10 범위 변경 때 T1 완료 기준 끝에 "T2 뒤 별도"라고만 적고 T 번호를 주지 않아 T2~T4 를 지나며
+빠졌다. 면접 자료 `portfolio/G_quadtree_interview.md` §6-3 2번이 완료형("후보 밀도 규칙으로 런타임에 올렸고")으로 쓰여 있어
+구현 없이는 사실이 아니다. **딸기는 늘리지 않는다** — 현재 배치(nw 2 / ne 1 / se 0 / sw 3)가 한 런에서 가지치기(se)·잎(nw·ne)·
+분할(sw)·2단 가지치기(sw/sw 빈 칸)를 전부 보여준다. 근거는 런 9 로그 `SUBCELL_SCAN_ORDER root/sw root/sw/sw:0 se:1 nw:1 ne:1`.
+쿼드트리의 전제는 분포의 **불균일**이지 개수가 아니다(H §2 "대량 배치" 항목과 같은 논리).
+
+**§2 게이트**: 스캔 순서·자세(플래너 출력)가 달라지므로 정합 대상. 실기에는 런타임 판정이 없었으므로(G §5, 오프라인 YAML)
+실기 1차 출처는 "판정 없음" = **파라미터 기본 0(끔)**. 세부 자세는 새 좌표 하드코딩이 아니라 부모 자세에서 **계산**한다(부수 규칙 2).
+
+**규칙 (G §6-2 B 안)**:
+1. 분면 근거리 스캔 → `_deduplicate_poses` 후보 수가 `subdivide_min_candidates`(기본 0 = 끔, `run_nodes.sh` 는 3) 이상이면 분할.
+   미만이면 지금 동작 그대로(잎). 임계 3은 이 배치에서 세 경우가 다 나오도록 고른 시뮬 파라미터라고 문서에 적는다.
+2. `_group_poses_by_subcell` 결과 중 **후보가 있는 칸만** 방문(빈 칸 = 2단 가지치기, `SUBCELL_EMPTY` 그대로). 순서는 현재 그룹 순서.
+3. 세부 자세 = 부모 관절의 FK(`curobo_kinematics_adapter.CuroboKinematicsAdapter.ee_pose`) → **x·z 만 세부 칸 중심으로 평행이동**
+   (y·자세 동일 — 실기 NW 세부 자세 4개가 y=433 한 평면인 성질과 같다, G §5) → 부모 관절을 시드로 IK(`mg.ik_solver`,
+   `check_tray_slot_reachability.py` 와 같은 호출) → 부모 대비 관절 변화 최대 **60° 초과 또는 IK 실패면 `SUBDIVIDE_REJECTED`**
+   로 그 칸은 부모 자세에서 pick(현재 동작으로 퇴화).
+4. 세부 자세 이동은 **실기와 같은 MoveJoint**(`_move_to_scan_cell_and_wait` 경로, `self._targets[cell]` 에 유도 자세를 넣어 재사용).
+   cuRobo `_plan`+스플라인 경로는 쓰지 않는다 — 한 번도 실행된 적 없는 경로(G §6-1 3)를 녹화 직전에 살리지 않는다.
+   대신 이동 쌍(부모→세부, 세부→세부)의 보드 여유를 FK 로 **사전 계산**해 50mm 기준으로 판정표에 넣는다(가지치기 때와 같은 방법).
+5. 세부 칸에서 재스캔(dwell 동일) → pick → 다음 칸 → 마지막 칸의 pick 이 끝나면 다음 분면. **깊이 상한 2** — 세부 칸에서는 다시 쪼개지 않는다.
+6. `quadrant_filter.quadrant_from_cell_id` 가 3단 이름(`root/sw/nw`)을 부모로 뭉개는 동작을 파라미터로 풀어 세부 칸 좌표만 발행
+   (가까이 가면 시야가 좁아지는 것과 같다). 이웃 장애물 등록이 줄어드는 점은 한계로 적는다.
+7. HUD AREA 라벨에 세부 칸(`SW/NW` 식).
+
+**손대는 곳**: `scan_executor_node._process_cell_detections`(subgroups 루프가 분기점) · `_move_to_scan_cell_and_wait` ·
+`_init_motion_gen`(IK 솔버가 필요하므로 `subdivide_min_candidates>0` 이면 생성 — 지금은 `enable_runtime_curobo_preview` 에서만 만든다;
+기동 시간 증가는 기록) · `strawberry_sim_core/quadrant_filter.py` · `scripts/run_nodes.sh`(파라미터 1줄 + 기동 로그 대조).
+
+**로그 문자열**: `SUBDIVIDE root/sw candidates=3 >= 3 cells=[se,nw,ne]` · `SUBDIVIDE_SKIP root/nw candidates=2 < 3` ·
+`SUBCELL_POSE root/sw/se dJ_max=..deg` · `SUBDIVIDE_REJECTED root/sw/.. reason=..` · `AT_SCAN_POSE root/sw/se`.
+
+**완료 기준 — 런 10 판정표(`log/m3/README.md`)**: ① `SUBDIVIDE root/sw` 1건 + `SUBDIVIDE_SKIP` nw·ne ② `AT_SCAN_POSE` 가 sw 세부 3칸에
+있고 `root/sw/sw` 에는 없음 ③ 세부 이동 전부 관절 변화 ≤60°, 보드 여유 ≥50mm(FK 사전 계산) ④ `PICK COMPLETE` 6, `clamped`·
+`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED`·`EXEC_*` 0 ⑤ 배치 착지가 런 9 수준(T4-3 회귀 없음) ⑥ 전체 시간 증가분 기록(근거가 아니라
+부산물, G §7) ⑦ 화면 관통·HUD 는 T5 에서. **런 10 은 씬 재로드(4차 계란판 애셋 반영)와 겸한다** — 런 9 의 화면 확인 항목도 그때 닫는다.
+
+**끝나면**: G 머리말 "§6-2 미구현" → 런 10 id 로, G §6-3 2번에 런 10 근거, `portfolio/README.md` G 행, `PLANNER_CHANGES.md` 항목, 이 항목 `[x]`.
+
+**[x] 09-11 구현 완료 · 오프라인 검증 완료 · 노드 모의 시험 통과 — 런 10 대기(Isaac Sim 기동·씬 재로드는 사용자).**
+- 코드: `execution/subcell_pose.py`(신설, 계산부 — rclpy 없이 import, 노드와 검사 스크립트의 단일 출처), `scan_executor_node.py`(파라미터
+  `subdivide_min_candidates`·`subdivide_max_joint_delta_deg`, `_init_subdivide_solver`, `_should_subdivide`, `_derive_subcell_target`,
+  `_subdivide_and_pick`, `_dwell_collect_detections`, `_subcell_of_pose`), `scripts/check_subcell_scan_poses.py`(신설), `run_nodes.sh`
+  (`subdivide_min_candidates:=3` + 대조 1줄), 문서(`docs/parameters.md`, `docs/run_guide.md`, `PLANNER_CHANGES.md` 4건). `colcon build` 완료.
+- **규칙 대비 달라진 점 3가지**: ① 규칙 3의 IK 는 MotionGen 이 아니라 **IKSolver 만** 만든다(계획 불필요, 기동 0.4초, 세 번째 무거운 인스턴스 회피).
+  ② **규칙 6(비전 필터 세부 칸 좁히기)은 하지 않았다** — 세부 자세 재스캔은 분면 시야 좌표 중 그 칸의 것만 **실행기**가 거른다
+  (`_subcell_of_pose`, 그룹화와 같은 함수). fake_vision 무수정, 이웃 장애물 등록은 분면 단위 그대로라 오히려 보수적이고, 잎 분면의 종전
+  동작이 바뀌지 않는다. ③ 규칙 7(HUD 세부 칸 라벨)은 **HUD 쿼드트리 패널로 대체해 09-11 구현** (사용자 결정 — 트리 분석이 실행 화면에 실시간으로 찍혀야 한다).
+  영역·타겟·배치 줄 자리에 트리: 1차 스캔 `방향(제외)`, 잎은 방향, 분할은 `방향(분할)` + 세부 칸 줄(nw·ne·se·sw 순, 최근 분할 분면만, 순회 끝나면 접힘 — 09-12), 로봇 위치는 주황. 보드 하이라이트도 세부 칸 단위(`whiteboard.usd` 16장 추가, 09-12, 씬 재로드 필요).
+  실행기 무수정 — `harvest_probe` 가 메서드 경계에서 받는다(`hud/tree_model.py` 신설, 문서 `hud/README.md` §트리 패널).
+  오프라인: 실기 실행기 코드를 cuRobo 만 막고 돌려 프로브 유무로 상태 문자열·이동·픽 순서 동일, 8/4 배치에서 트리 전이 기대대로
+  (NW 분할·se 부모 퇴화, NE 잎, SE 제외, SW 분할). HUD 는 가짜 Kit 모듈로 위젯 생성·갱신만 확인 — **Kit 화면 확인은 런 10**(사용자).
+- 오프라인 검사(한도 60°): **sw 세부 4칸 전부 수락** — 관절 변화 최대 23.3 / 25.4 / 33.6 / 26.2°(sw/se/nw/ne), 유도 자세 ee 오차 ≤0.1mm,
+  MoveJoint 관절공간 직선 보드 여유 10쌍 **최소 183.8mm**(기준 50). se 도 4/4(최소 209.7mm). nw·ne 는 아래 칸 1개씩만 수락 — 위쪽 칸은 같은
+  y·방향으로 IK 해가 없고 nw/se 66°·ne/sw 70° 초과. 이 배치에서 nw·ne 는 잎이라 무관하고, 켜져도 `SUBDIVIDE_REJECTED` 로 부모 자세 pick 퇴화.
+  **정직하게 적을 것**: 유도 규칙은 아래 분면(se·sw)에서 잘 되고 위 분면(nw·ne)의 위쪽 칸에서는 안 된다 — 같은 높이 평행이동이 팔 길이 밖이다.
+- 노드 모의 시험(실제 IK, 이동·pick 모의) 5경로 통과: 분할(se→nw→ne 이동 3·pick 3, sw 빈 칸 2단 가지치기) / 전부 거부(이동 0, 부모 pick 3) /
+  혼합(se 만 수락 → nw 거부 시 부모 복귀 1회 → ne 는 부모에서) / 끔(종전 경로 그대로) / 그룹화 = 런 9 와 동일.
+- **예상 런 10 로그**: `SUBDIVIDE_IK_READY` → nw·ne `SUBDIVIDE_SKIP` → `SUBDIVIDE root/sw candidates=3 >= 3 cells=['se', 'nw', 'ne']` →
+  `SUBCELL_EMPTY root/sw/sw` → `SUBCELL_POSE root/sw/se` → `MOVING_TO root/sw/se` → `AT_SCAN_POSE root/sw/se` → `SUBCELL_SCAN … unique=1` →
+  pick → nw → ne → 부모 재스캔(종전 흐름, 과실 없음) → overview. 세부 이동 3회 + dwell 3회로 약 +10~15초.
+- **런 10 절차**: Isaac Sim 기동 → 씬 재로드(런 9 뒤 재생성한 4차 계란판 애셋 반영) → 브릿지 Run → Play → `bash scripts/run_nodes.sh`
+  (대조에 `SUBDIVIDE_IK_READY min_candidates=3`) → 트리거 → 로그 보존. 판정표 틀은 `log/m3/README.md` §런 10. 통과하면 G 머리말·§5 표·
+  `portfolio/README.md` 를 "런 10 검증" 으로 고치고 이 항목을 닫는다. 실패하면 원인을 고쳐 런 10 을 다시 돌린다 — 끄고(`subdivide_min_candidates:=0`) 넘어가지 않는다.
+
+**시작 순서 (다음 세션)**: ① `ps -ef | grep` 남은 노드 확인 ② 이 항목 + G §5·§6-2 읽기 ③ 코드 확인 —
+`_process_cell_detections`(~1470행)·`_move_to_scan_cell_and_wait`(~1373행)·`_init_motion_gen`(~401행)·`check_tray_slot_reachability.py` 의
+`mg.ik_solver` 호출 ④ 세부 칸 중심 좌표 = `_group_poses_by_subcell` 이 쓰는 부모 분면 경계 중심선에서 계산(새 상수 금지) ⑤ 구현 → 오프라인 FK
+여유 검사 → 런 10.
+
+### [ ] T5 — 녹화
 
 롱샷 런 1회 + 클로즈업 런 1회. 절차는 `portfolio/README.md`.
 
@@ -372,7 +443,7 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
 
 ---
 
-### [ ] T6 — 수치 갱신 · 문서 정합 · 원격 푸시  ⏱ 반나절~하루
+### [ ] T6 — 수치 갱신 · 문서 정합 · 원격 푸시
 
 - `portfolio/C_before_after.svg`, `portfolio/E_metrics.md`: 672/0.0mm 계열 수치 → `PROGRESS_REPORT.md` §5 값으로. **"접근 오차 131.7 → 0.0mm" 표현 삭제**, "131.7mm 불일치 규명 및 정합(clamp WARN 소멸)"로 교체.
 - 파일·줄 수, 결함 건수, END-TO-END 완주 횟수(재완주 반영) 갱신.
@@ -384,7 +455,7 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
 
 ---
 
-### [ ] T7 — (선택, 시간 남을 때만) 레이아웃 변경 1회 완주  ⏱ 반나절
+### [ ] T7 — (선택) 레이아웃 변경 1회 완주
 
 딸기 12개의 **위치만 바꾼 두 번째 레이아웃**으로 완주 1회. 레이아웃 레이어만 교체하면 되므로 싸다.
 "하드코딩이 아니다"를 보이는 방법은 **많이가 아니라 다르게**다. 실기도 매번 배치가 달랐다는 사실과 일치한다.

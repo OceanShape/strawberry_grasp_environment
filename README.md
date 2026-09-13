@@ -86,12 +86,12 @@ strawberry_grasp_environment/
 
 | 문서 | 기준 | 내용 |
 |---|---|---|
-| **[`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md)** | **제출 범위·작업 순서 (최우선)** | 산출물 A(영상)까지로 범위 확정, sim2real 게이트, T1~T7 순서·타임박스. 착수 금지 목록은 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 로 옮겼다. 다른 문서와 충돌하면 이 문서가 이긴다 |
+| **[`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md)** | **제출 범위·작업 순서 (최우선)** | 산출물 A(영상)까지로 범위 확정, sim2real 게이트, T1~T7 순서. 착수 금지 목록은 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 로 옮겼다. 다른 문서와 충돌하면 이 문서가 이긴다 |
 | **[`docs/parameters.md`](docs/parameters.md)** + `check_params.py` | **모든 수치** | 보드 위치·툴 오프셋·그리퍼 개도·속도·관절 가드. **숫자가 헷갈리면 여기만 본다.** 보드를 옮길 때 같이 고칠 6개 파일 목록 포함. `python3 check_params.py` 로 정합 자동 검사 |
 | **[`docs/run_guide.md`](docs/run_guide.md)** | **실행 절차** | 터미널 3개 실행 절차, 노드별 파라미터 참고사항, 기동 시 대조할 로그, 증상별 대처표 |
 | **[`PROGRESS_REPORT.md`](PROGRESS_REPORT.md)** | **수치·근거 1차 출처** | 09-09 재계측 지표, 해결한 문제 목록, 표현 가이드 |
 | **[`PORTFOLIO_SPRINT.md`](PORTFOLIO_SPRINT.md)** | 마일스톤 이력 | M1~M4 판정 기준·결과, 씬 구성 메모, 진행 기록 |
-| **[`PLANNER_POLICY_v2.md`](PLANNER_POLICY_v2.md)** | **플래너 수정 원칙·표현 규칙** | 수정 전면 허용, 금지 표현 + 09-10 델타(§5.4) |
+| **[`PLANNER_POLICY_v2.md`](PLANNER_POLICY_v2.md)** | **플래너 수정 원칙·표현 규칙** | **§0-1 (09-14 최우선): 실기 노드 수정은 설계 불일치일 때만, 가드 완화 금지** · 금지 표현 + 09-10 델타(§5.4) |
 
 ### 설계·이력
 
