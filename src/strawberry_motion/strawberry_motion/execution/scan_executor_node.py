@@ -54,6 +54,12 @@ from curobo.wrap.reacher.motion_gen import MotionGen, MotionGenConfig, MotionGen
 
 from strawberry_motion.execution.cell_traversal import resolve_traversal_order
 from strawberry_motion.execution.scan_transit import plan_joint_space
+from strawberry_motion.execution.subcell_pose import (
+    SubdivideSolver,
+    WRAP_EQUIVALENT_JOINT_IDX as _SUBCELL_WRAP_IDX,
+    derive_subcell_joints_deg,
+    subcell_center_offset_m,
+)
 from strawberry_motion.execution.scan_safety import (
     joints_within_tolerance_deg,
     motion_start_allowed,
@@ -127,6 +133,9 @@ _DEFAULT_SCAN_MOVEJ_ACC_DEG_S2 = 180.0
 _DEFAULT_OVERVIEW_RETURN_VEL_DEG_S = 120.0
 _DEFAULT_OVERVIEW_RETURN_ACC_DEG_S2 = 180.0
 _DEFAULT_MOVEJ_SERVICE_TIMEOUT_SEC = 30.0
+# [T4b 2026-09-11] 적응 분할용 IK 시드 수. 부모 관절이 시드 하나로 들어가고 나머지는 무작위 —
+# 돌아온 해 전부 중 부모와 가장 가까운 것을 고른다 (subcell_pose.derive_subcell_joints_deg).
+_SUBDIVIDE_IK_SEEDS = 32
 # True: _init_motion_gen loads robot spheres + whiteboard cuboid + self-collision
 # (validated in RUN-20260527-012). Motion is still gated by use_for_automated_motion
 # in the candidates YAML, which the operator sets after physical E-stop verification.
@@ -220,6 +229,16 @@ class ScanExecutorNode(Node):
         # 판정은 pick_pose 가 아니라 scene_positions(세그 중심) 로 한다: 실기 줄기
         # 키포인트는 overview 거리에서 안정화되지 않아 pick_pose 로 자르면 전부 잘린다.
         self.declare_parameter("overview_prescan", False)
+        # [T4b 2026-09-11] 적응 분할 — 분면 근거리 스캔의 중복 제거 후보가 이 수 이상이면 그 분면을
+        # 2×2 로 쪼개고 **후보가 있는 세부 칸만** 부모 자세에서 유도한 세부 자세로 내려가 다시 스캔·pick.
+        # 0 = 끔(기본) = 실기와 동일. 실기는 쪼갤지 여부를 사람이 오프라인에서 정해 YAML 에 세부 자세를
+        # 넣었다(NW 4칸) — 런타임 판정이 없다. 세부 자세는 부모 관절 FK → x·z 만 세부 칸 중심으로
+        # 평행이동(y·방향 동일) → 부모 시드 IK 로 계산한다(새 좌표 하드코딩 없음). 관절 변화가
+        # subdivide_max_joint_delta_deg 를 넘거나 IK 가 실패하면 SUBDIVIDE_REJECTED 로 그 칸은
+        # 부모 자세 pick(종전 동작)으로 퇴화한다. 깊이 상한 2 — 세부 칸은 다시 쪼개지 않는다.
+        # 이동은 실기와 같은 MoveJoint (오프라인 FK 검사: check_subcell_scan_poses.py).
+        self.declare_parameter("subdivide_min_candidates", 0)
+        self.declare_parameter("subdivide_max_joint_delta_deg", 60.0)
         self.declare_parameter("enable_runtime_curobo_preview", False)
         self.declare_parameter("runtime_curobo_preview_retries", 2)
         self._execute_motion = bool(self.get_parameter("execute_motion").value)
@@ -271,6 +290,10 @@ class ScanExecutorNode(Node):
         )
         self._overview_prescan = _as_bool(
             self.get_parameter("overview_prescan").value)
+        self._subdivide_min_candidates = max(
+            0, int(self.get_parameter("subdivide_min_candidates").value))
+        self._subdivide_max_joint_delta_deg = max(
+            1.0, float(self.get_parameter("subdivide_max_joint_delta_deg").value))
         self._runtime_curobo_preview_enabled = bool(
             self.get_parameter("enable_runtime_curobo_preview").value
         )
@@ -284,6 +307,7 @@ class ScanExecutorNode(Node):
         self._current_joints: Optional[List[float]] = None
         self._started = False
         self._mg: Optional[MotionGen] = None
+        self._subdivide_solver: Optional[SubdivideSolver] = None   # [T4b] 적응 분할 IK
         self._detection_count: int = 0
         self._detection_poses: List[PoseStamped] = []
         self._attempted_pick_positions: List[np.ndarray] = []
@@ -354,6 +378,9 @@ class ScanExecutorNode(Node):
                 "Runtime cuRobo preview enabled: plans are logged only; "
                 "execution still uses verified YAML MoveJoint poses."
             )
+
+        if self._subdivide_min_candidates > 0:
+            self._init_subdivide_solver()
 
         cb = rclpy.callback_groups.ReentrantCallbackGroup()
         self.create_subscription(JointState, "/dsr01/joint_states", self._joint_cb, 10)
@@ -440,6 +467,31 @@ class ScanExecutorNode(Node):
         self._mg.warmup(warmup_js_trajopt=False)
         self._mg.detach_object_from_robot()
         self.get_logger().info("cuRobo MotionGen ready")
+
+    def _init_subdivide_solver(self) -> None:
+        """[T4b] 적응 분할용 cuRobo IK 솔버 (보드 큐보이드 + 자기충돌). subdivide_min_candidates>0 일 때만.
+
+        MotionGen(_init_motion_gen) 이 아니라 IKSolver 만 만든다 — 계획이 아니라 FK/IK 만 필요하고,
+        세부 자세 이동은 실기와 같은 MoveJoint 다. 초기화가 실패하면 분할을 끄고 종전 동작으로 간다.
+        """
+        pkg = get_package_share_directory("strawberry_motion")
+        world_yaml = Path(pkg) / "config" / _COLLISION_WORLD_FNAME
+        t0 = time.time()
+        try:
+            self._subdivide_solver = SubdivideSolver(
+                _ROBOT_YML, _URDF_PATH, _SPHERES_PATH, world_yaml,
+                num_seeds=_SUBDIVIDE_IK_SEEDS)
+        except Exception as exc:
+            self._subdivide_solver = None
+            self._subdivide_min_candidates = 0
+            self.get_logger().error(
+                "SUBDIVIDE_DISABLED IK solver init failed: %r — 적응 분할 없이(부모 자세 pick) 진행"
+                % (exc,))
+            return
+        self.get_logger().info(
+            "SUBDIVIDE_IK_READY min_candidates=%d max_joint_delta=%.0fdeg seeds=%d init=%.1fs"
+            % (self._subdivide_min_candidates, self._subdivide_max_joint_delta_deg,
+               _SUBDIVIDE_IK_SEEDS, time.time() - t0))
 
     # ── callbacks ─────────────────────────────────────────────────────────────
 
@@ -834,6 +886,24 @@ class ScanExecutorNode(Node):
         return BOARD_X_MIN_M, BOARD_X_MAX_M, BOARD_Z_MIN_M, BOARD_Z_MAX_M
 
     @staticmethod
+    def _subcell_of_pose(pose: PoseStamped, parent_cell: Optional[str]) -> str:
+        """탐지 좌표가 부모 분면 안에서 어느 세부 칸(nw/ne/se/sw)인지. 중심선은 부모 분면 경계.
+
+        _group_poses_by_subcell 과 [T4b] 세부 자세 재스캔 필터가 같은 함수를 쓴다 — 단일 출처.
+        """
+        x0, x1, z0, z1 = ScanExecutorNode._quadrant_bounds(parent_cell)
+        x_mid = (x0 + x1) / 2.0
+        z_mid = (z0 + z1) / 2.0
+        x, z = pose.pose.position.x, pose.pose.position.z
+        if z >= z_mid and x <= x_mid:
+            return "nw"
+        if z >= z_mid and x > x_mid:
+            return "ne"
+        if z < z_mid and x > x_mid:
+            return "se"
+        return "sw"
+
+    @staticmethod
     def _group_poses_by_subcell(
         poses: List[PoseStamped], parent_cell: Optional[str] = None,
     ) -> List[Tuple[str, List[PoseStamped]]]:
@@ -858,25 +928,9 @@ class ScanExecutorNode(Node):
         # 다른 서브셀로 분류됐다.
         # [FIX 2026-09-10] 중심선은 **부모 분면**의 중심이다. 보드 전체 중심선을 쓰면
         # 분면 안의 탐지가 전부 한 구석으로 몰려 2차 분할이 의미를 잃는다.
-        x0, x1, z0, z1 = ScanExecutorNode._quadrant_bounds(parent_cell)
-        x_mid = (x0 + x1) / 2.0
-        z_mid = (z0 + z1) / 2.0
-        groups: Dict[str, List[PoseStamped]] = {
-            "nw": [],
-            "ne": [],
-            "se": [],
-            "sw": [],
-        }
+        groups: Dict[str, List[PoseStamped]] = {"nw": [], "ne": [], "se": [], "sw": []}
         for pose in poses:
-            x, z = pose.pose.position.x, pose.pose.position.z
-            if z >= z_mid and x <= x_mid:
-                groups["nw"].append(pose)
-            elif z >= z_mid and x > x_mid:
-                groups["ne"].append(pose)
-            elif z < z_mid and x > x_mid:
-                groups["se"].append(pose)
-            else:
-                groups["sw"].append(pose)
+            groups[ScanExecutorNode._subcell_of_pose(pose, parent_cell)].append(pose)
 
         ordered: List[Tuple[str, List[PoseStamped]]] = []
         for subcell in ("sw", "se", "nw", "ne"):
@@ -1466,7 +1520,8 @@ class ScanExecutorNode(Node):
         return True
 
     def _process_cell_detections(self, cell_id, count, poses_snapshot,
-                                  collect_then_pick_active, collected_poses) -> None:
+                                  collect_then_pick_active, collected_poses) -> bool:
+        """탐지 결과 처리. False = 시퀀스 중단 (세부 자세 이동 실패; 로봇은 이미 overview 로 복귀)."""
         self._last_cell_completed_picks = 0
         if count > 0:
             self._pub_state(cell_id, "TARGET_FOUND")
@@ -1490,6 +1545,9 @@ class ScanExecutorNode(Node):
                     self._pub_status(
                         "SUBCELL_SCAN_ORDER %s %s" % (cell_id, subgroup_msg)
                     )
+                    # [T4b 2026-09-11] 적응 분할 — 후보 밀도가 임계 이상이면 세부 자세로 내려간다.
+                    if self._should_subdivide(cell_id, len(unique)):
+                        return self._subdivide_and_pick(cell_id, subgroups)
                     for subcell, subposes in subgroups:
                         logical_cell = "%s/%s" % (cell_id, subcell)
                         self._pub_state(logical_cell, "SCANNING")
@@ -1510,18 +1568,116 @@ class ScanExecutorNode(Node):
         else:
             self._pub_state(cell_id, "SCANNED_EMPTY")
             self._pub_status("SCANNED_EMPTY %s no detection in dwell window" % cell_id)
+        return True
 
-    def _scan_one_cell(self, cell_id, scan_order, collect_then_pick_active,
-                       collected_poses, cell_detections) -> bool:
-        if cell_id not in self._targets:
-            self.get_logger().warn("%s not in candidates — skipping" % cell_id)
-            return True
+    # ── [T4b 2026-09-11] 적응 분할 ────────────────────────────────────────────
 
-        target = self._targets[cell_id]
-        if not self._move_to_scan_cell_and_wait(cell_id, target):
+    def _should_subdivide(self, cell_id: str, n_candidates: int) -> bool:
+        thr = self._subdivide_min_candidates
+        if thr <= 0 or self._subdivide_solver is None:
             return False
+        if len(cell_id.split("/")) != 2:
+            return False          # 깊이 상한 2: 세부 칸(root/sw/nw)은 다시 쪼개지 않는다
+        if n_candidates < thr:
+            self._pub_status(
+                "SUBDIVIDE_SKIP %s candidates=%d < %d — 잎(leaf), 부모 자세에서 pick"
+                % (cell_id, n_candidates, thr))
+            return False
+        return True
 
-        # Reset per-cell detection counter and pose buffer just before dwell.
+    def _derive_subcell_target(self, parent_cell: str, subcell: str,
+                               parent_joints_deg: List[float]) -> Optional[dict]:
+        """부모 자세에서 세부 칸 자세를 계산한다. None 이면 SUBDIVIDE_REJECTED (사유는 상태로 발행)."""
+        logical_cell = "%s/%s" % (parent_cell, subcell)
+        offset = subcell_center_offset_m(self._quadrant_bounds(parent_cell), subcell)
+        limits_deg = [(float(np.rad2deg(lo)), float(np.rad2deg(hi)))
+                      for lo, hi in _JOINT_LIMITS_RAD]
+        try:
+            joints, info = derive_subcell_joints_deg(
+                parent_joints_deg, offset,
+                self._subdivide_solver.fk, self._subdivide_solver.ik,
+                limits_deg=limits_deg,
+                max_delta_deg=self._subdivide_max_joint_delta_deg,
+                wrap_idx=_SUBCELL_WRAP_IDX)
+        except Exception as exc:   # cuRobo 예외는 분할 포기로 흡수 — 시퀀스는 계속 간다
+            self._pub_status(
+                "SUBDIVIDE_REJECTED %s reason=IK_ERROR %r — 부모 자세에서 pick" % (logical_cell, exc))
+            return None
+        if joints is None:
+            self._pub_status(
+                "SUBDIVIDE_REJECTED %s reason=%s goal_ee_mm=%s ik_solutions=%d — 부모 자세에서 pick"
+                % (logical_cell, info.get("reason"), info.get("goal_ee_mm"),
+                   info.get("ik_solutions", 0)))
+            return None
+        self._pub_status(
+            "SUBCELL_POSE %s dJ_max=%.1fdeg dJ=[%s] ee_mm=%s -> %s joints_deg=[%s]"
+            " (부모 FK + x·z 평행이동, 부모 시드 IK)"
+            % (logical_cell, info["max_delta_deg"],
+               " ".join("%.0f" % d for d in info["delta_deg"]),
+               info["parent_ee_mm"], info["goal_ee_mm"],
+               " ".join("%.1f" % v for v in joints)))
+        target = dict(self._targets[parent_cell])
+        target.update({"cell_id": logical_cell, "endpoint_joints_deg": joints,
+                       "derived_from": parent_cell})
+        return target
+
+    def _subdivide_and_pick(self, cell_id: str, subgroups) -> bool:
+        """분면을 2×2 로 쪼개 **후보 있는 세부 칸만** 세부 자세로 내려가 재스캔·pick 한다.
+
+        세부 자세 이동 실패는 부모 분면 이동 실패와 같은 의미(로봇은 overview 로 복귀)라 False 를
+        돌려 시퀀스를 중단한다. 유도 실패(SUBDIVIDE_REJECTED)는 그 칸만 부모 자세 pick 으로
+        퇴화하고 계속 간다. 세부 자세에서의 재스캔은 시뮬 비전이 분면 단위로 주는 좌표 중
+        이 칸의 것만 쓴다 (장애물 등록은 분면 단위 그대로 — 보수적).
+        """
+        parent_target = self._targets[cell_id]
+        parent_joints = [float(v) for v in parent_target["endpoint_joints_deg"]]
+        n_candidates = sum(len(sp) for _, sp in subgroups)
+        nonempty = [sc for sc, sp in subgroups if sp]
+        self._pub_status(
+            "SUBDIVIDE %s candidates=%d >= %d cells=%s — 후보 있는 세부 칸만 세부 자세로 방문"
+            % (cell_id, n_candidates, self._subdivide_min_candidates, nonempty))
+        at_parent_pose = True
+        for subcell, subposes in subgroups:
+            logical_cell = "%s/%s" % (cell_id, subcell)
+            if not subposes:
+                self._pub_status("SUBCELL_EMPTY %s no pick candidate — 2단 가지치기" % logical_cell)
+                self._pub_state(logical_cell, "SCANNED_EMPTY")
+                continue
+            target = self._derive_subcell_target(cell_id, subcell, parent_joints)
+            if target is None:
+                if not at_parent_pose:
+                    self._pub_status(
+                        "SUBDIVIDE_RETURN_TO_PARENT %s — 부모 자세로 복귀한 뒤 pick" % cell_id)
+                    if not self._move_to_scan_cell_and_wait(cell_id, parent_target):
+                        return False
+                    at_parent_pose = True
+                self._pub_state(logical_cell, "SCANNING")
+                attempted = self._trigger_picks_for_cell(
+                    logical_cell, subposes, pick_timeout_sec=self._pick_timeout_sec)
+            else:
+                if not self._move_to_scan_cell_and_wait(logical_cell, target):
+                    return False
+                at_parent_pose = False
+                count, poses = self._dwell_collect_detections(logical_cell, False)
+                in_cell = [p for p in poses if self._subcell_of_pose(p, cell_id) == subcell]
+                unique_sub = self._deduplicate_poses(in_cell)
+                self._pub_status(
+                    "SUBCELL_SCAN %s raw=%d in_cell=%d unique=%d (분면 시야 중 이 칸의 것만)"
+                    % (logical_cell, count, len(in_cell), len(unique_sub)))
+                if not unique_sub:
+                    self._pub_status(
+                        "SUBCELL_EMPTY %s no pick candidate at sub-pose" % logical_cell)
+                    self._pub_state(logical_cell, "SCANNED_EMPTY")
+                    continue
+                attempted = self._trigger_picks_for_cell(
+                    logical_cell, unique_sub, pick_timeout_sec=self._pick_timeout_sec)
+            self._last_cell_completed_picks += attempted
+            self._pub_state(
+                logical_cell, "PICK_ATTEMPTED" if attempted > 0 else "SCANNED_EMPTY")
+        return True
+
+    def _dwell_collect_detections(self, cell_id: str, collect_then_pick_active: bool):
+        """스캔 자세에서 dwell 동안 pick_pose 탐지를 모은다 → (count, poses)."""
         with self._detection_lock:
             self._detection_count = 0
             self._detection_poses = []
@@ -1541,15 +1697,28 @@ class ScanExecutorNode(Node):
                 ):
                     break
             time.sleep(0.05)
-
         with self._detection_lock:
-            count = self._detection_count
-            poses_snapshot = list(self._detection_poses)
+            return self._detection_count, list(self._detection_poses)
+
+    def _scan_one_cell(self, cell_id, scan_order, collect_then_pick_active,
+                       collected_poses, cell_detections) -> bool:
+        if cell_id not in self._targets:
+            self.get_logger().warn("%s not in candidates — skipping" % cell_id)
+            return True
+
+        target = self._targets[cell_id]
+        if not self._move_to_scan_cell_and_wait(cell_id, target):
+            return False
+
+        # dwell 동안 탐지를 모은다 (세부 칸 재스캔[T4b]도 같은 helper 를 쓴다).
+        count, poses_snapshot = self._dwell_collect_detections(
+            cell_id, collect_then_pick_active)
         cell_detections[cell_id] = count
 
-        self._process_cell_detections(
-            cell_id, count, poses_snapshot, collect_then_pick_active,
-            collected_poses)
+        if not self._process_cell_detections(
+                cell_id, count, poses_snapshot, collect_then_pick_active,
+                collected_poses):
+            return False
 
         # After picks (or empty cell) go directly to next scan pose from current
         # position. HOME/overview recovery is reserved for explicit recovery

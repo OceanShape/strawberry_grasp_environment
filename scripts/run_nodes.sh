@@ -165,11 +165,17 @@ done
 
 # overview_prescan: 원안 1·2단계(overview 1차 스캔 → 익은 과실 있는 분면만 순회). 실기 기본 false.
 # scan_dwell_sec: 실기 12초는 fusion 다중 프레임 안정화용. fake_vision 은 2Hz 결정적 좌표라 3초면 된다.
+# subdivide_min_candidates (T4b, 2026-09-11): 적응 분할. 분면 근거리 스캔 후보가 3개 이상이면 그 분면을 2×2 로 쪼개
+#   후보 있는 세부 칸만 세부 자세(부모 자세 FK → x·z 평행이동 → 부모 시드 IK, 새 좌표 없음)로 내려가 재스캔·pick.
+#   실기 기본 0 = 끔(실기는 쪼갤지 여부를 사람이 오프라인에서 정했다). 임계 3은 현재 배치(nw2/ne1/se0/sw3)에서
+#   가지치기·잎·분할이 한 런에 다 나오도록 고른 시뮬 값. 오프라인 검사: check_subcell_scan_poses.py
+#   (sw 세부 4칸 관절 변화 23~34°, 보드 여유 ≥184mm; nw·ne 위쪽 칸은 IK 밖 → SUBDIVIDE_REJECTED 로 부모 자세 pick).
 stdbuf -oL -eL python3 -m strawberry_motion.execution.scan_executor_node --ros-args \
     -p execute_motion:=true \
     -p target_cell:=all \
     -p overview_prescan:=true \
     -p scan_dwell_sec:=3.0 \
+    -p subdivide_min_candidates:=3 \
     > >(tee "$LOGDIR/scan.log" | stdbuf -oL sed 's/^/[scan]    /') 2>&1 &
 
 # ── 5. planner warmup 대기 후 기동 로그 자동 대조 ──────────────────
@@ -206,6 +212,7 @@ need planner.log "orthogonalize_taught_grid=True"     "배치 격자 직교화 (
 need planner.log "taught_grid_pitch_override_m=0.0680" "배치 격자 정사각 피치 68mm (0 이면 실기 59.8×51.2 — 4차 계란판 컵 격자와 어긋나 과실이 옆 컵으로 간다)"
 need planner.log "taught_grid_shift_y_m=0.0452"       "배치 격자 y +45.2mm 평행이동 (계란판 중점 = 테이블 중심축; 0 이면 과실이 컵에서 y 로 45mm 벗어난다)"
 need scan.log    "scan_executor_node ready"           "scan_executor 기동"
+need scan.log    "SUBDIVIDE_IK_READY min_candidates=3" "적응 분할 IK 솔버 (없으면 SUBDIVIDE_DISABLED — 분할 없이 부모 자세 pick 으로 돈다)"
 [ "$READY" = "1" ] && printf '  OK   %s\n' "cuRobo Planner Ready!" \
                    || { printf '  !!   %s\n' "cuRobo Planner Ready! 가 5분 안에 안 떴다"; FAILS=$((FAILS + 1)); }
 echo "──────────────────────────────────────────────────────────"
