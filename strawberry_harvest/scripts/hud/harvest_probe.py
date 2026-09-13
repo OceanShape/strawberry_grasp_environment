@@ -36,6 +36,7 @@ if _HERE not in sys.path:
 
 import bus_sink          # noqa: E402
 import status_bus        # noqa: E402
+import tree_model        # noqa: E402
 
 ROLES = ("vision", "controller", "planner", "scan")
 
@@ -46,10 +47,11 @@ _warned = set()
 
 # ---- 래핑 도구 -----------------------------------------------------------
 
-def _wrap(role, owner, name, before=None, after=None):
-    """owner.name 을 래퍼로 바꾼다. before/after 는 실패해도 무시된다.
+def _wrap(role, owner, name, before=None, after=None, after_call=None):
+    """owner.name 을 래퍼로 바꾼다. before/after/after_call 은 실패해도 무시된다.
 
     before(args, kwargs) 는 원본 호출 직전에, after(result) 는 직후에 불린다.
+    after_call(args, kwargs, result) 는 인자와 결과가 같이 필요할 때 쓴다 (트리 계측).
     """
     try:
         original = getattr(owner, name)
@@ -68,6 +70,11 @@ def _wrap(role, owner, name, before=None, after=None):
         if after is not None:
             try:
                 after(result)
+            except Exception:
+                pass
+        if after_call is not None:
+            try:
+                after_call(args, kwargs, result)
             except Exception:
                 pass
         return result
@@ -271,6 +278,15 @@ def _attach_planner(node):
 _RE_SEQ_START = re.compile(
     r"PICK_SEQUENCE_START\s+\S+\s+.*?(\d+)\s+candidate targets.*?skipped_attempted=(\d+)")
 _RE_TRIGGER = re.compile(r"PICK_TRIGGER\s+\S+\s+(\d+)/(\d+)")
+# overview 1차 스캔의 분면별 후보 수. 실행기 지역 변수라 이 상태 문자열에만 있다.
+_RE_OVERVIEW = re.compile(r"\bOVERVIEW_SCAN\s+((?:(?:nw|ne|se|sw):\d+\s*)+)")
+
+
+def _arg(args, kwargs, index, name):
+    """위치 인자 또는 키워드 인자 — 호출 모양이 바뀌어도 조용히 틀리지 않게 둘 다 본다."""
+    if len(args) > index:
+        return args[index]
+    return kwargs.get(name)
 
 
 def _attach_scan(node):
@@ -280,9 +296,21 @@ def _attach_scan(node):
     # 안 비워진다 — 첫 실행에서 2차 런의 타겟이 7/8/9… 로 이어졌다. 같이 비운다.
     state = {"total": 0, "skipped": 0, "index": 0, "seen": False}
 
+    # [2026-09-11] 쿼드트리 패널. 실행기의 결정(가지치기·잎·분할·세부 자세 퇴화)을 메서드 경계에서
+    # 받아 tree_model 에 쌓고 status_bus 'tree' 섹션으로 낸다. 실행기 코드는 한 줄도 안 바뀐다.
+    tree = tree_model.TreeModel()
+
+    def _tree(fn, *a):
+        try:
+            fn(*a)
+            status_bus.publish("tree", **tree.snapshot())
+        except Exception:
+            pass
+
     def _run_start(*_):
         status_bus.reset()          # region 도 home 으로 돌아간다 (로봇이 overview 에서 시작)
         state.update(total=0, skipped=0, index=0, seen=False)
+        _tree(tree.reset)
 
     _wrap("scan", node, "_scan_sequence_run", before=_run_start)
     def _at_cell(state):
@@ -298,9 +326,59 @@ def _attach_scan(node):
                 status_bus.publish("sequence", state=state)
         return before
 
-    _wrap("scan", node, "_move_to_scan_cell_and_wait", before=_at_cell("SCAN_MOVE"))
-    _wrap("scan", node, "_process_cell_detections", before=_at_cell("DETECT"))
-    _wrap("scan", node, "_trigger_picks_for_cell", before=_at_cell(None))
+    at_move, at_detect, at_pick = _at_cell("SCAN_MOVE"), _at_cell("DETECT"), _at_cell(None)
+
+    def _before_move(args, kwargs):
+        at_move(args, kwargs)
+        _tree(tree.arrive, _arg(args, kwargs, 0, "cell_id"))
+
+    def _before_detect(args, kwargs):
+        at_detect(args, kwargs)
+        _tree(tree.detected, _arg(args, kwargs, 0, "cell_id"), _arg(args, kwargs, 1, "count"))
+
+    def _after_detect(args, kwargs, result):
+        if result:                  # False = 세부 자세 이동 실패로 시퀀스 중단
+            _tree(tree.cell_done, _arg(args, kwargs, 0, "cell_id"))
+
+    def _before_pick(args, kwargs):
+        at_pick(args, kwargs)
+        _tree(tree.picking, _arg(args, kwargs, 0, "cell_id"))
+
+    _wrap("scan", node, "_move_to_scan_cell_and_wait", before=_before_move)
+    _wrap("scan", node, "_process_cell_detections", before=_before_detect,
+          after_call=_after_detect)
+    _wrap("scan", node, "_trigger_picks_for_cell", before=_before_pick)
+
+    # 트리 전용 지점. 시뮬에서 넣은 메서드라(09-10 가지치기, 09-11 적응 분할) 없으면 경고만 남고
+    # 해당 표시만 빠진다.
+    def _after_prescan(args, kwargs, result):
+        order = _arg(args, kwargs, 0, "scan_order") or []
+        kept = set(result or [])
+        _tree(tree.pruned, [c for c in order if c not in kept])
+
+    def _before_split(args, kwargs):
+        groups = _arg(args, kwargs, 1, "subgroups") or []
+        _tree(tree.split, _arg(args, kwargs, 0, "cell_id"),
+              {str(sub): len(poses) for sub, poses in groups})
+
+    def _after_derive(args, kwargs, result):
+        if result is None:          # SUBDIVIDE_REJECTED — 그 칸은 부모 자세에서 딴다
+            _tree(tree.rejected, _arg(args, kwargs, 0, "parent_cell"),
+                  _arg(args, kwargs, 1, "subcell"))
+
+    def _before_prescan(*_):
+        # overview 1차 스캔도 dwell 로 타겟을 받는 구간이다. 이게 없으면 트리의 ROOT 는 켜졌는데
+        # 단계 표시는 reset 직후의 '대기' 로 남는다.
+        status_bus.publish("sequence", state="DETECT")
+        _tree(tree.prescan_start)
+
+    _wrap("scan", node, "_overview_prescan_filter",
+          before=_before_prescan, after_call=_after_prescan)
+    _wrap("scan", node, "_should_subdivide",
+          after_call=lambda a, k, r: _tree(tree.decided, _arg(a, k, 0, "cell_id"),
+                                           _arg(a, k, 1, "n_candidates"), bool(r)))
+    _wrap("scan", node, "_subdivide_and_pick", before=_before_split)
+    _wrap("scan", node, "_derive_subcell_target", after_call=_after_derive)
 
     # 타겟 개수는 scan_executor 의 상태 문자열에만 있다 (vision mock 은 '지금
     # 분면에 보이는 딸기' 만 알고 수확 리스트를 모른다 — 사양 4.2 표와 다른 점).
@@ -308,6 +386,11 @@ def _attach_scan(node):
     def _on_status(args, _kwargs):
         text = args[0] if args else ""
         if not isinstance(text, str):
+            return
+        m = _RE_OVERVIEW.search(text)
+        if m:
+            _tree(tree.prescan_counts, {q: int(n) for q, n in
+                                        re.findall(r"(nw|ne|se|sw):(\d+)", m.group(1))})
             return
         m = _RE_SEQ_START.search(text)
         if m:
@@ -330,6 +413,7 @@ def _attach_scan(node):
         status_bus.publish("region", name="home")   # 마지막은 overview 복귀
         status_bus.publish("sequence", state="DONE")
         status_bus.publish("result", finished=True)
+        _tree(tree.finish)
         if not state["seen"]:
             _warn("한 런 동안 PICK_SEQUENCE_START/PICK_TRIGGER 를 한 번도 못 봤다 — "
                   "scan_executor 의 상태 문자열이 바뀌었는지 확인할 것")

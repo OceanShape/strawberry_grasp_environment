@@ -6,7 +6,7 @@ status_bus.py — 수확 시퀀스 상태의 단일 진실 원천 (in-process).
   * 상태 '판정'은 전부 여기서. HUD 는 읽어서 그리기만 한다.
   * 어떤 함수도 예외를 밖으로 던지지 않는다. 계측 코드가 시뮬을 죽이면 안 된다.
 
-HUD_SPEC.md 4.1 참조 구현. 아래 두 가지만 사양과 다르다.
+HUD_SPEC.md 4.1 참조 구현. 아래 네 가지가 사양과 다르다.
 
   (1) _LOG_PATH 기본값에 role 을 붙인다.
       사양은 단일 프로세스를 전제하지만 이 저장소에서는 계측 대상 4개가
@@ -24,6 +24,11 @@ HUD_SPEC.md 4.1 참조 구현. 아래 두 가지만 사양과 다르다.
       succeeded 는 '파지 판정 통과 + 트레이 슬롯에서 릴리스 실행 완료' 를 센다.
       사양 4.3 지시대로 화면 라벨은 '성공' 이 아니라 '배치' 다.
       필드 이름은 3절 계약이므로 바꾸지 않는다.
+
+  (4) tree 섹션 추가 (2026-09-11).
+      쿼드트리 순회(1차 스캔 가지치기·잎·분할·세부 자세)를 화면에 트리로 그리는 상태.
+      소유자는 scan 하나다. 모양·전이 규칙·표시 규칙은 tree_model.py 에 있고,
+      여기서는 빈 값만 만든다.
 """
 from __future__ import annotations
 
@@ -33,6 +38,8 @@ import os
 import threading
 import time
 from typing import Any, Dict
+
+import tree_model
 
 #: 시퀀스 상태 enum. 이 목록 밖의 값은 publish 시 거부된다.
 SEQUENCE_STATES = [
@@ -107,6 +114,7 @@ def _blank() -> Dict[str, Any]:
         # 발행하지 않은 HUD 프로세스의 IDLE 이 네 노드의 실제 상태를 이긴다.
         # 런 도중 Isaac Sim 을 다시 켜면 화면이 '대기' 로 굳는 경로다.
         "region": {"name": "home"},
+        "tree": tree_model.blank(),
         "sequence": {"state": "IDLE", "since": 0.0},
         "result": {"succeeded": 0, "failed": 0, "finished": False},
         "run": {"started_at": None},

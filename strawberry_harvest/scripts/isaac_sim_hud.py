@@ -16,24 +16,32 @@ Data: the four nodes (fake_vision / sim_executor_bridge / curobo_planner /
 scan_executor) write a snapshot to /tmp/harvest_hud_<role>.json every 0.1 s.
 This file only draws. Merging rules live in hud/bus_merge.py.
 
-Layout:
+Layout (2026-09-11: the AREA / TARGET / PLACED rows were replaced by the tree):
     NODES   * vision  * planner  * control  * scan     green = working now
     ------------------------------------------
-    AREA    NW                                         current / target sub-area
-    TARGET  3 / 6        PLACED  2
+    TREE                  [ROOT]                       the scan as a quadtree
+            [NW   2] [NE   1] [SE   0] [SW   3]        number = candidates in that cell
+            [dir   ] [dir   ] [dir+skip] [dir+split]   2nd line (Korean PNG)
+                         [nw 1][ne 1][se 1][sw 0]      children of the latest split;
+                                                       folded away when the run ends
     ------------------------------------------
     PHASE            DESCEND + GRASP                   centered, colored per phase
             [####.......]                              11-cell progress bar
     ------------------------------------------
               HARVEST DONE  5 / 6 (83%)                only after the run ends
 
-"PLACED" is not "success": this repo has no attach that glues the fruit to the
-gripper, so it can only count "grasp check passed + released at the tray slot"
-(hud/README.md).
+The tree paints the scan executor's own decisions as they happen (overview
+prune, leaf, split, sub-pose fallback); nothing is decided here. Geometry,
+colors and wording come from hud/tree_model.py (make_labels.py uses the same
+wording). Orange node + path = where the robot is now; green border = finished.
+
+"HARVEST DONE" is not "success": this repo has no attach that glues the fruit
+to the gripper, so it can only count "grasp check passed + released at the tray
+slot" (hud/README.md).
 
 Besides the panel, the HUD also marks the working area ON THE BOARD (2026-09-10):
 it toggles the quadrant overlays in whiteboard.usd (light-orange grid panes) to
-match the AREA value. Home = whole board, quadrant = that pane only.
+match the current quadrant. Home = whole board, quadrant = that pane only.
 
 Korean labels: Kit cannot draw Hangul (Isaac Sim 5.1 prints '?' even in the
 Script Editor, and passing a Korean font via style "font" did not help). So
@@ -55,7 +63,7 @@ HUD_DIR = os.path.expanduser(os.environ.get(
 if HUD_DIR not in sys.path:
     sys.path.insert(0, HUD_DIR)
 # Kit caches modules; reload so edits take effect on the next Run.
-for _m in ("status_bus", "bus_merge"):
+for _m in ("tree_model", "status_bus", "bus_merge"):
     if _m in sys.modules:
         importlib.reload(sys.modules[_m])
 
@@ -68,6 +76,7 @@ from pxr import Usd, UsdGeom
 
 import bus_merge
 import status_bus
+import tree_model
 
 # ---- placement ----------------------------------------------------------------
 # Panel position: pixels from the viewport's top-left corner (0, 0).
@@ -124,7 +133,7 @@ PHASE_COLOR = {
 # ---- English fallback text (used only when labels/ is missing) ------------------
 EN = {
     "nodes": "NODES", "region": "AREA", "targets": "TARGET",
-    "placed": "PLACED", "phase": "PHASE", "final": "HARVEST DONE",
+    "placed": "PLACED", "phase": "PHASE", "final": "HARVEST DONE", "tree": "TREE",
     "node": {"vision": "VISION", "planner": "PLANNER",
              "controller": "CONTROL", "scan": "SCAN"},
     "state": {"IDLE": "IDLE", "SCAN_MOVE": "SCAN MOVE", "DETECT": "DETECT",
@@ -145,11 +154,27 @@ BAR_STATES = [s for s in status_bus.SEQUENCE_STATES if s != "IDLE"]   # 11 cells
 # of the board 2 mm in front, same grid texture times a light-orange tint, so a
 # lit pane turns its white cells peach while the black grid lines stay black.
 # Home lights all four.
+# [2026-09-12] Depth 2: while the robot works a sub-cell (tree "current" = "sw/se"),
+# only that sub-cell pane (highlight/sw_se, a quarter of the quadrant pane) is lit.
+# The 16 sub-cell panes are optional: with an older whiteboard.usd the parent
+# quadrant pane is lit instead, so the HUD keeps working before a scene reload.
 # Visibility is written to the SESSION layer, so saving the stage never bakes the
 # last state into the scene file. destroy() turns everything off.
 HIGHLIGHT_QUADS = ("nw", "ne", "sw", "se")
+HIGHLIGHT_SUBS = tuple("%s_%s" % (q, s) for q in HIGHLIGHT_QUADS for s in HIGHLIGHT_QUADS)
 HIGHLIGHT_ON = {"home": set(HIGHLIGHT_QUADS),
                 "nw": {"nw"}, "ne": {"ne"}, "sw": {"sw"}, "se": {"se"}}
+HIGHLIGHT_ON.update({"%s/%s" % (q, s): {"%s_%s" % (q, s)}
+                     for q in HIGHLIGHT_QUADS for s in HIGHLIGHT_QUADS})
+
+
+def highlight_key(region, tree):
+    """Which area to light: the sub-cell while the robot works one, else the AREA value."""
+    try:
+        cur = str((tree or {}).get("current") or "")
+    except Exception:
+        cur = ""
+    return cur if cur in HIGHLIGHT_ON and "/" in cur else region
 HIGHLIGHT_PATH = "/World/lab_environment/whiteboard/highlight"   # fixed path; search if missing
 HIGHLIGHT_LOOKUP_RETRY_SEC = 2.0
 
@@ -160,13 +185,14 @@ class _BoardHighlight:
         self._region = None         # last region applied
         self._next_lookup = 0.0
         self._warned = False
+        self._warned_subs = False
 
     def _find(self):
         stage = omni.usd.get_context().get_stage()
         if stage is None:
             return None
         found = {}
-        for q in HIGHLIGHT_QUADS:
+        for q in HIGHLIGHT_QUADS + HIGHLIGHT_SUBS:
             prim = stage.GetPrimAtPath("%s/%s" % (HIGHLIGHT_PATH, q))
             if not prim or not prim.IsValid():
                 prim = None
@@ -177,8 +203,15 @@ class _BoardHighlight:
                         prim = cand
                         break
             if prim is None:
-                return None
+                if q in HIGHLIGHT_QUADS:
+                    return None
+                continue            # sub-cell panes are optional (older whiteboard.usd)
             found[q] = prim
+        if len(found) == len(HIGHLIGHT_QUADS) and not self._warned_subs:
+            self._warned_subs = True
+            print("[hud] board highlight: no sub-cell panes (highlight/nw_se ...) -- "
+                  "whiteboard.usd predates 2026-09-12 or the scene was not reloaded; "
+                  "sub-cells light their parent quadrant.")
         return found
 
     def _set(self, stage, quads_on):
@@ -213,7 +246,10 @@ class _BoardHighlight:
             stage = omni.usd.get_context().get_stage()
             if stage is None:
                 return
-            self._set(stage, HIGHLIGHT_ON.get(region, set()))
+            on = set(HIGHLIGHT_ON.get(region, set()))
+            # Sub-cell pane missing (old asset): light its parent quadrant instead.
+            on = {q if q in self._prims else q.split("_")[0] for q in on}
+            self._set(stage, on)
             self._region = region
         except Exception as exc:                                  # noqa: BLE001
             # The highlight must never take the HUD down. Retry on the next update.
@@ -296,6 +332,146 @@ class _Swappable:
             self._lbl.style = _text(color, self._size)
 
 
+def _c(rgba):
+    """0-255 RGBA tuple from tree_model -> Kit float color."""
+    r, g, b, a = rgba
+    return cl(r / 255.0, g / 255.0, b / 255.0, a / 255.0)
+
+
+class _TreeView:
+    """Quadtree panel (2026-09-11).
+
+    Built once from tree_model.tree_layout(); every refresh repaints it from
+    tree_model.view(). Each layout band is one HStack with Spacers between its
+    items, so only the stack primitives the rest of this HUD already uses are
+    needed. The four possible 2nd-level groups sit in one ZStack and only the
+    group under the latest split quadrant is visible, so the panel height never
+    changes during a run. When the traversal is done the whole 2nd-level area
+    folds away and the HARVEST DONE row appears in its place.
+    """
+
+    def __init__(self, width):
+        self._lay = tree_model.tree_layout(width)
+        self._lines = {}     # 1st-level edge key -> Rectangle
+        self._nodes = {}     # "root" / quadrant -> widgets
+        self._groups = {}    # parent quadrant -> {"frame", "lines", "nodes"}
+        self._last = {}      # widget key -> last painted value (skip no-op writes)
+        with ui.VStack(width=width, height=0):
+            for band in self._lay["bands"]:
+                self._band(band, self._lines, self._nodes)
+            with ui.ZStack(height=self._lay["l2_h"]) as l2_box:
+                for q in tree_model.QUADS:
+                    grp = {"lines": {}, "nodes": {}}
+                    with ui.VStack(height=0) as frame:
+                        for band in self._lay["groups"][q]["bands"]:
+                            self._band(band, grp["lines"], grp["nodes"])
+                    frame.visible = False
+                    grp["frame"] = frame
+                    self._groups[q] = grp
+        self._l2_box = l2_box
+
+    def _band(self, band, lines, nodes):
+        h = band["h"]
+        with ui.HStack(height=h):
+            cursor = 0.0
+            for it in band["items"]:
+                if it["x"] - cursor > 0.01:
+                    ui.Spacer(width=it["x"] - cursor)
+                kind, key, w = it["kind"], it["key"], it["w"]
+                if kind == "line":
+                    lines[key] = ui.Rectangle(
+                        width=w, height=h, style={"background_color": _c(tree_model.EDGE)})
+                elif kind == "root":
+                    nodes["root"] = self._node(w, h, "ROOT", 13, center=True)
+                elif kind == "l1":
+                    nodes[key] = self._node(w, h, key.upper(), 15, tag_key="dir_" + key)
+                else:
+                    nodes[key] = self._node(w, h, key, 13)
+                cursor = it["x"] + w
+            ui.Spacer()
+
+    @staticmethod
+    def _rect_style(style, border):
+        return {"background_color": _c(style["fill"]),
+                "border_color": _c(border or style["border"]),
+                "border_width": style["bw"], "border_radius": 6}
+
+    @classmethod
+    def _node(cls, w, h, name, size, center=False, tag_key=None):
+        st = tree_model.NODE_STYLE["pending"]
+        out = {"size": size}
+        with ui.ZStack(width=w, height=h):
+            out["rect"] = ui.Rectangle(style=cls._rect_style(st, None))
+            if center:
+                out["name"] = ui.Label(name, alignment=ui.Alignment.CENTER,
+                                       style=_text(_c(st["name"]), size))
+            else:
+                pad = 9 if tag_key else 7
+                with ui.VStack():
+                    if tag_key:
+                        ui.Spacer(height=5)
+                    with ui.HStack(height=20 if tag_key else h):
+                        ui.Spacer(width=pad)
+                        out["name"] = ui.Label(name, width=0, alignment=ui.Alignment.LEFT_CENTER,
+                                               style=_text(_c(st["name"]), size))
+                        ui.Spacer()
+                        out["count"] = ui.Label("", width=0, alignment=ui.Alignment.RIGHT_CENTER,
+                                                style=_text(_c(st["count"]), size))
+                        ui.Spacer(width=pad)
+                    if tag_key:
+                        with ui.HStack(height=16):
+                            ui.Spacer(width=pad)
+                            out["tag"] = _Swappable("tree", tag_key, tree_model.TAG_EN,
+                                                    C_DIM, tree_model.TAG_SIZE)
+                            ui.Spacer()
+                    ui.Spacer()
+        return out
+
+    def _put(self, key, value, apply):
+        if self._last.get(key) != value:
+            apply(value)
+            self._last[key] = value
+
+    def update(self, tree):
+        v = tree_model.view(tree, self._lay)
+        group = v["group"]
+        self._put(("l2",), v["show_l2"], lambda on: setattr(self._l2_box, "visible", on))
+        for q, grp in self._groups.items():
+            self._put(("vis", q), group == q,
+                      lambda on, f=grp["frame"]: setattr(f, "visible", on))
+        for key, nv in v["nodes"].items():
+            if key.startswith("sub:"):
+                wid = self._groups[group]["nodes"].get(key[4:]) if group else None
+                wkey = ("node", group, key)
+            else:
+                wid, wkey = self._nodes.get(key), ("node", key)
+            if wid is not None:
+                self._paint(wkey, wid, nv)
+        for key, col in v["lines"].items():
+            if key.startswith("g:"):
+                rect = self._groups[group]["lines"].get(key[2:]) if group else None
+                wkey = ("line", group, key)
+            else:
+                rect, wkey = self._lines.get(key), ("line", key)
+            if rect is not None:
+                self._put(wkey, col, lambda c, r=rect: setattr(
+                    r, "style", {"background_color": _c(c)}))
+
+    def _paint(self, wkey, wid, nv):
+        st = tree_model.NODE_STYLE[nv["style"]]
+        size = wid["size"]
+        self._put(wkey + ("rect",), (nv["style"], nv["border"]), lambda _v: setattr(
+            wid["rect"], "style", self._rect_style(st, nv["border"])))
+        self._put(wkey + ("name",), nv["style"], lambda _v: setattr(
+            wid["name"], "style", _text(_c(st["name"]), size)))
+        if "count" in wid:
+            self._put(wkey + ("count",), (nv["style"], nv["count"]), lambda _v: (
+                setattr(wid["count"], "text", nv["count"]),
+                setattr(wid["count"], "style", _text(_c(st["count"]), size))))
+        if "tag" in wid and nv["tag"]:
+            self._put(wkey + ("tag",), nv["tag"], lambda k: wid["tag"].set(k, C_DIM))
+
+
 class HarvestHUD:
     def __init__(self):
         self._frame = None
@@ -304,6 +480,8 @@ class HarvestHUD:
         self._seg = []
         self._last_draw = 0.0
         self._hl = _BoardHighlight()
+        self._tree = None
+        self._tree_warned = False
         self._build()
         self._sub = (omni.kit.app.get_app().get_update_event_stream()
                      .create_subscription_to_pop(self._on_update, name="harvest_hud_update"))
@@ -331,8 +509,7 @@ class HarvestHUD:
                                 with ui.VStack(height=0, spacing=ROW_GAP):
                                     self._row_nodes()
                                     self._divider()
-                                    self._row_region()
-                                    self._row_counters()
+                                    self._row_tree()
                                     self._divider()
                                     self._row_phase()
                                     self._row_bar()
@@ -362,18 +539,14 @@ class HarvestHUD:
                             style={"background_color": C_BAD})
                         _label("node_" + name, EN["node"][name], C_TEXT, 15)
 
-    def _row_region(self):
+    def _row_tree(self):
+        # Replaces the AREA / TARGET / PLACED rows (2026-09-11): the lit node shows the
+        # area down to the sub-cell, and every node carries its own candidate count.
         with ui.HStack(height=0):
-            self._head("region")
-            self._w["region"] = _Swappable("region", "home", EN["area"], C_TEXT, 24)
-            ui.Spacer()
-
-    def _row_counters(self):
-        with ui.HStack(height=0):
-            self._head("targets")
-            self._w["targets"] = ui.Label("0 / 0", width=130, style=_text(C_TEXT, 24))
-            _label("head_placed", EN["placed"], C_DIM, 15, width=HEAD_W)
-            self._w["placed"] = ui.Label("0", width=0, style=_text(C_OK, 24))
+            with ui.VStack(width=HEAD_W):
+                self._head("tree")
+                ui.Spacer()
+            self._tree = _TreeView(PANEL_WIDTH - 2 * PAD - HEAD_W)
 
     def _row_phase(self):
         # Phase is centered in the width left of the row head -- same span as the bar below.
@@ -419,12 +592,10 @@ class HarvestHUD:
             self._w["lamp_" + name].style = {
                 "background_color": C_OK if alive.get(name) else C_BAD}
 
-        self._w["region"].set(snap["region"]["name"], C_TEXT)
-        self._hl.apply(snap["region"]["name"])
+        self._hl.apply(highlight_key(snap["region"]["name"], snap.get("tree")))
+        self._update_tree(snap.get("tree"))
 
         tg = snap["targets"]
-        self._w["targets"].text = "%d / %d" % (tg["current_index"], tg["total"])
-        self._w["placed"].text = str(snap["result"]["succeeded"])
 
         state = snap["sequence"]["state"]
         color = PHASE_COLOR.get(state, C_TEXT)
@@ -444,6 +615,16 @@ class HarvestHUD:
             self._w["final_num"].text = "%d / %d (%d%%)" % (done, total, pct)
         self._w["final"].visible = finished
 
+    def _update_tree(self, tree):
+        # The tree must never take the HUD down -- same rule as the board highlight.
+        try:
+            if self._tree is not None:
+                self._tree.update(tree)
+        except Exception as exc:
+            if not self._tree_warned:
+                self._tree_warned = True
+                print("[hud] tree update failed: %r" % (exc,))
+
     # -- teardown ----------------------------------------------------------------
 
     def destroy(self):
@@ -456,6 +637,7 @@ class HarvestHUD:
             self._frame = None
         self._w.clear()
         self._seg.clear()
+        self._tree = None
 
 
 def install():
@@ -483,3 +665,4 @@ def uninstall():
 
 
 install()
+

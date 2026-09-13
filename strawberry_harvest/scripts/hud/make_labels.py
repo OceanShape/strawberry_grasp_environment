@@ -7,12 +7,17 @@ style 의 "font" 로 한글 폰트를 넘겨도 마찬가지였다. 그래서 �
 
 실행:  python3 make_labels.py         (Pillow + 시스템 Noto Sans CJK 필요)
 출력:  labels/<이름>.png  +  labels/manifest.json (이름 -> 표시 폭/높이)
+
+트리 패널 문구(방향·분할·제외)는 tree_model.py 가 단일 출처다 (2026-09-11).
 """
 import json
 import os
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import tree_model  # noqa: E402
 
 SRC = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 BOLD = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
@@ -41,6 +46,7 @@ ITEMS = [
     ("head_targets", "타겟", 15, C_DIM, False),
     ("head_placed", "배치", 15, C_DIM, False),
     ("head_phase", "단계", 15, C_DIM, False),
+    ("head_tree", "트리", 15, C_DIM, False),
     ("node_vision", "인식", 15, C_TEXT, False),
     ("node_planner", "플래너", 15, C_TEXT, False),
     ("node_controller", "제어", 15, C_TEXT, False),
@@ -60,6 +66,19 @@ def render(text, size, color, bold):
     return img
 
 
+def render_parts(parts, size):
+    """여러 색 글자를 한 장에 — '남서(분할)' 처럼 방향과 상태를 다른 색으로."""
+    font = ImageFont.truetype(SRC, size * SCALE, index=FACE_KR)
+    asc, desc = font.getmetrics()
+    w = int(sum(font.getlength(t) for t, _ in parts)) + 2 * SCALE
+    img = Image.new("RGBA", (w, asc + desc), (0, 0, 0, 0))
+    draw, x = ImageDraw.Draw(img), SCALE
+    for text, color in parts:
+        draw.text((x, 0), text, font=font, fill=tuple(color))
+        x += font.getlength(text)
+    return img
+
+
 if not os.path.exists(SRC):
     sys.exit("Noto CJK 가 없다: sudo apt install fonts-noto-cjk")
 os.makedirs(OUT, exist_ok=True)
@@ -68,6 +87,12 @@ for name, text, size, color, bold in ITEMS:
     img = render(text, size, color, bold)
     img.save(os.path.join(OUT, name + ".png"))
     manifest[name] = {"w": img.width / SCALE, "h": img.height / SCALE, "text": text}
+for key in tree_model.TAG_KEYS:
+    parts = tree_model.tag_parts(key)
+    img = render_parts(parts, tree_model.TAG_SIZE)
+    img.save(os.path.join(OUT, "tree_" + key + ".png"))
+    manifest["tree_" + key] = {"w": img.width / SCALE, "h": img.height / SCALE,
+                               "text": "".join(t for t, _ in parts)}
 with open(os.path.join(OUT, "manifest.json"), "w", encoding="utf-8") as f:
     json.dump(manifest, f, ensure_ascii=False, indent=1)
 print("wrote %d labels -> %s" % (len(manifest), OUT))

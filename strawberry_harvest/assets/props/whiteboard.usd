@@ -107,6 +107,7 @@ def Xform "whiteboard"
     #   nw: 로컬 x<0, y<0   ne: x>0, y<0   sw: x<0, y>0   se: x>0, y>0
     # st 는 board 와 같은 (x+0.5, y+0.5) 라 텍스처의 격자 칸과 정확히 겹친다.
     #
+    # 분면 4장 + 세부 칸 16장(2026-09-12). 세부 칸은 분면을 2×2 로 나눈 것이다.
     # 시각 전용: 콜라이더 없음(physics_layer 는 whiteboard/board 만 건드린다),
     # 이름에 strawberry 가 없어 fake_vision 도 발행하지 않는다. 플래너 입출력과 무관.
     def Scope "highlight"
@@ -181,6 +182,315 @@ def Xform "whiteboard"
             )
             point3f[] points = [(0, 0, -0.002), (0.5, 0, -0.002), (0, 0.5, -0.002), (0.5, 0.5, -0.002)]
             texCoord2f[] primvars:st = [(0.5, 0.5), (1, 0.5), (1, 1), (0.5, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        # [2026-09-12] 깊이 2 (세부 칸) 하이라이트 16장 — 분면 4장을 각각 2×2 로 나눈 것.
+        # 이름 = <분면>_<세부 칸> (root/sw/se -> sw_se). 세부 칸 판정은 scan_executor 의
+        # _subcell_of_pose (부모 분면 중심선) 과 같은 사분 규칙이다. 로봇이 세부 자세에서
+        # 일할 때 HUD 가 이 칸 하나만 켠다 (isaac_sim_hud.py _BoardHighlight).
+
+        def Mesh "nw_nw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.5, -0.5, -0.002), (-0.25, -0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.5, -0.5, -0.002), (-0.25, -0.5, -0.002), (-0.5, -0.25, -0.002), (-0.25, -0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0, 0), (0.25, 0), (0.25, 0.25), (0, 0.25)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "nw_ne" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.25, -0.5, -0.002), (0, -0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.25, -0.5, -0.002), (0, -0.5, -0.002), (-0.25, -0.25, -0.002), (0, -0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0.25, 0), (0.5, 0), (0.5, 0.25), (0.25, 0.25)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "nw_sw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.5, -0.25, -0.002), (-0.25, 0, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.5, -0.25, -0.002), (-0.25, -0.25, -0.002), (-0.5, 0, -0.002), (-0.25, 0, -0.002)]
+            texCoord2f[] primvars:st = [(0, 0.25), (0.25, 0.25), (0.25, 0.5), (0, 0.5)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "nw_se" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.25, -0.25, -0.002), (0, 0, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.25, -0.25, -0.002), (0, -0.25, -0.002), (-0.25, 0, -0.002), (0, 0, -0.002)]
+            texCoord2f[] primvars:st = [(0.25, 0.25), (0.5, 0.25), (0.5, 0.5), (0.25, 0.5)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "ne_nw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0, -0.5, -0.002), (0.25, -0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0, -0.5, -0.002), (0.25, -0.5, -0.002), (0, -0.25, -0.002), (0.25, -0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0.5, 0), (0.75, 0), (0.75, 0.25), (0.5, 0.25)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "ne_ne" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0.25, -0.5, -0.002), (0.5, -0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0.25, -0.5, -0.002), (0.5, -0.5, -0.002), (0.25, -0.25, -0.002), (0.5, -0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0.75, 0), (1, 0), (1, 0.25), (0.75, 0.25)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "ne_sw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0, -0.25, -0.002), (0.25, 0, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0, -0.25, -0.002), (0.25, -0.25, -0.002), (0, 0, -0.002), (0.25, 0, -0.002)]
+            texCoord2f[] primvars:st = [(0.5, 0.25), (0.75, 0.25), (0.75, 0.5), (0.5, 0.5)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "ne_se" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0.25, -0.25, -0.002), (0.5, 0, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0.25, -0.25, -0.002), (0.5, -0.25, -0.002), (0.25, 0, -0.002), (0.5, 0, -0.002)]
+            texCoord2f[] primvars:st = [(0.75, 0.25), (1, 0.25), (1, 0.5), (0.75, 0.5)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "sw_nw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.5, 0, -0.002), (-0.25, 0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.5, 0, -0.002), (-0.25, 0, -0.002), (-0.5, 0.25, -0.002), (-0.25, 0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0, 0.5), (0.25, 0.5), (0.25, 0.75), (0, 0.75)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "sw_ne" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.25, 0, -0.002), (0, 0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.25, 0, -0.002), (0, 0, -0.002), (-0.25, 0.25, -0.002), (0, 0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0.25, 0.5), (0.5, 0.5), (0.5, 0.75), (0.25, 0.75)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "sw_sw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.5, 0.25, -0.002), (-0.25, 0.5, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.5, 0.25, -0.002), (-0.25, 0.25, -0.002), (-0.5, 0.5, -0.002), (-0.25, 0.5, -0.002)]
+            texCoord2f[] primvars:st = [(0, 0.75), (0.25, 0.75), (0.25, 1), (0, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "sw_se" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-0.25, 0.25, -0.002), (0, 0.5, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(-0.25, 0.25, -0.002), (0, 0.25, -0.002), (-0.25, 0.5, -0.002), (0, 0.5, -0.002)]
+            texCoord2f[] primvars:st = [(0.25, 0.75), (0.5, 0.75), (0.5, 1), (0.25, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "se_nw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0, 0, -0.002), (0.25, 0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0, 0, -0.002), (0.25, 0, -0.002), (0, 0.25, -0.002), (0.25, 0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0.5, 0.5), (0.75, 0.5), (0.75, 0.75), (0.5, 0.75)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "se_ne" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0.25, 0, -0.002), (0.5, 0.25, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0.25, 0, -0.002), (0.5, 0, -0.002), (0.25, 0.25, -0.002), (0.5, 0.25, -0.002)]
+            texCoord2f[] primvars:st = [(0.75, 0.5), (1, 0.5), (1, 0.75), (0.75, 0.75)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "se_sw" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0, 0.25, -0.002), (0.25, 0.5, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0, 0.25, -0.002), (0.25, 0.25, -0.002), (0, 0.5, -0.002), (0.25, 0.5, -0.002)]
+            texCoord2f[] primvars:st = [(0.5, 0.75), (0.75, 0.75), (0.75, 1), (0.5, 1)] (
+                interpolation = "faceVarying"
+            )
+            uniform token subdivisionScheme = "none"
+            token visibility = "invisible"
+        }
+
+        def Mesh "se_se" (
+            prepend apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(0.25, 0.25, -0.002), (0.5, 0.5, -0.002)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 3, 2]
+            rel material:binding = </whiteboard/Looks/PaperGrid_Active_Mat>
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            point3f[] points = [(0.25, 0.25, -0.002), (0.5, 0.25, -0.002), (0.25, 0.5, -0.002), (0.5, 0.5, -0.002)]
+            texCoord2f[] primvars:st = [(0.75, 0.75), (1, 0.75), (1, 1), (0.75, 1)] (
                 interpolation = "faceVarying"
             )
             uniform token subdivisionScheme = "none"

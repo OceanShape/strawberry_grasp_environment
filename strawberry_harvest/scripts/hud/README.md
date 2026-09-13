@@ -65,13 +65,8 @@ python3 ~/strawberry_grasp_environment/strawberry_harvest/scripts/hud/make_label
 | `bus_sink.py` | 자기 상태를 JSON 으로 내보내는 쓰기 측 미러 | 노드 4개 |
 | `bus_merge.py` | 네 파일을 소유권 규칙대로 합치는 읽기 측 | Isaac Sim |
 | `harvest_probe.py` | 노드 메서드를 밖에서 감싸는 계측 모듈 | 노드 4개 |
-| `make_labels.py` → `labels/` | 한글 라벨 PNG 20장 + manifest.json 생성 (Pillow, Noto Sans CJK KR) | 오프라인 |
-
----|---|---|
-| `status_bus.py` | 상태의 단일 진실 원천. 순수 파이썬 (omni·rclpy 모름) | 전부 |
-| `bus_sink.py` | 자기 상태를 JSON 으로 내보내는 쓰기 측 미러 | 노드 4개 |
-| `bus_merge.py` | 네 파일을 소유권 규칙대로 합치는 읽기 측 | Isaac Sim |
-| `harvest_probe.py` | 노드 메서드를 밖에서 감싸는 계측 모듈 | 노드 4개 |
+| `tree_model.py` | 쿼드트리 패널의 상태 전이·배치·표시 규칙·문구. 순수 파이썬 | scan 노드 · Isaac Sim |
+| `make_labels.py` → `labels/` | 한글 라벨 PNG 37장 + manifest.json 생성 (Pillow, Noto Sans CJK KR) | 오프라인 |
 
 ---
 
@@ -111,8 +106,9 @@ HARVEST_HUD_DIR=/dev/null ros2 run strawberry_sim_core fake_vision_node
 ```
 노드   ● 인식   ● 플래너   ● 제어   ● 스캔      램프 (초록 = 지금 일하는 중)
 ──────────────────────────────────────────
-영역   북서 NW                                 순회 중인 세부영역 (HOME/북서/북동/남서/남동)
-타겟   3 / 6        배치   2                    카운터
+트리               [ROOT]                      쿼드트리 순회. 숫자 = 그 칸의 후보 수
+       [NW 3] [NE 2] [SE 0] [SW 3]             둘째 줄: 방향(잎) / 방향(분할) / 방향(제외)
+       [nw 0][ne 0][se 1][sw 2]                가장 최근에 분할한 분면의 세부 칸 (nw·ne·se·sw 순)
 ──────────────────────────────────────────
 단계            하강 + 파지                     현재 단계 (34px, 단계별 색, 가운데 정렬)
        ■■■■□□□□□□□                              11칸 진행 바 (스캔 이동 → 완료)
@@ -123,6 +119,26 @@ HARVEST_HUD_DIR=/dev/null ros2 run strawberry_sim_core fake_vision_node
 **패널 위치**는 `../isaac_sim_hud.py` 상단의 `POS_X` / `POS_Y` — 뷰포트 좌상단 (0,0) 기준
 픽셀이고 기본값은 24/24 다. `PANEL_WIDTH`(440) 로 폭을, `PAD`/`ROW_GAP`/`HEAD_W` 로 안쪽
 여백을 조절한다.
+
+### 트리 패널 (2026-09-11)
+
+영역·타겟·배치 줄을 대신한다. 불 켜진 노드가 영역을 세부 칸까지 보여주고, 노드마다 그 칸의 후보 수가 붙는다.
+
+- **1단** NW·NE·SE·SW (위치 순서). 숫자는 1차 스캔 후보 수였다가 분면 자세에서 센 후보 수로 바뀐다.
+  둘째 줄: 방향(`북서` 등) = 잎, `방향(분할)` = 분할, `방향(제외)` = 1차 스캔 가지치기(예: `남동(제외)`).
+- **2단** 가장 최근에 분할한 분면의 세부 칸 nw·ne·se·sw. 문구 없이 숫자만, 후보 0 은 흐리게(2단 가지치기).
+  한 런에서 두 분면이 분할하면 2단 줄은 나중 분면의 자식으로 바뀌고, 앞 분면은 `(분할)` 표시로 남는다.
+  순회가 끝나면(ROOT 초록) 2단 영역은 접히고 그 자리에 완료 줄이 뜬다 (사용자 지정 2026-09-12).
+- **색** 주황 = 로봇이 지금 있는 노드와 경로(보드 하이라이트와 같은 계열), 초록 테두리 = 끝남,
+  호박색 테두리 = 세부 자세 유도가 거부돼(`SUBDIVIDE_REJECTED`) 부모 자세에서 딴 세부 칸.
+- **보드 하이라이트도 세부 칸까지 내려간다** (2026-09-12). 로봇이 세부 칸에서 일하면(트리의 주황 노드가 2단이면) 보드 위 그 칸
+  하나만 주황으로 켠다 — `whiteboard.usd` `highlight/<분면>_<세부 칸>` 16장(분면 4장을 2×2 로 나눈 것). 옛 애셋(세부 칸 없음)이면
+  부모 분면을 켜고 Kit 콘솔에 한 줄 알린다. **씬 재로드 필요.**
+- **판정은 실행기가 한다.** 프로브는 `_overview_prescan_filter`·`_should_subdivide`·`_subdivide_and_pick`·
+  `_derive_subcell_target`·`_move_to_scan_cell_and_wait`·`_process_cell_detections`·`_trigger_picks_for_cell`
+  경계에서 인자와 결과를 받아 `tree_model.TreeModel` 에 쌓기만 한다. 분면별 1차 스캔 후보 수만 상태 문자열
+  `OVERVIEW_SCAN nw:3 ...` 에서 읽는다(실행기 지역 변수라서). 실행기 코드는 바뀌지 않는다.
+- 배치·색·문구의 단일 출처는 `tree_model.py` — HUD 와 `make_labels.py` 가 같이 쓴다.
 
 ### "성공" 이 아니라 "배치" 인 이유
 
@@ -139,8 +155,9 @@ HARVEST_HUD_DIR=/dev/null ros2 run strawberry_sim_core fake_vision_node
 
 ### 실패를 감추지 않는다
 
-`타겟 3 / 6 · 배치 2` 처럼 시도와 결과를 분리해 보여준다. 스킵이나 실패가 있으면
+완료 줄 `수확 완료 5 / 6` 은 목표 수와 배치 수를 그대로 보여준다. 스킵이나 실패가 있으면
 숫자가 어긋나는 것이 정상이고, 성공 수를 시도 수에 맞춰 보정하는 코드는 없다.
+타겟·배치 줄은 09-11 에 트리로 바뀌어 화면에서 빠졌지만 값은 버스(`targets`·`result`)에 그대로 있다.
 
 ---
 
@@ -157,7 +174,8 @@ tail -n 30 /tmp/harvest_hud_*.log
 |---|---|
 | 램프가 계속 빨강 | `ls -l /tmp/harvest_hud_*.json` — 파일이 없으면 그 노드에 계측이 안 붙은 것 |
 | 램프가 깜빡인다 | `status_bus.NODE_TIMEOUTS` 를 늘리거나 해당 하트비트 주기를 확인 |
-| 타겟 수가 0 | 노드 stderr 에 `[harvest_probe] 한 런 동안 PICK_SEQUENCE_START…` 경고가 있는지 |
+| 완료 줄 분모가 0 | 노드 stderr 에 `[harvest_probe] 한 런 동안 PICK_SEQUENCE_START…` 경고가 있는지 |
+| 트리가 안 바뀐다 | 노드 stderr 의 `[harvest_probe] 계측 지점 없음: …` — 시뮬에서 넣은 메서드 이름이 바뀐 것. `tail /tmp/harvest_hud_scan.log` 의 `tree` 줄 |
 | 계측 지점이 사라짐 | 노드 stderr 의 `[harvest_probe] 계측 지점 없음: …` — 메서드 이름이 바뀐 것 |
 
 `HARVEST_HUD_DIR_RUNTIME` 로 스냅샷 디렉터리를, `HARVEST_HUD_LOG` 로 로그 경로를 바꿀 수 있다.

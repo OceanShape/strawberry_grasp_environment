@@ -8,6 +8,7 @@ HUD 는 계산하지 않는다(사양 7-3). 그래서 '합치는 판단'을 hud.
 
   nodes.<role>.last_seen  <- 그 role 의 파일만
   targets, region, run    <- scan  (수확 리스트와 순회 영역을 아는 것은 scan_executor 뿐)
+  tree                    <- scan  (쿼드트리 순회 결정도 scan_executor 만 안다, 2026-09-11)
   result.succeeded/failed <- planner (파지 판정과 릴리스를 실행하는 곳)
   result.finished         <- scan  (시퀀스 종료를 아는 곳)
   sequence                <- since 가 가장 최근인 파일
@@ -131,7 +132,7 @@ def load(directory: str = None) -> Tuple[Dict[str, Any], Dict[str, bool]]:
 
     scan = files.get("scan", {}).get("state")
     if isinstance(scan, dict):
-        for section in ("targets", "region", "run"):
+        for section in ("targets", "region", "run", "tree"):
             if isinstance(scan.get(section), dict):
                 merged[section] = dict(scan[section])
         if isinstance(scan.get("result"), dict):
