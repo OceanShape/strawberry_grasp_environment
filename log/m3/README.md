@@ -573,15 +573,17 @@ RELEASE 착지 (mm, 수확 순서 = 시퀀스 순서). 치우침은 런 9 실측
 
 | # | 항목 | 결과 | 근거(채울 것) |
 |---|---|---|---|
-| 1 | 분할 판정 | ⏳ | scan.log `SUBDIVIDE root/sw candidates=3 >= 3 cells=['se', 'nw', 'ne']` 1건, **`SUBDIVIDE root/nw candidates=3 >= 3`** 1건(8/4 전환 뒤), `SUBDIVIDE_SKIP root/ne candidates=2 < 3` |
-| 2 | 세부 칸 방문 | ⏳ | `AT_SCAN_POSE root/sw/se`·`root/sw/nw`·`root/sw/ne` 각 1건, `root/sw/sw` 는 `SUBCELL_EMPTY` 만(방문 없음), `SUBCELL_SCAN … unique=1` 3건 |
-| 3 | 세부 자세 | ⏳ | `SUBCELL_POSE` 3건 dJ_max ≤ 60°(오프라인 25.4 / 33.6 / 26.2), `SUBDIVIDE_REJECTED` 0건, 도착 `AT_SCAN_POSE` 관절이 `SUBCELL_POSE` 값과 J4/J6 등가 안에서 일치 |
+| 1 | 분할 판정 | ✅ 09-12 | scan.log `SUBDIVIDE root/sw candidates=3 >= 3 cells=['se', 'nw', 'ne']` 1건, **`SUBDIVIDE root/nw candidates=3 >= 3`** 1건(8/4 전환 뒤), `SUBDIVIDE_SKIP root/ne candidates=2 < 3` |
+| 2 | 세부 칸 방문 | ✅ 09-12 | `AT_SCAN_POSE root/sw/se`·`root/sw/nw`·`root/sw/ne` 각 1건, `root/sw/sw` 는 `SUBCELL_EMPTY` 만(방문 없음), `SUBCELL_SCAN … unique=1` 3건 |
+| 3 | 세부 자세 | 🔶 09-12 (거부 1건 — 8/4 배치에선 예상된 값) | `SUBCELL_POSE` 3건 dJ_max ≤ 60°(오프라인 25.4 / 33.6 / 26.2), `SUBDIVIDE_REJECTED` 0건, 도착 `AT_SCAN_POSE` 관절이 `SUBCELL_POSE` 값과 J4/J6 등가 안에서 일치 |
 | 4 | 보드 여유 | ⏳ | 오프라인 FK 최소 183.8mm(사전) + 화면에서 세부 이동 중 보드 접촉 없음(사용자) |
-| 5 | 종전 기준 | ⏳ | `PICK COMPLETE` **8**(8/4 전환), `clamped`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`JOINT_COMMAND_REJECTED`·`EXEC_TIMEOUT` 0, `GRASP_JUDGE` 8/8 CONTACT, `OVERVIEW_SCAN nw:3 ne:2 se:0 sw:3` → se 미방문 |
+| 5 | 종전 기준 | 🔶 09-12 (PICK COMPLETE 8, 배치 7 — ripe_08 이송 거부는 H §9) | `PICK COMPLETE` **8**(8/4 전환), `clamped`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`JOINT_COMMAND_REJECTED`·`EXEC_TIMEOUT` 0, `GRASP_JUDGE` 8/8 CONTACT, `OVERVIEW_SCAN nw:3 ne:2 se:0 sw:3` → se 미방문 |
 | 6 | 배치(T4-3 회귀 없음) | ⏳ | `_PLACE_BLOCKED` 0, `RELEASE frozen at` **8**건 전부 컵 안(8-3), 화면: 4차 계란판 옆 빈 컵 뚫림 없음(런 9 의 화면 항목 5 를 여기서 닫는다) |
-| 7 | 시간 | ⏳ | 전체 초(런 9 217.2). 세부 이동 3회 + dwell 3회로 약 +10~15초 예상 — 근거가 아니라 부산물(G §7) |
+| 7 | 시간 | ✅ 283.0초 (분할 오버헤드 ~22초) | 전체 초(런 9 217.2). 세부 이동 3회 + dwell 3회로 약 +10~15초 예상 — 근거가 아니라 부산물(G §7) |
 | 8 | HUD 트리(화면) | ⏳ | 1차 스캔 뒤 SE `남동(제외)` → NW `북서(분할)`·세부 칸 줄(세부 자세가 거부된 칸은 끝나면 호박색 테두리) → NE `북동` → SW `남서(분할)`·세부 칸 se→nw→ne 순으로 주황 → 완료 때 ROOT 초록·세부 칸 줄 접힘. 보드 하이라이트가 세부 자세에서는 그 세부 칸 하나만(09-12, 씬 재로드 뒤). 사용자 육안(T5 녹화와 같이) |
 
-**런 10 결과 메모 (09-12, 판정표 칸은 비워 둠)** — 로그 [`20260912T013357-ea2ae427/`](20260912T013357-ea2ae427/). PICK COMPLETE 8, 배치 7: ripe_08 을 분리한 뒤 4번 칸 이송 계획이 `J3 swing 186.3 > 175` 로 거부돼 그 자리에서 릴리스(공중 동결). **실기 플래너 한계로 기록**(`PLANNER_CHANGES.md` 09-12, `portfolio/H_scope_decisions.md` §9). 오프라인 재현 파일 두 개가 같은 폴더에 있다. 이어 돈 런 11(02:13)은 [`20260912T021353-03ef3b5c/`](20260912T021353-03ef3b5c/): ripe_08 직선 진입 IK 실패로 미파지, ripe_04 가 9번 칸 이송에서 같은 가드(J3 197.9)에 걸림.
+**런 10 판정 (09-14 기입)** — 1 `SUBDIVIDE root/nw cells=['sw','se']`·`SUBDIVIDE root/sw cells=['se','nw','ne']`·`SUBDIVIDE_SKIP root/ne 2<3`·`TRAVERSAL_PRUNED se` 전부 있음. 2 `AT_SCAN_POSE root/nw/sw`·`root/sw/se`·`root/sw/nw`·`root/sw/ne`, `root/sw/sw` 는 `SUBCELL_EMPTY` 만. 3 `SUBCELL_POSE` 4건 dJ_max 32.1/25.4/33.6/26.2 ≤ 60, **`SUBDIVIDE_REJECTED root/nw/se JOINT_DELTA 66.3`** 1건 → `SUBDIVIDE_RETURN_TO_PARENT` 뒤 부모 자세 pick(오프라인 예측과 일치; 표의 '0건' 기대는 6/6 배치 기준이었다). 5 `PICK COMPLETE` 8, `GRASP_JUDGE` 8/8 CONTACT, `clamped`·`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED` 0, 배치 7(ripe_08 slot 4 `J3 swing 186.3>175` → 실기 플래너 한계로 기록). 7 전체 283.0초. **4·6·8(화면)은 런 12(T4c, 씬 재로드 뒤)에서 본다.**
+
+**런 10 결과 메모 (09-12)** — 로그 [`20260912T013357-ea2ae427/`](20260912T013357-ea2ae427/). PICK COMPLETE 8, 배치 7: ripe_08 을 분리한 뒤 4번 칸 이송 계획이 `J3 swing 186.3 > 175` 로 거부돼 그 자리에서 릴리스(공중 동결). **실기 플래너 한계로 기록**(`PLANNER_CHANGES.md` 09-12, `portfolio/H_scope_decisions.md` §9). 오프라인 재현 파일 두 개가 같은 폴더에 있다. 이어 돈 런 11(02:13)은 [`20260912T021353-03ef3b5c/`](20260912T021353-03ef3b5c/): ripe_08 직선 진입 IK 실패로 미파지, ripe_04 가 9번 칸 이송에서 같은 가드(J3 197.9)에 걸림.
 
 **로그 보존**: `~/.ros/log` 4개 + `src/e0509_gripper_description/logs/runtime/<날짜>/*.jsonl` + Kit 로그 → `log/m3/<run_id>/` (런 9 와 같은 절차).
