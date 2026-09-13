@@ -1,0 +1,23 @@
+[INFO] [1789144426.224192337] [fake_vision_node]: Fake Vision Node initialized. (Mocking strawberry_fusion_node) quadrant_filter=True
+[WARN] [1789144683.911936856] [fake_vision_node]: BERRY_GEOMETRY: n=8  y=782.8~782.8mm  (기대 782.8mm, 편차 0.0mm)
+[INFO] [1789144690.665797362] [fake_vision_node]: SCAN_CELL root (SCANNING) -> 분면 필터 = 없음(전 분면)
+[INFO] [1789144693.169751651] [fake_vision_node]: SCAN_CELL root/se (SCANNED_EMPTY) -> 분면 필터 = se
+[INFO] [1789144693.170407914] [fake_vision_node]: SCAN_CELL root/nw (SCANNING) -> 분면 필터 = nw
+[INFO] [1789144698.258858664] [fake_vision_node]: SCAN_CELL root/nw/sw (SCANNING) -> 분면 필터 = nw
+[INFO] [1789144769.973103396] [fake_vision_node]: SCAN_CELL root/nw (SCANNING) -> 분면 필터 = nw
+[INFO] [1789144770.524882593] [fake_vision_node]: SCAN_CELL root/nw/se (SCANNING) -> 분면 필터 = nw
+[INFO] [1789144801.830795971] [fake_vision_node]: SCAN_CELL root/nw/nw (SCANNED_EMPTY) -> 분면 필터 = nw
+[INFO] [1789144801.831234265] [fake_vision_node]: SCAN_CELL root/nw/ne (SCANNED_EMPTY) -> 분면 필터 = nw
+[INFO] [1789144801.831745105] [fake_vision_node]: SCAN_CELL root/nw (SCANNING) -> 분면 필터 = nw
+[INFO] [1789144804.888447448] [fake_vision_node]: SCAN_CELL root/ne (SCANNING) -> 분면 필터 = ne
+[INFO] [1789144809.298229489] [fake_vision_node]: SCAN_CELL root/ne/sw (SCANNING) -> 분면 필터 = ne
+[INFO] [1789144861.189546600] [fake_vision_node]: SCAN_CELL root/ne/se (SCANNING) -> 분면 필터 = ne
+[INFO] [1789144861.190265966] [fake_vision_node]: SCAN_CELL root/ne/nw (SCANNING) -> 분면 필터 = ne
+[INFO] [1789144861.190955409] [fake_vision_node]: SCAN_CELL root/ne/ne (SCANNING) -> 분면 필터 = ne
+[INFO] [1789144861.191625134] [fake_vision_node]: SCAN_CELL root/ne (SCANNING) -> 분면 필터 = ne
+[INFO] [1789144864.247150195] [fake_vision_node]: SCAN_CELL root/sw (SCANNING) -> 분면 필터 = sw
+[INFO] [1789144869.458581887] [fake_vision_node]: SCAN_CELL root/sw/sw (SCANNED_EMPTY) -> 분면 필터 = sw
+[INFO] [1789144869.600343099] [fake_vision_node]: SCAN_CELL root/sw/se (SCANNING) -> 분면 필터 = sw
+[INFO] [1789144902.589562729] [fake_vision_node]: SCAN_CELL root/sw/nw (SCANNING) -> 분면 필터 = sw
+[INFO] [1789144936.227757364] [fake_vision_node]: SCAN_CELL root/sw/ne (SCANNING) -> 분면 필터 = sw
+[INFO] [1789144969.231247138] [fake_vision_node]: SCAN_CELL root/sw (SCANNING) -> 분면 필터 = sw

@@ -1,0 +1,41 @@
+# 09-14 스윙 가드 원복(J1 75·J2 100·J3 120) 뒤 재실행. J6 운용 한계 ±225. 런 10 JSONL, 시뮬 격자 플래그. 'overview' 시작은 실제 배치 시퀀스에 없음(참고용).
+guards: transfer=[170.0, 100.0, 120.0, 150.0, 130.0, 180.0] limits_J6=(-225.0, 225.0)
+grid: SQUARE pitch 68.0 mm (sim), shift_y = +45.2 mm
+start states: 9 (retreat#1, retreat#2, retreat#3, retreat#4, retreat#5, retreat#6, retreat#7, retreat#8, overview)
+slot0 taught FK = [519.9  52.3  65.6] mm  (POSX const [519.95, 52.39, 65.58])
+
+slot quat   above goal (mm)          release goal (mm)        plan OK  rel IK  failures
+0    plain  [519.9  97.5 185.6]      [519.9  97.5  65.6]       4/9     OK      retreat#1:spline_jump J6; retreat#2:spline_jump J6; retreat#4:swing J3; retreat#5:spline_jump J6; overview:swing J2
+1    plain  [451.9  97.5 185.6]      [451.9  97.5  65.6]       4/9     OK      retreat#1:spline_jump J6; retreat#2:spline_jump J6; retreat#4:swing J3; retreat#5:spline_jump J6; overview:swing J2
+2    tilt15 [383.9  97.5 185.6]      [383.9  97.5  65.6]       0/9     FAIL    retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+2    plain  [383.9  97.5 185.6]      [383.9  97.5  65.6]       0/9     FAIL    retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+3    plain  [519.9  29.5 185.6]      [519.9  29.5  65.6]       4/9     OK      retreat#1:spline_jump J6; retreat#2:swing J6; retreat#4:swing J3; retreat#5:spline_jump J6; overview:swing J2
+4    plain  [451.9  29.5 185.6]      [451.9  29.5  65.6]       4/9     OK      retreat#1:spline_jump J6; retreat#2:spline_jump J6; retreat#4:swing J3; retreat#5:spline_jump J6; overview:spline_jump J6
+5    tilt15 [383.9  29.5 185.6]      [383.9  29.5  65.6]       0/9     FAIL    retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+5    plain  [383.9  29.5 185.6]      [383.9  29.5  65.6]       0/9     FAIL    retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+6    plain  [519.9 -38.5 185.6]      [519.9 -38.5  65.6]       5/9     OK      retreat#1:spline_jump J6; retreat#4:swing J3; retreat#5:spline_jump J6; overview:swing J2
+7    plain  [451.9 -38.5 185.6]      [451.9 -38.5  65.6]       5/9     OK      retreat#1:spline_jump J6; retreat#4:swing J3; retreat#5:spline_jump J6; overview:swing J2
+8    tilt15 [383.9 -38.5 185.6]      [383.9 -38.5  65.6]       0/9     FAIL    retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+8    plain  [383.9 -38.5 185.6]      [383.9 -38.5  65.6]       0/9     FAIL    retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+9    plain  [ 519.9 -106.5  185.6]   [ 519.9 -106.5   65.6]    6/9     OK      retreat#1:spline_jump J6; retreat#4:swing J3; overview:swing J2
+10   plain  [ 451.9 -106.5  185.6]   [ 451.9 -106.5   65.6]    5/9     OK      retreat#1:spline_jump J6; retreat#2:spline_jump J6; retreat#4:swing J3; overview:swing J2
+11   tilt15 [ 383.9 -106.5  185.6]   [ 383.9 -106.5   65.6]    0/9     FAIL    retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+11   plain  [ 383.9 -106.5  185.6]   [ 383.9 -106.5   65.6]    0/9     OK      retreat#1:IK_FAIL; retreat#2:IK_FAIL; retreat#3:IK_FAIL; retreat#4:IK_FAIL; retreat#5:IK_FAIL; retreat#6:IK_FAIL; retreat#7:IK_FAIL; retreat#8:IK_FAIL; overview:IK_FAIL
+12   plain  [ 519.9 -174.5  185.6]   [ 519.9 -174.5   65.6]    6/9     OK      retreat#1:swing J2; retreat#4:spline_jump J6; overview:swing J2
+13   plain  [ 451.9 -174.5  185.6]   [ 451.9 -174.5   65.6]    5/9     OK      retreat#1:swing J2; retreat#4:spline_jump J6; retreat#7:swing J3; overview:swing J2
+14   tilt15 [ 383.9 -174.5  185.6]   [ 383.9 -174.5   65.6]    6/9     OK      retreat#4:swing J5; retreat#7:swing J1; overview:swing J2
+14   plain  [ 383.9 -174.5  185.6]   [ 383.9 -174.5   65.6]    6/9     OK      retreat#4:spline_jump J6; retreat#7:swing J1; overview:swing J2
+
+end joints (deg) of successful ABOVE plans:
+  slot  0 plain   [ 11.7  31.5 122.8 183.6  64.   91.2] | [ 11.7  31.5 122.8 183.6  64.   91.2] | [ 11.7  31.5 122.8 183.6  64.   91.2]
+  slot  1 plain   [ 14.4  26.5 134.1 186.4  70.3  90.7] | [ 14.4  26.5 134.1 186.4  70.3  90.7] | [ 14.4  26.5 134.1 186.4  70.3  90.7]
+  slot  3 plain   [  0.7  30.9 124.1 171.5  64.9  96.4] | [  0.7  30.9 124.1 171.5  64.9  96.4] | [  0.7  30.9 124.1 171.5  64.9  96.4]
+  slot  4 plain   [  0.9  26.1 135.  172.   71.   95.3] | [  0.9  26.1 135.  352.  -71.1 -84.6] | [  0.8  26.1 135.  171.9  71.1  95.4]
+  slot  6 plain   [ 169.7  -31.3 -123.1  159.3  -65.5  -78.4] | [-10.3  31.3 123.1 159.3  65.5 101.6] | [-10.3  31.3 123.1 159.3  65.5 101.6]
+  slot  7 plain   [ 167.2  -26.3 -134.4  157.6  -71.8  -80. ] | [-12.8  26.3 134.4 157.6  71.8 100. ] | [-12.8  26.3 134.4 337.6 -71.8 -80. ]
+  slot  9 plain   [ 159.3  -32.8 -119.9  147.8  -66.   -73.1] | [-20.7  32.8 119.9 147.8  66.  106.9] | [-20.7  32.8 119.9 147.8  66.  106.9]
+  slot 10 plain   [-25.1  27.9 130.7 144.5  72.  105. ] | [-25.1  27.9 130.7 144.5  72.  105. ] | [-25.1  27.9 130.7 324.5 -72.  -75. ]
+  slot 12 plain   [ 150.2  -35.2 -114.6  137.6  -66.4  -67.4] | [-29.8  35.2 114.6 137.6  66.4 112.6] | [-29.8  35.2 114.6 137.6  66.4 112.6]
+  slot 13 plain   [ 144.6  -30.5 -124.8  133.4  -72.2  -69.6] | [-35.4  30.6 124.8 133.4  72.2 110.4] | [-35.4  30.5 124.8 133.4  72.2 110.4]
+  slot 14 tilt15  [ 137.7  -18.5 -132.9  118.5  -58.6  -59.1] | [ 137.7  -18.5 -132.9  118.5  -58.6  -59.1] | [-42.3  18.5 132.9 118.5  58.6 120.9]
+  slot 14 plain   [ 136.9  -26.6 -133.8  126.7  -77.6  -71.6] | [ 136.9  -26.6 -133.8  126.7  -77.6  -71.6] | [-43.1  26.6 133.8 126.7  77.6 108.4]
