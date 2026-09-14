@@ -18,10 +18,7 @@ from geometry_msgs.msg import PoseStamped, PoseArray
 from std_msgs.msg import Float64MultiArray, String
 
 from strawberry_sim_core.quadrant_filter import (
-    parse_cell_state,
-    quadrant_from_cell_id,
-    quadrant_of,
-)
+    parse_cell_state, quadrant_from_cell_id, quadrant_of, cell_bounds, in_bounds)
 
 
 class FakeVisionNode(Node):
@@ -30,6 +27,12 @@ class FakeVisionNode(Node):
 
         # 필터를 끄면 종전(전부 발행) 동작으로 돌아간다.
         self.declare_parameter("quadrant_filter_enabled", True)
+        # [2026-09-14] 깊이 2 시야. scan_executor 가 세부 자세에 물리적으로 도착해 `root/sw/se=VIEWING` 을
+        # 발행하면 그 세부 칸의 딸기만 발행한다 — 세부 자세가 보드에 더 가까우므로(실기 티칭 평면 433mm)
+        # 시야가 좁아진다는 모델. 부모 자세에서 pick 하는 논리 세부 칸(SCANNING)은 종전대로 분면 시야.
+        # False 면 09-11 동작(세부 칸도 분면 시야).
+        self.declare_parameter("subcell_view_enabled", True)
+        self.subcell_view_enabled = bool(self.get_parameter("subcell_view_enabled").value)
         self.quadrant_filter_enabled = bool(
             self.get_parameter("quadrant_filter_enabled").value)
 
@@ -52,10 +55,11 @@ class FakeVisionNode(Node):
         # 셀 상태가 오기 전까지는 전부 발행하는 것이 맞다.
         self.active_quadrant = None
         self.active_cell_id = None
+        self.active_bounds = None      # (x0, x1, z0, z1) 또는 None = 전 분면
 
         self.get_logger().info(
             "Fake Vision Node initialized. (Mocking strawberry_fusion_node) "
-            "quadrant_filter=%s" % self.quadrant_filter_enabled)
+            "quadrant_filter=%s subcell_view=%s" % (self.quadrant_filter_enabled, self.subcell_view_enabled))
         self.last_pub_time = 0.0
         self._geom_logged = False
 
@@ -76,20 +80,25 @@ class FakeVisionNode(Node):
         if cell_id is None:
             return
         quad = quadrant_from_cell_id(cell_id)
-        if cell_id == self.active_cell_id and quad == self.active_quadrant:
+        if state == "VIEWING" and self.subcell_view_enabled:
+            bounds = cell_bounds(cell_id)            # 세부 칸이면 세부 칸, 분면이면 분면
+        else:
+            bounds = cell_bounds("root/%s" % quad) if quad else None   # 종전: 분면 단위
+        if bounds == self.active_bounds and quad == self.active_quadrant:
+            self.active_cell_id = cell_id
             return
         self.active_cell_id = cell_id
         self.active_quadrant = quad
+        self.active_bounds = bounds
         self.get_logger().info(
-            "SCAN_CELL %s (%s) -> 분면 필터 = %s"
-            % (cell_id, state, quad if quad else "없음(전 분면)"))
+            "SCAN_CELL %s (%s) -> 시야 = %s"
+            % (cell_id, state, "x[%.3f,%.3f] z[%.3f,%.3f]" % bounds if bounds else "없음(전 분면)"))
 
     def _visible(self, poses):
         """지금 스캔 중인 분면에 속한 딸기만 남긴다."""
-        if not self.quadrant_filter_enabled or self.active_quadrant is None:
+        if not self.quadrant_filter_enabled or self.active_bounds is None:
             return list(poses)
-        return [p for p in poses
-                if quadrant_of(p.position.x, p.position.z) == self.active_quadrant]
+        return [p for p in poses if in_bounds(p.position.x, p.position.z, self.active_bounds)]
 
     def strawberry_cb(self, msg: PoseArray):
         current_time = time.time()

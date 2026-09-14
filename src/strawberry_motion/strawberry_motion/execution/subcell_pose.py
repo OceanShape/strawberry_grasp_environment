@@ -32,6 +32,29 @@ SUBCELL_ORDER: Tuple[str, ...] = ("sw", "se", "nw", "ne")
 #: 그것은 150 과 같은 자세다). 명령으로 보낼 때는 부모 표현에 맞춘 값을 보낸다.
 WRAP_EQUIVALENT_JOINT_IDX = (0, 3, 5)
 
+#: [2026-09-14] 실기 깊이 2 티칭 자세의 ee y (m). `_baseline/A_strawberry_motion/scripts/compute_nw_pick_ready_pose.py`
+#: SUBCELLS_DEG 4자세를 FK 하면 전부 이 평면(보드 810 에서 377mm)에 있고, v12 분면 자세(ee y 317~339, 보드에서 470~490mm)
+#: 보다 약 100mm 가깝다. 세부 자세는 x·z 만이 아니라 y 도 이 평면으로 옮긴다 — "깊이가 깊을수록 보드에 가깝다"의 1차 출처.
+#: 0 이면 종전(부모 y 유지). 검증: check_subcell_scan_poses.py --lab-fk
+LAB_SUBCELL_EE_Y_M = 0.433
+
+#: [2026-09-14] D455 카메라 원점의 ee(그리퍼 베이스) 프레임 오프셋 (m). main_scene.usd 에서 읽음:
+#: /World/robot_assembly/rh_p12_rn_base/rsd455 을 rh_p12_rn_base 프레임으로 (-87.1, 7.3, 63.4) mm.
+#: 툴 축(+z) 앞으로 63mm, 옆으로 87mm. 카메라-보드 거리 = 보드 y - (ee + R·offset).y
+CAMERA_OFFSET_IN_EE_M = (-0.0871, 0.0073, 0.0634)
+
+
+def camera_board_distance_mm(ee_pos_m, ee_quat_wxyz, board_y_m: float) -> float:
+    """스캔 자세에서 카메라 원점과 보드 앞면의 y 거리 (mm)."""
+    w, x, y, z = [float(v) for v in ee_quat_wxyz]
+    ox, oy, oz = CAMERA_OFFSET_IN_EE_M
+    # 회전 행렬 두 번째 행 (y 성분만 필요)
+    r10 = 2.0 * (x * y + w * z)
+    r11 = 1.0 - 2.0 * (x * x + z * z)
+    r12 = 2.0 * (y * z - w * x)
+    cam_y = float(ee_pos_m[1]) + r10 * ox + r11 * oy + r12 * oz
+    return (float(board_y_m) - cam_y) * 1000.0
+
 
 def subcell_center_offset_m(bounds: Sequence[float], subcell: str) -> Tuple[float, float]:
     """분면 외곽 (x0, x1, z0, z1) 에서 세부 칸 중심까지의 (dx, dz) — 분면 중심 기준.
@@ -67,7 +90,7 @@ def derive_subcell_joints_deg(
     limits_deg: Sequence[Tuple[float, float]],
     max_delta_deg: float,
     wrap_idx: Sequence[int] = WRAP_EQUIVALENT_JOINT_IDX,
-) -> Tuple[Optional[List[float]], Dict]:
+    goal_y_m: Optional[float] = None) -> Tuple[Optional[List[float]], Dict]:
     """부모 자세에서 세부 칸 자세(관절, deg)를 유도한다.
 
     fk_fn(joints_rad) -> (pos_m[3], quat_wxyz[4])
@@ -79,7 +102,8 @@ def derive_subcell_joints_deg(
     parent_deg = [float(v) for v in parent_joints_deg]
     parent_rad = np.deg2rad(parent_deg).tolist()
     pos, quat = fk_fn(parent_rad)
-    goal = [float(pos[0]) + float(offset_xz_m[0]), float(pos[1]),
+    goal = [float(pos[0]) + float(offset_xz_m[0]),
+            float(goal_y_m) if goal_y_m else float(pos[1]),
             float(pos[2]) + float(offset_xz_m[1])]
     info: Dict = {
         "parent_ee_mm": [round(float(v) * 1000.0, 1) for v in pos],
@@ -110,6 +134,38 @@ def derive_subcell_joints_deg(
         info["reason"] = "JOINT_DELTA %.1f > %.1f" % (mx, max_delta_deg)
         return None, info
     return [round(float(v), 2) for v in s_deg], info
+
+
+def derive_subcell_joints_tiered(
+    parent_joints_deg, offset_xz_m, fk_fn, ik_fn, *, limits_deg, max_delta_deg, wrap_idx,
+    lab_plane_y_m: Optional[float]):
+    """[2026-09-14] 세부 자세 유도 사다리 — (joints, info, tier).
+
+    tier "lab_plane": ee y 를 실기 깊이 2 티칭 평면(LAB_SUBCELL_EE_Y_M)으로 옮긴 목표. 깊이 2 가 깊이 1 보다
+                      보드에 가깝다 — 이때만 시야를 세부 칸으로 좁힌다.
+    tier "parent_y" : 부모 y 유지, x·z 만 평행이동 (09-11 동작). lab_plane 이 IK 밖이거나 관절 변화 한도를
+                      넘을 때의 대안. 시야는 부모 분면 그대로(거리가 같으므로).
+    둘 다 실패하면 (None, info, None) — 호출자가 부모 자세 pick 으로 퇴화한다.
+    lab_plane_y_m 이 None/0 이면 parent_y 만 시도한다.
+    """
+    tiers = []
+    if lab_plane_y_m:
+        tiers.append(("lab_plane", float(lab_plane_y_m)))
+    tiers.append(("parent_y", None))
+    last_info = None
+    for tier, y in tiers:
+        joints, info = derive_subcell_joints_deg(
+            parent_joints_deg, offset_xz_m, fk_fn, ik_fn, limits_deg=limits_deg,
+            max_delta_deg=max_delta_deg, wrap_idx=wrap_idx, goal_y_m=y)
+        info = dict(info); info["tier"] = tier
+        if joints is not None:
+            return joints, info, tier
+        if last_info is None:
+            last_info = info
+        else:
+            last_info = dict(info, first_tier_reason=last_info.get("reason"),
+                             first_tier=last_info.get("tier"))
+    return None, last_info, None
 
 
 def joint_line_min_board_clearance_mm(

@@ -59,7 +59,8 @@ from strawberry_motion.execution.subcell_pose import (
     WRAP_EQUIVALENT_JOINT_IDX as _SUBCELL_WRAP_IDX,
     derive_subcell_joints_deg,
     subcell_center_offset_m,
-)
+    LAB_SUBCELL_EE_Y_M,
+    derive_subcell_joints_tiered)
 from strawberry_motion.execution.scan_safety import (
     joints_within_tolerance_deg,
     motion_start_allowed,
@@ -239,6 +240,9 @@ class ScanExecutorNode(Node):
         # 이동은 실기와 같은 MoveJoint (오프라인 FK 검사: check_subcell_scan_poses.py).
         self.declare_parameter("subdivide_min_candidates", 0)
         self.declare_parameter("subdivide_max_joint_delta_deg", 60.0)
+        # [2026-09-14] 세부 자세의 ee y (m). 기본 = 실기 깊이 2 티칭 평면 0.433 (subcell_pose.LAB_SUBCELL_EE_Y_M).
+        # 0 이면 부모 y 유지(09-11 동작). 깊이 2 가 깊이 1 보다 보드에 가까워야 "가까이 가서 좁게 본다"가 성립한다.
+        self.declare_parameter("subcell_ee_y_m", LAB_SUBCELL_EE_Y_M)
         self.declare_parameter("enable_runtime_curobo_preview", False)
         self.declare_parameter("runtime_curobo_preview_retries", 2)
         self._execute_motion = bool(self.get_parameter("execute_motion").value)
@@ -294,6 +298,7 @@ class ScanExecutorNode(Node):
             0, int(self.get_parameter("subdivide_min_candidates").value))
         self._subdivide_max_joint_delta_deg = max(
             1.0, float(self.get_parameter("subdivide_max_joint_delta_deg").value))
+        self._subcell_ee_y_m = max(0.0, float(self.get_parameter("subcell_ee_y_m").value))
         self._runtime_curobo_preview_enabled = bool(
             self.get_parameter("enable_runtime_curobo_preview").value
         )
@@ -489,9 +494,9 @@ class ScanExecutorNode(Node):
                 % (exc,))
             return
         self.get_logger().info(
-            "SUBDIVIDE_IK_READY min_candidates=%d max_joint_delta=%.0fdeg seeds=%d init=%.1fs"
+            "SUBDIVIDE_IK_READY min_candidates=%d max_joint_delta=%.0fdeg seeds=%d init=%.1fs subcell_ee_y=%.3f"
             % (self._subdivide_min_candidates, self._subdivide_max_joint_delta_deg,
-               _SUBDIVIDE_IK_SEEDS, time.time() - t0))
+               _SUBDIVIDE_IK_SEEDS, time.time() - t0, self._subcell_ee_y_m))
 
     # ── callbacks ─────────────────────────────────────────────────────────────
 
@@ -1593,32 +1598,37 @@ class ScanExecutorNode(Node):
         limits_deg = [(float(np.rad2deg(lo)), float(np.rad2deg(hi)))
                       for lo, hi in _JOINT_LIMITS_RAD]
         try:
-            joints, info = derive_subcell_joints_deg(
+            joints, info, tier = derive_subcell_joints_tiered(
                 parent_joints_deg, offset,
                 self._subdivide_solver.fk, self._subdivide_solver.ik,
                 limits_deg=limits_deg,
                 max_delta_deg=self._subdivide_max_joint_delta_deg,
-                wrap_idx=_SUBCELL_WRAP_IDX)
+                wrap_idx=_SUBCELL_WRAP_IDX,
+                lab_plane_y_m=self._subcell_ee_y_m or None)
         except Exception as exc:   # cuRobo 예외는 분할 포기로 흡수 — 시퀀스는 계속 간다
             self._pub_status(
                 "SUBDIVIDE_REJECTED %s reason=IK_ERROR %r — 부모 자세에서 pick" % (logical_cell, exc))
             return None
         if joints is None:
             self._pub_status(
-                "SUBDIVIDE_REJECTED %s reason=%s goal_ee_mm=%s ik_solutions=%d — 부모 자세에서 pick"
+                "SUBDIVIDE_REJECTED %s reason=%s goal_ee_mm=%s ik_solutions=%d (lab_plane: %s) — 부모 자세에서 pick"
                 % (logical_cell, info.get("reason"), info.get("goal_ee_mm"),
-                   info.get("ik_solutions", 0)))
+                   info.get("ik_solutions", 0), info.get("first_tier_reason", "-")))
             return None
         self._pub_status(
-            "SUBCELL_POSE %s dJ_max=%.1fdeg dJ=[%s] ee_mm=%s -> %s joints_deg=[%s]"
-            " (부모 FK + x·z 평행이동, 부모 시드 IK)"
-            % (logical_cell, info["max_delta_deg"],
+            "SUBCELL_POSE %s tier=%s dJ_max=%.1fdeg dJ=[%s] ee_mm=%s -> %s joints_deg=[%s]"
+            " (%s, 부모 시드 IK)"
+            % (logical_cell, tier, info["max_delta_deg"],
                " ".join("%.0f" % d for d in info["delta_deg"]),
                info["parent_ee_mm"], info["goal_ee_mm"],
-               " ".join("%.1f" % v for v in joints)))
+               " ".join("%.1f" % v for v in joints),
+               "실기 깊이 2 평면 y=%.3f 로 이동" % self._subcell_ee_y_m if tier == "lab_plane"
+               else "부모 y 유지, x·z 평행이동"))
         target = dict(self._targets[parent_cell])
+        # view_cell: 실제로 보드에 가까워진(lab_plane) 자세에서만 시야를 세부 칸으로 좁힌다.
         target.update({"cell_id": logical_cell, "endpoint_joints_deg": joints,
-                       "derived_from": parent_cell})
+                       "derived_from": parent_cell, "tier": tier,
+                       "view_cell": logical_cell if tier == "lab_plane" else parent_cell})
         return target
 
     def _subdivide_and_pick(self, cell_id: str, subgroups) -> bool:
@@ -1658,7 +1668,8 @@ class ScanExecutorNode(Node):
                 if not self._move_to_scan_cell_and_wait(logical_cell, target):
                     return False
                 at_parent_pose = False
-                count, poses = self._dwell_collect_detections(logical_cell, False)
+                count, poses = self._dwell_collect_detections(
+                    logical_cell, False, view_cell=target.get("view_cell", logical_cell))
                 in_cell = [p for p in poses if self._subcell_of_pose(p, cell_id) == subcell]
                 unique_sub = self._deduplicate_poses(in_cell)
                 self._pub_status(
@@ -1676,8 +1687,13 @@ class ScanExecutorNode(Node):
                 logical_cell, "PICK_ATTEMPTED" if attempted > 0 else "SCANNED_EMPTY")
         return True
 
-    def _dwell_collect_detections(self, cell_id: str, collect_then_pick_active: bool):
+    def _dwell_collect_detections(self, cell_id: str, collect_then_pick_active: bool,
+                                  view_cell: Optional[str] = None):
         """스캔 자세에서 dwell 동안 pick_pose 탐지를 모은다 → (count, poses)."""
+        # [2026-09-14] 로봇이 이 셀의 스캔 자세에 **물리적으로 있다**는 상태. 시뮬 비전은 이 상태에서만
+        # 시야를 그 셀(세부 칸이면 세부 칸)로 좁힌다 — SCANNING 은 논리 셀(부모 자세에서 pick 하는
+        # 세부 칸)에도 발행되므로 시야 판정에 쓸 수 없다. 실기 fusion 노드는 이 토픽을 무시한다.
+        self._pub_state(view_cell or cell_id, "VIEWING")
         with self._detection_lock:
             self._detection_count = 0
             self._detection_poses = []

@@ -400,7 +400,7 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
    미만이면 지금 동작 그대로(잎). 임계 3은 이 배치에서 세 경우가 다 나오도록 고른 시뮬 파라미터라고 문서에 적는다.
 2. `_group_poses_by_subcell` 결과 중 **후보가 있는 칸만** 방문(빈 칸 = 2단 가지치기, `SUBCELL_EMPTY` 그대로). 순서는 현재 그룹 순서.
 3. 세부 자세 = 부모 관절의 FK(`curobo_kinematics_adapter.CuroboKinematicsAdapter.ee_pose`) → **x·z 만 세부 칸 중심으로 평행이동**
-   (y·자세 동일 — 실기 NW 세부 자세 4개가 y=433 한 평면인 성질과 같다, G §5) → 부모 관절을 시드로 IK(`mg.ik_solver`,
+   (y·자세 동일 — 실기 NW 세부 자세 4개가 y=433 한 평면인 성질과 같다, G §5) → **09-14 정정: 그 평면(433)은 분면 자세(317~339)보다 보드에 약 100mm 가깝다. 세부 자세는 y 도 433 으로 옮긴다(`subcell_ee_y_m`, 사다리: lab_plane → parent_y → 부모 자세)** → 부모 관절을 시드로 IK(`mg.ik_solver`,
    `check_tray_slot_reachability.py` 와 같은 호출) → 부모 대비 관절 변화 최대 **60° 초과 또는 IK 실패면 `SUBDIVIDE_REJECTED`**
    로 그 칸은 부모 자세에서 pick(현재 동작으로 퇴화).
 4. 세부 자세 이동은 **실기와 같은 MoveJoint**(`_move_to_scan_cell_and_wait` 경로, `self._targets[cell]` 에 유도 자세를 넣어 재사용).
@@ -408,7 +408,7 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
    대신 이동 쌍(부모→세부, 세부→세부)의 보드 여유를 FK 로 **사전 계산**해 50mm 기준으로 판정표에 넣는다(가지치기 때와 같은 방법).
 5. 세부 칸에서 재스캔(dwell 동일) → pick → 다음 칸 → 마지막 칸의 pick 이 끝나면 다음 분면. **깊이 상한 2** — 세부 칸에서는 다시 쪼개지 않는다.
 6. `quadrant_filter.quadrant_from_cell_id` 가 3단 이름(`root/sw/nw`)을 부모로 뭉개는 동작을 파라미터로 풀어 세부 칸 좌표만 발행
-   (가까이 가면 시야가 좁아지는 것과 같다). 이웃 장애물 등록이 줄어드는 점은 한계로 적는다.
+   (가까이 가면 시야가 좁아지는 것과 같다). 이웃 장애물 등록이 줄어드는 점은 한계로 적는다. → **09-14 구현: 실행기가 스캔 자세에 도착하면 `<cell>=VIEWING` 을 발행하고, 시뮬 비전은 lab_plane 세부 자세에서만 그 세부 칸으로 시야를 좁힌다(`subcell_view_enabled`). parent_y 단계와 부모 자세 pick 은 분면 시야 그대로**
 7. HUD AREA 라벨에 세부 칸(`SW/NW` 식).
 
 **손대는 곳**: `scan_executor_node._process_cell_detections`(subgroups 루프가 분기점) · `_move_to_scan_cell_and_wait` ·
@@ -424,6 +424,8 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
 부산물, G §7) ⑦ 화면 관통·HUD 는 T5 에서. **런 10 은 씬 재로드(4차 계란판 애셋 반영)와 겸한다** — 런 9 의 화면 확인 항목도 그때 닫는다.
 
 **끝나면**: G 머리말 "§6-2 미구현" → 런 10 id 로, G §6-3 2번에 런 10 근거, `portfolio/README.md` G 행, `PLANNER_CHANGES.md` 항목, 이 항목 `[x]`.
+
+**[x] 09-14 보강 (T4c 전 선행, 사용자 결정 "깊이가 깊을수록 보드에 가깝게")** — ① `subcell_pose.LAB_SUBCELL_EE_Y_M` 0.433(실기 깊이 2 티칭 평면, `--lab-fk` 로 FK 확인: 4자세 전부 y 432.9~433.0) ② 유도 사다리 `derive_subcell_joints_tiered`: lab_plane → parent_y → 부모 자세 ③ `VIEWING` 상태 + `fake_vision` 세부 칸 시야(lab_plane 만) ④ 깊이 3 없음(실기 데이터가 깊이 2 까지). 오프라인(`log/m3/offline_checks/subcell_poses_tiered_20260914.txt`): 16칸 중 **lab_plane 9 · parent_y 2(ne/se, sw/ne) · IK 밖 4(nw·ne 위쪽) · 해당없음 1**, 보드 여유 최소 68mm, 카메라-보드 거리 분면 412~472mm → lab_plane 318~319mm. **미확인**: D455 최소 측정 거리(데이터시트) 대비 319mm 가 유효한지 — 실기가 그 평면에서 인식했는지 실험실 로그가 없다. 화면·로그 확인은 런 12. 이 보강으로 분할이 시뮬에서 측정 가능한 차이(등록 장애물 수·접근 계획)를 낼 수 있게 됐고, 그 측정은 T4d 에서 한다.
 
 **[x] 09-11 구현 완료 · 오프라인 검증 완료 · 노드 모의 시험 통과 — 런 10 대기(Isaac Sim 기동·씬 재로드는 사용자).**
 - 코드: `execution/subcell_pose.py`(신설, 계산부 — rclpy 없이 import, 노드와 검사 스크립트의 단일 출처), `scan_executor_node.py`(파라미터

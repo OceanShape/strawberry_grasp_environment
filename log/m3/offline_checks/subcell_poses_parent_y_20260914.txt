@@ -1,0 +1,60 @@
+# check_subcell_scan_poses.py --ee-y 0 (2026-09-14) — 09-11 동작(부모 y 유지) 대조용.
+robot yml : /home/oceanshape/strawberry_grasp_environment/src/e0509_gripper_description/config/curobo/e0509_gripper.yml
+world     : scan_collision_world.yaml (board front y=0.810 m)
+max delta : 60.0 deg   seeds: 32   subcell ee y: parent
+
+=== root/nw  parent=[144.1 22.9 -1.0 -238.5 -75.3 108.7]  bounds x[-0.495,0.050] z[0.660,1.055]
+  sub  goal ee (mm)           reached ee (mm)        sols    maxdJ  dJ per joint                     verdict
+  sw   (-362 339 804)         (-362 339 804) err 0.1   30     32.1  11 28 32 10 5 2                  ACCEPT joints=[155.5 50.8 -33.1 -248.9 -80.6 106.6]
+  se   (-89 339 804)          -                        27     66.3  25 29 66 27 25 27                REJECT JOINT_DELTA 66.3 > 60.0
+  nw   (-362 339 1001)        -                         0        -  -                                REJECT IK_FAIL
+  ne   (-89 339 1001)         -                         0        -  -                                REJECT IK_FAIL
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> sw  :   193.0  (at 0.49)
+
+=== root/ne  parent=[18.9 26.0 1.0 74.6 78.2 -115.6]  bounds x[0.050,0.595] z[0.660,1.055]
+  sub  goal ee (mm)           reached ee (mm)        sols    maxdJ  dJ per joint                     verdict
+  sw   (179 280 785)          -                        26     70.4  12 42 70 0 16 27                 REJECT JOINT_DELTA 70.4 > 60.0
+  se   (451 280 785)          (451 280 785) err 0.0    29     23.3  6 3 20 9 1 23                    ACCEPT joints=[13.4 28.8 20.6 84.0 77.3 -138.9]
+  nw   (179 280 982)          -                         0        -  -                                REJECT IK_FAIL
+  ne   (451 280 982)          -                         0        -  -                                REJECT IK_FAIL
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> se  :   257.2  (at 0.49)
+
+=== root/se  parent=[22.7 -4.6 103.6 97.7 68.2 -190.8]  bounds x[0.050,0.595] z[0.265,0.660]
+  sub  goal ee (mm)           reached ee (mm)        sols    maxdJ  dJ per joint                     verdict
+  sw   (176 303 431)          (176 303 431) err 0.1    20     27.8  14 16 28 11 10 17                ACCEPT joints=[36.6 -20.1 131.4 109.1 57.9 -207.7]
+  se   (449 303 431)          (449 303 431) err 0.1    25     23.5  6 24 11 2 8 12                   ACCEPT joints=[16.2 18.9 92.8 99.7 76.3 -203.0]
+  nw   (176 303 628)          (176 303 628) err 0.1    29     21.9  14 19 1 11 15 22                 ACCEPT joints=[36.6 -23.2 102.5 86.6 53.3 -168.9]
+  ne   (449 303 628)          (449 303 628) err 0.1    25     36.9  6 20 37 6 5 18                   ACCEPT joints=[16.2 15.2 66.7 91.5 73.3 -172.3]
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> sw  :   231.5  (at 0.49)
+    parent -> se  :   234.1  (at 0.49)
+    parent -> nw  :   228.9  (at 0.51)
+    parent -> ne  :   234.0  (at 0.49)
+    sw     -> se  :   217.2  (at 0.53)
+    sw     -> nw  :   230.0  (at 0.51)
+    sw     -> ne  :   213.6  (at 0.49)
+    se     -> nw  :   209.7  (at 0.51)
+    se     -> ne  :   235.3  (at 0.51)
+    nw     -> ne  :   217.3  (at 0.53)
+
+=== root/sw  parent=[150.3 -11.9 109.1 -97.8 63.3 10.5]  bounds x[-0.495,0.050] z[0.265,0.660]
+  sub  goal ee (mm)           reached ee (mm)        sols    maxdJ  dJ per joint                     verdict
+  sw   (-384 317 435)         (-384 317 435) err 0.1   20     23.3  9 23 7 3 12 15                   ACCEPT joints=[159.6 11.4 101.7 -100.8 74.9 25.6]
+  se   (-112 317 435)         (-111 317 435) err 0.1   17     25.4  21 15 25 16 17 19                ACCEPT joints=[129.1 -26.8 134.5 -113.7 46.1 29.6]
+  nw   (-384 317 633)         (-384 317 633) err 0.1   30     33.6  9 19 34 6 8 16                   ACCEPT joints=[159.6 7.2 75.5 -91.5 71.5 -5.9]
+  ne   (-112 317 633)         (-111 317 633) err 0.1   29     26.2  21 16 5 18 21 26                 ACCEPT joints=[129.1 -28.0 104.4 -80.2 42.0 -15.8]
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> sw  :   217.3  (at 0.49)
+    parent -> se  :   214.6  (at 0.49)
+    parent -> nw  :   218.2  (at 0.49)
+    parent -> ne  :   210.1  (at 0.51)
+    sw     -> se  :   194.8  (at 0.47)
+    sw     -> nw  :   219.5  (at 0.51)
+    sw     -> ne  :   183.8  (at 0.51)
+    se     -> nw  :   193.1  (at 0.51)
+    se     -> ne  :   213.6  (at 0.51)
+    nw     -> ne  :   194.2  (at 0.47)
+
+note: 부모 자세 자체의 여유도 parent->sub 구간의 t=0 에 포함된다.

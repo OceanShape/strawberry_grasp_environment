@@ -23,7 +23,8 @@ sys.path.insert(0, PKG_SRC)                          # 소스 트리를 install 
 
 from strawberry_motion.execution import scan_executor_node as sen   # noqa: E402
 from strawberry_motion.execution.subcell_pose import (                # noqa: E402
-    SUBCELL_ORDER, SubdivideSolver, WRAP_EQUIVALENT_JOINT_IDX,
+    LAB_SUBCELL_EE_Y_M, SUBCELL_ORDER, SubdivideSolver, WRAP_EQUIVALENT_JOINT_IDX,
+    camera_board_distance_mm, derive_subcell_joints_tiered,
     derive_subcell_joints_deg, joint_line_min_board_clearance_mm,
     subcell_center_offset_m,
 )
@@ -36,6 +37,10 @@ def main():
     ap.add_argument("--max-delta", type=float, default=60.0)
     ap.add_argument("--seeds", type=int, default=32)
     ap.add_argument("--yaml", default=os.path.join(PKG_SRC, "config", sen._CANDIDATES_FNAME))
+    ap.add_argument("--ee-y", type=float, default=LAB_SUBCELL_EE_Y_M,
+                    help="세부 자세 ee y (m). 기본 실기 티칭 평면 0.433, 0 = 부모 y 유지(09-11 동작)")
+    ap.add_argument("--lab-fk", action="store_true",
+                    help="_baseline 의 실기 NW 세부 자세 SUBCELLS_DEG 를 FK 해 ee 를 찍는다 (0.433 의 출처 확인)")
     args = ap.parse_args()
 
     with open(args.yaml, encoding="utf-8") as fh:
@@ -46,10 +51,20 @@ def main():
 
     print("robot yml : %s" % sen._ROBOT_YML)
     print("world     : %s (board front y=%.3f m)" % (sen._COLLISION_WORLD_FNAME, board_y))
-    print("max delta : %.1f deg   seeds: %d" % (args.max_delta, args.seeds))
+    print("max delta : %.1f deg   seeds: %d   subcell ee y: %s" % (
+        args.max_delta, args.seeds, ("%.3f m (board -%.0f mm)" % (args.ee_y, (board_y - args.ee_y) * 1000)) if args.ee_y else "parent"))
     solver = SubdivideSolver(sen._ROBOT_YML, sen._URDF_PATH, sen._SPHERES_PATH,
                              os.path.join(PKG_SRC, "config", sen._COLLISION_WORLD_FNAME),
                              num_seeds=args.seeds)
+    if args.lab_fk:
+        import re as _re
+        src = open(os.path.join(os.path.dirname(os.path.dirname(PKG_SRC)), "_baseline", "A_strawberry_motion",
+                                "scripts", "compute_nw_pick_ready_pose.py"), encoding="utf-8").read()
+        print("\nlab NW depth-2 taught poses (FK, ee = gripper base):")
+        for name, vals in _re.findall(r'"(root/nw/\w+)":\s*\[([^\]]+)\]', src):
+            q = [float(v) for v in vals.split(",")]
+            pos, _ = solver.fk(np.deg2rad(q).tolist())
+            print("  %-11s ee=(%7.1f, %7.1f, %7.1f) mm  board -%.0f mm" % (name, pos[0]*1000, pos[1]*1000, pos[2]*1000, (board_y - pos[1]) * 1000))
 
     for cell_id in ("root/nw", "root/ne", "root/se", "root/sw"):
         if cell_id not in targets:
@@ -57,28 +72,32 @@ def main():
             continue
         parent = [float(v) for v in targets[cell_id]["endpoint_joints_deg"]]
         bounds = sen.ScanExecutorNode._quadrant_bounds(cell_id)
-        print("\n=== %s  parent=[%s]  bounds x[%.3f,%.3f] z[%.3f,%.3f]" % (
-            cell_id, " ".join("%.1f" % v for v in parent), *bounds))
+        ppos, pquat = solver.fk(np.deg2rad(parent).tolist())
+        print("\n=== %s  parent=[%s]  bounds x[%.3f,%.3f] z[%.3f,%.3f]  parent ee y=%.0f mm (board -%.0f, camera-board %.0f mm)" % (
+            cell_id, " ".join("%.1f" % v for v in parent), *bounds, ppos[1] * 1000, (board_y - ppos[1]) * 1000,
+            camera_board_distance_mm(ppos, pquat, board_y)))
         poses = {}
-        print("  %-4s %-22s %-22s %4s %8s  %-32s %s" % (
+        print("  %-4s %-22s %-36s %4s %8s  %-32s %s" % (
             "sub", "goal ee (mm)", "reached ee (mm)", "sols", "maxdJ", "dJ per joint", "verdict"))
         for sub in SUBCELL_ORDER:
             off = subcell_center_offset_m(bounds, sub)
-            joints, info = derive_subcell_joints_deg(
+            joints, info, tier = derive_subcell_joints_tiered(
                 parent, off, solver.fk, solver.ik, limits_deg=limits_deg,
-                max_delta_deg=args.max_delta, wrap_idx=WRAP_EQUIVALENT_JOINT_IDX)
+                max_delta_deg=args.max_delta, wrap_idx=WRAP_EQUIVALENT_JOINT_IDX,
+                lab_plane_y_m=args.ee_y or None)
             reached = "-"
             if joints is not None:
-                pos, _ = solver.fk(np.deg2rad(joints).tolist())
+                pos, quat = solver.fk(np.deg2rad(joints).tolist())
                 err = np.linalg.norm(np.array(pos) - np.array(info["goal_ee_mm"]) / 1000.0) * 1000
-                reached = "(%s) err %.1f" % (" ".join("%.0f" % (p * 1000) for p in pos), err)
+                reached = "(%s) err %.1f cam-board %.0f" % (" ".join("%.0f" % (p * 1000) for p in pos), err,
+                                                            camera_board_distance_mm(pos, quat, board_y))
                 poses[sub] = joints
-            print("  %-4s %-22s %-22s %4d %8s  %-32s %s" % (
+            print("  %-4s %-22s %-36s %4d %8s  %-32s %s" % (
                 sub, "(%s)" % " ".join("%.0f" % v for v in info["goal_ee_mm"]), reached,
                 info["ik_solutions"], info.get("max_delta_deg", "-"),
                 " ".join("%.0f" % d for d in info.get("delta_deg", [])) or "-",
-                "ACCEPT joints=[%s]" % " ".join("%.1f" % v for v in joints) if joints
-                else "REJECT %s" % info.get("reason")))
+                "ACCEPT[%s] joints=[%s]" % (tier, " ".join("%.1f" % v for v in joints)) if joints
+                else "REJECT %s (lab_plane: %s)" % (info.get("reason"), info.get("first_tier_reason", "-"))))
         # 이동 쌍 보드 여유 — MoveJoint 는 관절공간 직선. 세부 자세는 부모 표현에 맞춰져 있다.
         pairs = [("parent", sub) for sub in poses] + list(itertools.combinations(poses, 2))
         print("  board clearance along joint-space line (min over 60 samples, mm):")

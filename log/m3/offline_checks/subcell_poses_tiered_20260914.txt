@@ -1,0 +1,64 @@
+# check_subcell_scan_poses.py (2026-09-14) — 세부 자세 유도 사다리: lab_plane(ee y 0.433, 실기 깊이 2 티칭 평면) → parent_y. 카메라-보드 거리는 main_scene.usd 의 D455 오프셋(ee 프레임 -87.1, 7.3, 63.4 mm)으로 계산.
+robot yml : /home/oceanshape/strawberry_grasp_environment/src/e0509_gripper_description/config/curobo/e0509_gripper.yml
+world     : scan_collision_world.yaml (board front y=0.810 m)
+max delta : 60.0 deg   seeds: 32   subcell ee y: 0.433 m (board -377 mm)
+
+=== root/nw  parent=[144.1 22.9 -1.0 -238.5 -75.3 108.7]  bounds x[-0.495,0.050] z[0.660,1.055]  parent ee y=339 mm (board -471, camera-board 412 mm)
+  sub  goal ee (mm)           reached ee (mm)                      sols    maxdJ  dJ per joint                     verdict
+  sw   (-362 433 804)         (-362 433 804) err 0.1 cam-board 318   31     19.6  0 9 12 7 10 20                   ACCEPT[lab_plane] joints=[144.6 31.8 10.9 -245.6 -65.7 128.3]
+  se   (-89 433 804)          (-89 433 804) err 0.0 cam-board 318    28     56.9  34 31 57 37 16 20                ACCEPT[lab_plane] joints=[109.8 54.1 -57.9 -201.4 -90.9 88.7]
+  nw   (-362 339 1001)        -                                       0        -  -                                REJECT IK_FAIL (lab_plane: IK_FAIL)
+  ne   (-89 339 1001)         -                                       0        -  -                                REJECT IK_FAIL (lab_plane: IK_FAIL)
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> sw  :   108.2  (at 1.00)
+    parent -> se  :   108.2  (at 1.00)
+    sw     -> se  :    68.0  (at 0.49)
+
+=== root/ne  parent=[18.9 26.0 1.0 74.6 78.2 -115.6]  bounds x[0.050,0.595] z[0.660,1.055]  parent ee y=280 mm (board -530, camera-board 472 mm)
+  sub  goal ee (mm)           reached ee (mm)                      sols    maxdJ  dJ per joint                     verdict
+  sw   (179 433 785)          (179 433 785) err 0.1 cam-board 319    26     57.5  37 26 58 18 36 19                ACCEPT[lab_plane] joints=[55.6 -0.2 58.5 56.0 42.6 -134.6]
+  se   (451 280 785)          (451 280 785) err 0.1 cam-board 472    27     23.3  6 3 20 9 1 23                    ACCEPT[parent_y] joints=[13.4 28.8 20.7 84.0 77.3 -138.9]
+  nw   (179 280 982)          -                                       0        -  -                                REJECT IK_FAIL (lab_plane: IK_FAIL)
+  ne   (451 280 982)          -                                       0        -  -                                REJECT IK_FAIL (lab_plane: IK_FAIL)
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> sw  :   108.8  (at 1.00)
+    parent -> se  :   257.2  (at 0.49)
+    sw     -> se  :   108.8  (at 0.02)
+
+=== root/se  parent=[22.7 -4.6 103.6 97.7 68.2 -190.8]  bounds x[0.050,0.595] z[0.265,0.660]  parent ee y=303 mm (board -507, camera-board 450 mm)
+  sub  goal ee (mm)           reached ee (mm)                      sols    maxdJ  dJ per joint                     verdict
+  sw   (176 433 431)          (176 433 431) err 0.0 cam-board 319    16     33.3  33 1 15 28 24 32                 ACCEPT[lab_plane] joints=[56.0 -3.6 118.6 126.2 43.6 -222.5]
+  se   (449 433 431)          (449 433 431) err 0.1 cam-board 319    20     30.9  8 31 21 7 5 12                   ACCEPT[lab_plane] joints=[30.2 26.3 82.3 104.5 62.9 -202.8]
+  nw   (176 433 628)          (176 433 628) err 0.0 cam-board 319    28     34.3  33 4 12 11 34 18                 ACCEPT[lab_plane] joints=[56.0 -8.6 91.9 86.7 33.9 -173.1]
+  ne   (449 433 628)          (449 433 628) err 0.1 cam-board 319    26     48.9  8 29 49 10 9 22                  ACCEPT[lab_plane] joints=[30.2 24.2 54.6 87.7 59.6 -168.8]
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> sw  :   108.8  (at 1.00)
+    parent -> se  :   108.8  (at 1.00)
+    parent -> nw  :   108.7  (at 1.00)
+    parent -> ne  :   108.8  (at 1.00)
+    sw     -> se  :    83.9  (at 0.51)
+    sw     -> nw  :    96.6  (at 0.51)
+    sw     -> ne  :    74.9  (at 0.49)
+    se     -> nw  :    75.8  (at 0.49)
+    se     -> ne  :   102.2  (at 0.51)
+    nw     -> ne  :    83.5  (at 0.51)
+
+=== root/sw  parent=[150.3 -11.9 109.1 -97.8 63.3 10.5]  bounds x[-0.495,0.050] z[0.265,0.660]  parent ee y=317 mm (board -493, camera-board 435 mm)
+  sub  goal ee (mm)           reached ee (mm)                      sols    maxdJ  dJ per joint                     verdict
+  sw   (-384 433 435)         (-384 433 435) err 0.0 cam-board 319   19     30.9  4 31 17 8 1 16                   ACCEPT[lab_plane] joints=[146.3 19.0 91.9 -106.1 62.4 26.5]
+  se   (-112 433 435)         (-111 433 435) err 0.0 cam-board 319   19     37.8  36 3 13 35 26 38                 ACCEPT[lab_plane] joints=[114.4 -8.5 122.1 -132.9 37.6 48.3]
+  nw   (-384 433 633)         (-384 433 633) err 0.1 cam-board 319   25     43.8  4 28 44 9 5 18                   ACCEPT[lab_plane] joints=[146.3 15.8 65.3 -88.8 58.3 -7.7]
+  ne   (-112 317 633)         (-111 317 633) err 0.1 cam-board 435   25     26.2  21 16 5 18 21 26                 ACCEPT[parent_y] joints=[129.1 -28.0 104.4 -80.2 42.0 -15.8]
+  board clearance along joint-space line (min over 60 samples, mm):
+    parent -> sw  :   108.4  (at 1.00)
+    parent -> se  :   108.4  (at 1.00)
+    parent -> nw  :   108.4  (at 1.00)
+    parent -> ne  :   210.1  (at 0.51)
+    sw     -> se  :    81.7  (at 0.47)
+    sw     -> nw  :   101.4  (at 0.51)
+    sw     -> ne  :   108.3  (at 0.02)
+    se     -> nw  :    75.5  (at 0.49)
+    se     -> ne  :   108.4  (at 0.00)
+    nw     -> ne  :   108.4  (at 0.00)
+
+note: 부모 자세 자체의 여유도 parent->sub 구간의 t=0 에 포함된다.
