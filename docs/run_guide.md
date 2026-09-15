@@ -127,7 +127,9 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
   *파지 판정 통과 + 트레이 슬롯 릴리스 완료* 까지만 센다.
 - **낙하 (2026-09-15, T4c)**: 둘째 줄 `낙하 m` 은 이송·배치 계획이 거부돼 그 자리에서 놓은 과실 수(플래너 `PICK_SEQUENCE_CONTINUE … released fruit here` 와 같은 수).
   브릿지는 그 과실을 **떨어뜨린다** — 트레이 밖 릴리스면 kinematic 을 풀고 콜라이더를 켜서 중력에 맡기고, 바닥(`lab_environment.usd` `floor`, 상판 아래 0.75m, **씬 재로드 필요**)에
-  닿아 멈춘다. Kit 로그 `RELEASE … DROPPED outside tray at … -> falls  dropped=n`. 트레이 안 릴리스는 종전대로 동결(`RELEASE … PLACED in tray, frozen at`).
+  닿아 멈춘다. Kit 로그 `RELEASE … DROPPED outside tray at … -> falls  dropped=n`, 3초 뒤 `DROP_REST … -> on floor | caught above floor (N mm up) | BELOW FLOOR (tunnelled)`.
+  `BELOW FLOOR` 가 나오면 안 된다(런 13 에서 20mm 바닥을 관통해 1m 로 두껍게 하고 CCD 를 켰다). `caught` 는 아래 과실에 걸린 것 — 물리 그대로, 기록만.
+  트레이 안 릴리스는 종전대로 동결(`RELEASE … PLACED in tray, frozen at`).
 - **제원 정합 (2026-09-14)**: 브릿지 기동 로그에 `DOOSAN_MOVEIT_REF` 한 줄이 뜨고, 스캔 MoveJoint 마다 `MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 162>120 J3 acc 180>150` 이 남는다.
   **정상이다** — 실기 노드가 보낸 가속도를 자르지 않고 그대로 실행하면서 두산 공식 MoveIt 설정 초과만 기록하는 것이다(`docs/e0509_spec_audit.md` D3).
   시뮬 로봇 J2·J3·J5 한계는 실기 값 ±95·±135·±135 로 좁혔다(D1, **씬 재로드 필요**). J3 는 트레이 위 자세가 정확히 135° 라 한계에 닿는다 — 도착 잔차가 커지면 여기부터 본다.
@@ -263,6 +265,11 @@ cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source
 **재실행**: 완주 후 HUD 가 `완료` 로 바뀌고 터미널 2 에 `READY_FOR_NEXT_START` 가 뜨면
 이 명령을 그대로 다시 실행하면 된다.
 (2026-09-07 `PLANNER-FIX #002` 이전에는 프로세스당 1회만 가능했다.)
+
+> ⚠️ **재트리거 ≠ 새 런 (2026-09-15 런 13 교훈).** 노드를 살려 둔 채 재트리거하면 ① 플래너의 **트레이 슬롯 포인터가 이어진다**
+> (런 12 가 슬롯 0·1·3·4 를 채웠으면 다음 런은 슬롯 6 부터, 시퀀스 8칸을 넘기면 슬롯 11 → `IK_FAIL`) — 실기 플래너의 정상 동작이지만
+> 시뮬 측정으로는 조건이 다르다 ② **코드를 고친 뒤**라면 노드는 옛 코드다(프로브 `dropped` 가 안 세져 완료 줄 `낙하 0`).
+> 측정용 런과 코드 수정 뒤 런은 **`bash scripts/run_nodes.sh --kill` → 씬 재로드 → 브릿지·HUD Run → Play → `bash scripts/run_nodes.sh`** 로 새로 띄운다.
 
 ---
 

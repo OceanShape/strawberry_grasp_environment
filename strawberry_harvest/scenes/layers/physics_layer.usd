@@ -32,6 +32,8 @@ over "World"
         {
             vector3f physics:gravityDirection = (0, 0, -1)
             float physics:gravityMagnitude = 9.81
+            # [T4c 2026-09-15] 낙하 과실 터널링 방지 — 브릿지가 떨어뜨리는 과실에만 physxRigidBody:enableCCD 를 켠다.
+            bool physxScene:enableCCD = 1
         }
 
 

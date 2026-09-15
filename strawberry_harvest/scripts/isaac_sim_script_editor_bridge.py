@@ -48,7 +48,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PoseArray, Pose
 from std_msgs.msg import String
-from pxr import Usd, UsdGeom, UsdPhysics, Gf
+from pxr import Usd, UsdGeom, UsdPhysics, Gf, Sdf
 
 import omni.physx
 import omni.timeline
@@ -122,6 +122,7 @@ def start_bridge():
     node.harvested = set()        # prim paths released (tray or not) -- never published again
     node.dropped = 0              # [T4c] releases outside the tray -> fell under gravity
     node.tray_bounds = None       # [T4c] lazily computed world-space box of the egg carton
+    node.falling = {}             # [T4c] prim path -> timeline time of the drop; rest pose logged once
     node.gripper_rigid = None     # lazily created physics view of the gripper base link
 
     if hasattr(builtins, "my_physx_sub"):
@@ -281,6 +282,8 @@ def start_bridge():
     TRAY_PRIM = "/World/egg_carton"   # in-tray test = inside this prim's world box (x, y) + margin
     TRAY_XY_MARGIN_M = 0.03           # a release hanging over the carton rim still counts as "in tray"
     TRAY_Z_ABOVE_M = 0.30             # ... and no higher than this above the carton top
+    DROP_REST_AFTER_S = 3.0           # log where a dropped fruit ended up this long after the release
+    FLOOR_TOP_M = -0.75               # lab_environment.usd floor top; used only to label the rest pose
 
     def _stage():
         return omni.usd.get_context().get_stage()
@@ -346,6 +349,10 @@ def start_bridge():
             rb.CreateKinematicEnabledAttr(False)
             rb.CreateVelocityAttr(Gf.Vec3f(0.0, 0.0, 0.0))
             rb.CreateAngularVelocityAttr(Gf.Vec3f(0.0, 0.0, 0.0))
+            # Run 13 (09-15): a fruit falling 1.4 m (5.3 m/s = 88 mm per 60 Hz step) tunnelled
+            # through the 20 mm floor slab and vanished. CCD on this body (scene flag in
+            # physics_layer.usd) plus the 1 m thick floor stop that.
+            berry.CreateAttribute("physxRigidBody:enableCCD", Sdf.ValueTypeNames.Bool).Set(True)
             for p in Usd.PrimRange(berry):
                 if p.HasAPI(UsdPhysics.CollisionAPI):
                     UsdPhysics.CollisionAPI(p).CreateCollisionEnabledAttr(True)
@@ -364,6 +371,31 @@ def start_bridge():
         for name in ("xformOp:translate", "xformOp:orient"):
             if name in spec.properties:
                 spec.RemoveProperty(spec.properties[name])
+
+    def _watch_falling(stage):
+        """[T4c] Once per dropped fruit, DROP_REST_AFTER_S after the release, print where it
+        came to rest (USD pose = PhysX write-back once the session opinions are gone). Run 13:
+        one fruit landed on an unripe fruit below it, one vanished -- the log now says which."""
+        if not node.falling:
+            return
+        now = omni.timeline.get_timeline_interface().get_current_time()
+        for path, t0 in list(node.falling.items()):
+            if now - t0 < DROP_REST_AFTER_S:
+                continue
+            del node.falling[path]
+            prim = stage.GetPrimAtPath(path)
+            if not prim or not prim.IsValid():
+                continue
+            pos = _usd_world(prim).ExtractTranslation()
+            if pos[2] < FLOOR_TOP_M - 0.10:
+                where = "BELOW FLOOR (tunnelled)"
+            elif pos[2] < FLOOR_TOP_M + 0.06:
+                where = "on floor"
+            else:
+                where = "caught above floor (%.0f mm up)" % ((pos[2] - FLOOR_TOP_M) * 1000)
+            print("[bridge] DROP_REST %s  at (%.1f, %.1f, %.1f) mm after %.1f s -> %s"
+                  % (path.split("/")[-1], pos[0] * 1000, pos[1] * 1000, pos[2] * 1000,
+                     now - t0, where))
 
     def _tray_bounds(stage):
         """World-space box of the egg carton, computed once per Run (the tray never moves)."""
@@ -450,6 +482,7 @@ def start_bridge():
         if prim and prim.IsValid():
             _set_dropped_physics(stage, prim)
             _remove_session_xform_opinions(stage, path)
+            node.falling[path] = omni.timeline.get_timeline_interface().get_current_time()
         node.dropped += 1
         print("[bridge] RELEASE %s  DROPPED outside tray at (%.1f, %.1f, %.1f) mm -> falls  harvested=%d dropped=%d"
               % (name, pos[0] * 1000, pos[1] * 1000, pos[2] * 1000, len(node.harvested), node.dropped))
@@ -577,6 +610,7 @@ def start_bridge():
             if stage is not None:
                 _drain_grasp_events(stage)
                 _follow_attached(stage)
+                _watch_falling(stage)
         except Exception as exc:
             _note_error("attach step failed", exc)
 
