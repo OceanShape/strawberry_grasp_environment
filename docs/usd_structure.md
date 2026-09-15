@@ -72,6 +72,8 @@ strawberry_harvest/
 | `physics:rigidBodyEnabled=False` | `rh_p12_rn_base/rsd455/RSD455` | NVIDIA 순정 D455 애셋은 독립 강체로 설계되어, 그리퍼 링크 밑에 조립하면 "강체 안의 강체"가 되어 articulation 초기화가 실패함 (2026-07-09 수정) |
 | joint drive `stiffness=1e5` / `damping=1e4` | `joints/joint_1`~`joint_6` | URDF 임포트 기본 게인(stiffness 54~2648, damping ≈0)이 너무 물러 팔이 출렁이고 덜덜거림 → 산업용 위치 제어 수준으로 상향 (2026-07-10 수정) |
 | joint drive `stiffness=1e4` / `damping=1e3` | `joints/rh_*` (그리퍼 4관절) | 같은 이유. 파지력 과다 방지를 위해 팔보다 한 단계 낮게 |
+| D455 재질 `enable_ORM_texture=0`, `metallic 1.0`, `roughness 0.6`, `diffuse_tint 0.7` (Aluminum_Anodized·Aluminum_Cast), 렌즈 모듈 `roughness 0.45` (OmniPBR) | `rh_p12_rn_base/rsd455/RSD455/Looks/*/Shader` | 순정 ORM 텍스처가 금속 1.0 / 거칠기 0.14(크롬 거울)라, 09-16 조명 개편 뒤 무텍스처 흰 돔라이트가 그대로 비쳐 센서가 반투명 유리처럼 보였음. 무광 알루미늄으로 오버라이드. 원본 rsd455.usd·MDL 무수정 (2026-09-16 수정) |
+| 앞면 렌즈 커버 `Visual/Glass` 를 새 재질 `Looks/lens_cover`(OmniPBR, 검정 광택, 블렌드 불투명도 0.35)로 재바인딩 | `rh_p12_rn_base/rsd455/RSD455/Visual/Glass` | 순정 OmniGlass 는 RTX 실시간 렌더에서 불투명 케이스 뒤에 있어도 깊이 판정 없이 합성돼, 뒤에서 봐도 알약 모양 앞면이 케이스를 뚫고 보였다(Glass 숨기면 정상, thin_walled·doubleSided 는 무효 — 헤드리스 재현). OmniPBR 블렌드는 깊이 판정이 되고 앞에서 렌즈도 비친다 (2026-09-16 수정) |
 
 ⚠️ URDF를 재빌드해서 `doosan_e0509_rh_p12_rn/`이 교체되어도 이 오버라이드들은 assembly 레이어에 남아 있으므로 유지됩니다. 단, 링크/조인트 이름이 바뀌면 오버라이드가 붕 뜨므로(dangling over) 재확인이 필요합니다.
 

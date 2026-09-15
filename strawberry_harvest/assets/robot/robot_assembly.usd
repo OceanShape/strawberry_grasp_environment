@@ -26,6 +26,71 @@ def Xform "robot_assembly" (
             {
                 bool physics:rigidBodyEnabled = 0
 
+                over "Looks" (
+                    "[2026-09-16] 외관 오버라이드 — NVIDIA 순정 D455 의 ORM 텍스처는 금속 1.0 / 거칠기 0.14 라 크롬 거울처럼 렌더된다. 무텍스처 흰 돔라이트(lighting_layer)를 그대로 비춰 반투명 유리처럼 보였음. 무광 알루미늄으로: ORM 끄고 금속 1.0 / 거칠기 0.6, 톤 0.7. 원본 rsd455.usd·MDL 은 수정 안 함"
+                )
+                {
+                    over "Aluminum_Anodized"
+                    {
+                        over "Shader"
+                        {
+                            bool inputs:enable_ORM_texture = 0
+                            float inputs:metallic_constant = 1
+                            float inputs:reflection_roughness_constant = 0.6
+                            color3f inputs:diffuse_tint = (0.7, 0.7, 0.7)
+                        }
+                    }
+
+                    over "Aluminum_Cast"
+                    {
+                        over "Shader"
+                        {
+                            bool inputs:enable_ORM_texture = 0
+                            float inputs:metallic_constant = 1
+                            float inputs:reflection_roughness_constant = 0.6
+                            color3f inputs:diffuse_tint = (0.7, 0.7, 0.7)
+                        }
+                    }
+
+                    over "OmniPBR"
+                    {
+                        over "Shader"
+                        {
+                            float inputs:reflection_roughness_constant = 0.45
+                        }
+                    }
+
+                    def Material "lens_cover" (
+                        "[2026-09-16] 앞면 렌즈 커버(Visual/Glass) 대체 재질. 순정 OmniGlass 는 RTX 실시간 렌더에서 불투명 케이스 뒤에 있어도 깊이 판정 없이 합성돼, 뒤에서 봐도 알약 모양 앞면이 케이스를 뚫고 보였다(헤드리스 재현: Glass 숨기면 정상). OmniPBR 블렌드 불투명도 0.35 는 깊이 판정이 되고 렌즈도 비친다"
+                    )
+                    {
+                        token outputs:mdl:surface.connect = </robot_assembly/rh_p12_rn_base/rsd455/RSD455/Looks/lens_cover/Shader.outputs:out>
+
+                        def Shader "Shader"
+                        {
+                            uniform token info:implementationSource = "sourceAsset"
+                            uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
+                            uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
+                            color3f inputs:diffuse_color_constant = (0.02, 0.02, 0.025)
+                            float inputs:reflection_roughness_constant = 0.15
+                            float inputs:metallic_constant = 0
+                            bool inputs:enable_opacity = 1
+                            float inputs:opacity_constant = 0.35
+                            token outputs:out
+                        }
+                    }
+                }
+
+                over "Visual"
+                {
+                    over "Glass" (
+                        prepend apiSchemas = ["MaterialBindingAPI"]
+                    )
+                    {
+                        rel material:binding = </robot_assembly/rh_p12_rn_base/rsd455/RSD455/Looks/lens_cover>
+                    }
+                }
+
                 over "Camera_Pseudo_Depth"
                 {
                     quatd xformOp:orient = (0.4999999999999997, 0.5000000000000001, 0.5000000000000001, 0.5)
