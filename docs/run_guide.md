@@ -55,7 +55,9 @@ Isaac 쪽은 오케스트레이터가 런마다 Stop → 씬 재로드 → 브�
 bash scripts/run_isaacsim.sh
 ```
 
-→ 뜬 뒤 Script Editor 에서 `strawberry_harvest/scripts/isaac_batch_orchestrator.py` **하나만** Run. 콘솔에 `[batch] orchestrator armed` 가 뜨면 준비 완료.
+→ 뜬 뒤 Script Editor 에서 `strawberry_harvest/scripts/isaac_batch_orchestrator.py` **하나만** Run. 콘솔에 `[batch] orchestrator armed — repo /home/…/strawberry_grasp_environment` 가 뜨면 준비 완료.
+Isaac 을 새로 켤 때마다 다시 Run 한다. 파일을 고친 뒤에는 Script Editor 에서 **파일을 다시 열고** Run 한다(열어 둔 탭은 옛 내용을 실행한다).
+Script Editor 에서 한글이 `?` 로 보이는 것은 Kit 폰트 표시 문제라 실행과 무관하다.
 
 **터미널 — 배치 실행** (파일럿 5 런, 약 35분)
 
@@ -65,6 +67,7 @@ cd ~/strawberry_grasp_environment && bash scripts/run_batch.sh 5 --tag pilot
 
 → 끝날 때까지 Isaac·터미널을 건드리지 않는다. 첫 런에서 Isaac 이 스스로 씬을 다시 열고 콘솔에 `[batch] run 1 ready` 가 뜨는지만 본다
 (재로드에서 멈추면 5분 뒤 중단된다). 끝나면 시연 배치를 파일에 되돌리므로 **T5 녹화 전에는 씬을 재로드**한다.
+`오케스트레이터 하트비트가 N초 전 — 꺼져 있다` 가 뜨면 오케스트레이터가 안 떠 있는 것이다(대기 중 2초마다 `/tmp/harvest_batch/isaac_state.json` 을 갱신한다).
 
 **요약 보기**
 

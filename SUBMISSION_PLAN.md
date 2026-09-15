@@ -513,6 +513,12 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
 **절차**: Isaac 기동 → Script Editor 에서 `isaac_batch_orchestrator.py` Run(1회) → 터미널에서 `bash scripts/run_batch.sh 5 --tag pilot` → 끝나면
 `run_metrics.py --aggregate log/m3/random/pilot/runs.csv`. 30 런은 `--tag main --seed-start 101`. 런당 6~7분(재로드·warmup 포함).
 
+**파일럿 1차 (09-15 15:42) 실패 → 수정**: 오케스트레이터가 `__file__` 로 리포 경로를 잡았는데 Script Editor 에는 실제 경로의 `__file__` 이 없어
+`/strawberry_harvest/scenes/main_scene.usd` 를 열다 `open_stage` False(런 2개 연속 → 중단, CSV 없음으로 요약도 예외). 수정: 경로 고정(`HARVEST_REPO`),
+무장 이전 요청 무시(이전 세션 `request.json` 을 기동 직후 처리하던 것), 대기 중 2초 하트비트 + `run_batch.sh` 시작 시 하트비트 확인, CSV 없을 때 요약 안내.
+Script Editor 조건 흉내(`__file__` 없음·잔재 요청·씬 선개방) 헤드리스 검사 통과: 잔재 요청 무시, 하트비트 갱신, `run_batch.sh 0` 사전 확인 통과, 재로드→ready·재생·브릿지 구독.
+(헤드리스 검사 한계: ROS2 브리지 확장을 켠 직후 곧바로 씬을 열거나, 헤드리스에서 브리지 없이 Play 하면 omni.graph.image.core 에서 segfault — GUI 런 12~14 와 무관한 검사 환경 문제.)
+
 **완료 기준**: 5 런 파일럿이 사람 손 없이 완주하고 CSV 5행이 전부 `consistent`, 그 뒤 30 런. 결과 표는 `portfolio/E_metrics.md` T6 에서.
 **금지 표현**: "무작위 배치에서 성공률 X%"를 파지·수확 성공으로 쓰지 않는다(파지 판정 통과율·배치율로). 배치 실패는 실기 원본 가드의 결과로 그대로 보고한다.
 

@@ -26,7 +26,7 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$N" ] || { echo "usage: bash scripts/run_batch.sh <런 수> [--seed-start S] [--tag pilot]"; exit 1; }
 
-BATCH_DIR=/tmp/harvest_batch
+BATCH_DIR="${HARVEST_BATCH_DIR:-/tmp/harvest_batch}"
 REQ="$BATCH_DIR/request.json"
 STATE="$BATCH_DIR/isaac_state.json"
 GEN="strawberry_harvest/scripts/scene_tools/gen_random_layout.py"
@@ -66,7 +66,28 @@ wait_isaac_ready() {  # wait_isaac_ready <run>
     return 1
 }
 
-[ -f "$STATE" ] || { log "$STATE 가 없다 — Isaac Script Editor 에서 isaac_batch_orchestrator.py 를 먼저 Run 할 것"; exit 1; }
+# 오케스트레이터가 지금 살아 있는지 — 대기 중 2초마다 isaac_state.json 의 ts 를 갱신한다(하트비트).
+# 파일만 있는 것으로는 부족하다: 이전 세션의 파일이 남아 있다(파일럿 1차 실패 때 그랬다).
+rm -f "$REQ"
+AGE="$(python3 -c '
+import json, sys, time
+try:
+    d = json.load(open(sys.argv[1]))
+    if d.get("state") == "idle":
+        print(int(time.time() - float(d.get("ts", 0))))
+    else:
+        print("state=%s:%s" % (d.get("state"), d.get("msg")))
+except Exception:
+    print("none")
+' "$STATE")"
+case "$AGE" in
+    ''|none|state=*) log "오케스트레이터 상태 이상 ($AGE) — Isaac Script Editor 에서 isaac_batch_orchestrator.py 를 Run 하고 [batch] orchestrator armed 를 확인할 것"; exit 1 ;;
+esac
+if [ "$AGE" -gt 10 ]; then
+    log "오케스트레이터 하트비트가 ${AGE}초 전 — 꺼져 있다. Isaac Script Editor 에서 isaac_batch_orchestrator.py 를 다시 Run 할 것"
+    exit 1
+fi
+log "오케스트레이터 확인 (하트비트 ${AGE}초 전)"
 [ -f log/m3/random/layouts/base_layout.json ] || python3 "$GEN" --snapshot-base
 
 set +u
@@ -134,4 +155,8 @@ done
 printf '{"action": "done", "ts": %s}\n' "$(date +%s)" > "$REQ.tmp" && mv "$REQ.tmp" "$REQ"
 python3 "$GEN" --restore
 log "base 배치를 파일에 되돌렸다 (Isaac 씬은 다음 재로드 때 반영). 요약:"
-python3 scripts/run_metrics.py --aggregate "$CSV"
+if [ -f "$CSV" ]; then
+    python3 scripts/run_metrics.py --aggregate "$CSV"
+else
+    log "완주한 런이 없어 요약할 CSV 가 없다 — 위 오류와 Isaac 콘솔의 [batch] 줄을 볼 것"
+fi

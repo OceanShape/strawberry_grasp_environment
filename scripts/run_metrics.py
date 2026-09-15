@@ -159,6 +159,9 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
 
 
 def aggregate(csv_path: str) -> None:
+    if not os.path.exists(csv_path):
+        print("no CSV: %s (완주한 런이 없다)" % csv_path)
+        return
     rows = list(csv.DictReader(open(csv_path, encoding="utf-8")))
     n = len(rows)
     if n == 0:
