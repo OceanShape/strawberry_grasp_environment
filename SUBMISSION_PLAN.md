@@ -467,7 +467,7 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
   콜라이더가 없어 동적 과실은 뚫고 떨어진다), **밖이면** kinematic 해제·콜라이더 복구·속도 0 → 중력. Kit 로그 `RELEASE … PLACED in tray, frozen at` /
   `RELEASE … DROPPED outside tray at … -> falls  dropped=n`. **바닥**: 보드 앞 릴리스 지점(y≈0.74)은 테이블 상판(y≤0.30) 밖이라 받을 면이 없었다 →
   `lab_environment.usd` 에 `floor`(시뮬 소품, 작업대 높이 0.75m 가정, 상판 z=0 기준 −0.75) + `physics_layer.usd` 콜라이더. **씬 재로드 필요**.
-  헤드리스 Isaac 검증(09-15, 스크래치 `test_drop_headless*.py`): kinematic→dynamic 런타임 전환은 되지만 **부착 중 세션 레이어에 쓴 xform 이 PhysX 의
+  헤드리스 Isaac 검증(09-15, 검사 스크립트는 세션 스크래치에만 있었고 보존하지 않음 — 결과는 이 문단이 기록): kinematic→dynamic 런타임 전환은 되지만 **부착 중 세션 레이어에 쓴 xform 이 PhysX 의
   루트 레이어 쓰기를 가려** 화면에선 계속 공중에 떠 보였다(변형 B: 매 스텝 PhysX 자세를 USD 에 복사 → omni.physx 가 텔레포트로 보고 속도를 매번 리셋, 0.16m/s 로
   가라앉음). 채택: 낙하 시 세션 레이어 xform 의견을 **제거** → 튐 없이 PhysX 쓰기가 드러나고 −0.732m(바닥 위)에 정지. 손끝 파츠엔 콜라이더가 없어 조우 안에서
   콜라이더를 켜도 튕김 없음.
