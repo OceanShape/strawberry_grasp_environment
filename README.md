@@ -4,9 +4,10 @@ Isaac Sim 5.1.0 기반 딸기 수확 전체 시뮬레이션 스택. 두산 e0509
 
 > **포트폴리오 문서**: 전체 파이프라인 설계 및 구성 이유는 [`docs/pipeline_overview.md`](docs/pipeline_overview.md)를 참고하세요.
 
-**현재 상태 (2026-09-10)** — 스캔 → 탐지 → 계획 → 접근 → 파지 → **배치(release)** → 복귀의 수확 핵심 경로가
-익은 딸기 4개 연속으로 완주했습니다 (2026-09-07, `log/m2_5/`). 그 뒤 노드 시퀀스와 시뮬을 정합한 09-08~09 수정본은
-END-TO-END 재완주 검증 대기 중이며, 남은 작업은 **재완주 → 딸기 부착 → 녹화 → 수치 갱신·푸시** 입니다.
+**현재 상태 (2026-09-15)** — 스캔 → 탐지 → 계획 → 접근 → 파지 → 분리 → 이송 → **배치(release)** → 복귀의 수확 핵심 경로가
+09-10 부터 매 런 끝까지 돕니다 (`log/m3/` 런 1~13, 익은 딸기 8개 씬). 09-14 에 시뮬이 실기보다 관대했던 설정을 원본으로 되돌렸고,
+그 뒤 트레이 배치는 8개 중 4개입니다 — 나머지는 실기 플래너의 이송 계획 거부이며 한계로 기록했습니다.
+남은 작업은 **실패 표현 마무리(T4c) → 무작위 배치 반복 런(T4d) → 녹화(T5) → 수치 갱신·푸시(T6)** 입니다. 현황 브리핑은 [`PROGRESS_REPORT.md`](PROGRESS_REPORT.md).
 제출 범위·작업 순서는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md), 착수 금지 목록과 그 근거는 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) 가 기준입니다.
 
 ---
@@ -70,7 +71,7 @@ strawberry_grasp_environment/
 | `curobo_planner_node` | `src/strawberry_motion/scripts/` | cuRobo 기반 pre-approach 계획 + pick 시퀀스 실행 |
 | `fake_vision_node` | `src/strawberry_sim_core/` | Isaac Sim 딸기 좌표를 실기 비전과 동일 형식으로 발행 |
 | `sim_executor_bridge_node` | `src/strawberry_sim_core/` | 두산 motion 서비스 모방 → `/joint_command` 변환 (가상 제어기) |
-| `isaac_sim_hud.py` | `strawberry_harvest/scripts/` | 뷰포트 위 상태 HUD — 노드 램프·타겟·단계·완주 결과 (읽기 전용, 파이프라인에 개입하지 않음) |
+| `isaac_sim_hud.py` | `strawberry_harvest/scripts/` | 뷰포트 위 상태 HUD — 노드 램프·단계·쿼드트리 순회 상태·완료 결과 `배치 n · 낙하 m` (읽기 전용, 파이프라인에 개입하지 않음) |
 | Script Editor 브릿지 | `strawberry_harvest/scripts/` | Isaac Sim 내부: 딸기 좌표 발행 + 관절 명령 주입 |
 
 > 노드 실행 방법 및 ROS 2 인터페이스 상세: [`docs/pipeline_overview.md`](docs/pipeline_overview.md)
@@ -86,10 +87,10 @@ strawberry_grasp_environment/
 
 | 문서 | 기준 | 내용 |
 |---|---|---|
-| **[`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md)** | **제출 범위·작업 순서 (최우선)** | 산출물 A(영상)까지로 범위 확정, sim2real 게이트, T1~T7 순서. 착수 금지 목록은 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 로 옮겼다. 다른 문서와 충돌하면 이 문서가 이긴다 |
+| **[`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md)** | **제출 범위·작업 순서 (최우선)** | 산출물 A(영상)까지로 범위 확정, sim2real 게이트, 작업 순서는 §4-0 표(T1~T6, T4b·T4c·T4d 포함). 착수 금지 목록은 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 로 옮겼다. 다른 문서와 충돌하면 이 문서가 이긴다 |
 | **[`docs/parameters.md`](docs/parameters.md)** + `check_params.py` | **모든 수치** | 보드 위치·툴 오프셋·그리퍼 개도·속도·관절 가드. **숫자가 헷갈리면 여기만 본다.** 보드를 옮길 때 같이 고칠 6개 파일 목록 포함. `python3 check_params.py` 로 정합 자동 검사 |
 | **[`docs/run_guide.md`](docs/run_guide.md)** | **실행 절차** | 터미널 3개 실행 절차, 노드별 파라미터 참고사항, 기동 시 대조할 로그, 증상별 대처표 |
-| **[`PROGRESS_REPORT.md`](PROGRESS_REPORT.md)** | **수치·근거 1차 출처** | 09-09 재계측 지표, 해결한 문제 목록, 표현 가이드 |
+| **[`PROGRESS_REPORT.md`](PROGRESS_REPORT.md)** | **현황 브리핑 · 수치·근거 1차 출처** | 09-15 현재 위치, 런 기록, 해결한 문제 목록, 표현 가이드. 지원서·취업 전략 채팅에 붙여 넣는 문서 |
 | **[`PORTFOLIO_SPRINT.md`](PORTFOLIO_SPRINT.md)** | 마일스톤 이력 (**M 은 09-14 동결, 현행은 SUBMISSION_PLAN §4-0 의 T**) | M1~M4 판정 기준·결과, 씬 구성 메모, 진행 기록 |
 | **[`PLANNER_POLICY_v2.md`](PLANNER_POLICY_v2.md)** | **플래너 수정 원칙·표현 규칙** | **§0-1 (09-14 최우선): 실기 노드 수정은 설계 불일치일 때만, 가드 완화 금지** · 금지 표현 + 09-10 델타(§5.4) |
 
