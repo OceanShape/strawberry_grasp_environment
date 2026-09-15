@@ -134,6 +134,7 @@ PHASE_COLOR = {
 EN = {
     "nodes": "NODES", "region": "AREA", "targets": "TARGET",
     "placed": "PLACED", "phase": "PHASE", "final": "HARVEST DONE", "tree": "TREE",
+    "final_placed": "PLACED", "final_dropped": "DROPPED",
     "node": {"vision": "VISION", "planner": "PLANNER",
              "controller": "CONTROL", "scan": "SCAN"},
     "state": {"IDLE": "IDLE", "SCAN_MOVE": "SCAN MOVE", "DETECT": "DETECT",
@@ -566,12 +567,24 @@ class HarvestHUD:
 
     def _row_final(self):
         # Hidden together with its divider -- a lone line before the run ends looks odd.
+        # [T4c 2026-09-15] Second line: '배치 n · 낙하 m'. A fruit that was detached but
+        # whose transfer plan the planner rejected is released where it stands and falls
+        # (bridge drop physics); the count comes from harvest_probe (result.dropped) so the
+        # ending states the failure instead of only the placed/total ratio.
         with ui.VStack(height=0, spacing=ROW_GAP) as block:
             self._divider()
             with ui.HStack(height=0, spacing=12):
                 ui.Spacer()
                 _label("final", EN["final"], C_ACCENT, 30)
                 self._w["final_num"] = ui.Label("", width=0, style=_text(C_ACCENT, 30))
+                ui.Spacer()
+            with ui.HStack(height=0, spacing=8):
+                ui.Spacer()
+                _label("final_placed", EN["final_placed"], C_TEXT, 20)
+                self._w["final_placed_num"] = ui.Label("", width=0, style=_text(C_TEXT, 20))
+                ui.Spacer(width=18)
+                _label("final_dropped", EN["final_dropped"], C_BAD, 20)
+                self._w["final_dropped_num"] = ui.Label("", width=0, style=_text(C_BAD, 20))
                 ui.Spacer()
         self._w["final"] = block
         block.visible = False
@@ -613,6 +626,8 @@ class HarvestHUD:
             # Percentage of the target count; total can be 0 (no ripe fruit seen).
             pct = int(round(100.0 * done / total)) if total > 0 else 0
             self._w["final_num"].text = "%d / %d (%d%%)" % (done, total, pct)
+            self._w["final_placed_num"].text = "%d" % done
+            self._w["final_dropped_num"].text = "%d" % int(snap["result"].get("dropped", 0))
         self._w["final"].visible = finished
 
     def _update_tree(self, tree):

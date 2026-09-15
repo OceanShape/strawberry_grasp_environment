@@ -587,3 +587,28 @@ RELEASE 착지 (mm, 수확 순서 = 시퀀스 순서). 치우침은 런 9 실측
 **런 10 결과 메모 (09-12)** — 로그 [`20260912T013357-ea2ae427/`](20260912T013357-ea2ae427/). PICK COMPLETE 8, 배치 7: ripe_08 을 분리한 뒤 4번 칸 이송 계획이 `J3 swing 186.3 > 175` 로 거부돼 그 자리에서 릴리스(공중 동결). **실기 플래너 한계로 기록**(`PLANNER_CHANGES.md` 09-12, `portfolio/H_scope_decisions.md` §9). 오프라인 재현 파일 두 개가 같은 폴더에 있다. 이어 돈 런 11(02:13)은 [`20260912T021353-03ef3b5c/`](20260912T021353-03ef3b5c/): ripe_08 직선 진입 IK 실패로 미파지, ripe_04 가 9번 칸 이송에서 같은 가드(J3 197.9)에 걸림.
 
 **로그 보존**: `~/.ros/log` 4개 + `src/e0509_gripper_description/logs/runtime/<날짜>/*.jsonl` + Kit 로그 → `log/m3/<run_id>/` (런 9 와 같은 절차).
+
+---
+
+# 런 12 — 2026-09-15 13:11 (`20260915T131206-d0822327`) 09-14 변경 전부 첫 실행 + 씬 재로드 + 깊이 2 실기 평면
+
+**무엇을 검증하나**: ① 실기 원본 가드·운용 한계(J6 ±225) 복원 뒤 배치 수(예상 4/8) ② C1~C3(브릿지 방어선 `[360,95,135,360,135,360]`,
+MoveJoint 사다리꼴 페이싱, `sim_speed_scale` 1.0) ③ D1 로봇 USD J2/J3/J5 ±95/±135/±135(**씬 재로드** — 세부 칸 하이라이트 16장·4차 계란판도 이때 처음 로드)
+④ T4b 09-14 보강: 깊이 2 세부 자세 lab_plane(ee y 0.433)·유도 사다리·`VIEWING` 세부 칸 시야 ⑤ 화면(사용자).
+로그 [`20260915T131206-d0822327/`](20260915T131206-d0822327/). 사용자가 재로드·실행했고 판정표는 로그로 09-15 기입.
+
+| # | 항목 | 결과 | 근거 |
+|---|---|---|---|
+| 1 | 1차 스캔·가지치기 | ✅ | `OVERVIEW_SCAN nw:3 ne:2 se:0 sw:3`, `TRAVERSAL_PRUNED skip=['root/se']` |
+| 2 | 분할 판정 | ✅ | `SUBDIVIDE root/nw candidates=3 >= 3 cells=['sw', 'se']`, `SUBDIVIDE root/sw … cells=['se', 'nw', 'ne']`, `SUBDIVIDE_SKIP root/ne candidates=2 < 3` |
+| 3 | 깊이 2 유도 단계 | ✅ 오프라인 예측과 일치 | `SUBCELL_POSE` 5건 — nw/sw **lab_plane** dJ_max 19.6 · nw/se lab_plane 56.9 · sw/se lab_plane 37.8 · sw/nw lab_plane 43.8 · sw/ne **parent_y** 26.2 (ee y 433.0 / 317.3); `SUBDIVIDE_REJECTED` 0 |
+| 4 | 세부 칸 시야 | ✅ | `VIEWING` 4건(lab_plane 칸만) — fake_vision `SCAN_CELL root/nw/sw (VIEWING) -> 시야 = x[-0.495,-0.223] z[0.660,0.857]` 등; parent_y 칸(sw/ne)은 분면 시야 그대로 |
+| 5 | 파지·분리 | 🔶 **7/8** | 접근 8, `GRASP_JUDGE` 7/7 CONTACT, `PICK COMPLETE` 7. **ripe_08(280, 783, 700)** 은 접근 계획 `IK_FAIL` 3회 뒤 pre-approach 도달, 45mm 직선 진입에서 브릿지 `MoveLine IK Failed at step 23/23 (best delta=inf)` → 플래너 `ABORT: 직선 진입 실패` → 스캔 자세 복귀. 런 10 에서는 같은 과실을 잡았다 → **09-14 로봇 한계(J2/J3/J5 실기 값 ±95/±135/±135) 뒤 처음 나타난 차이**. 원인(어느 관절 한계인지)은 T4d 전에 브릿지 IK 로그로 확인할 것 |
+| 6 | 배치 | 🔶 **4/7** (배정 기준 4/8 — 09-14 예상과 일치) | `TAUGHT_TRAY_SLOT{0,1,3}_PLACE_BLOCKED` 3건 전부 `Cartesian plan rejected: J6 spline jump 356.x > 270 (limit boundary crossing - normalize discontinuity)` — J6 ±225 원복의 결과(`docs/e0509_spec_audit.md` §7), J3 swing 거부 0. `PICK_SEQUENCE_CONTINUE place_status=failed: released fruit here` 3 → Kit `RELEASE … frozen at` 보드 앞 3건(y 738~744, z 407~674) + 트레이 안 4건(z≈35) |
+| 7 | 방어선·도착 | ✅ | `JOINT_COMMAND_REJECTED`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`clamped`·`EXEC_TIMEOUT` 0 — J3 가 135° 한계에 닿는 트레이 자세에서도 도착 잔차 정상 |
+| 8 | D3 기록 | ✅ | `MOVEJ_OVER_DOOSAN_MOVEIT` 12건(J1 acc 145~171 · J2 144~180 · J3 154~180 > 120/120/150) — 자르지 않고 실행, 기록만 |
+| 9 | 시간 | **277초** | `OVERVIEW_SCAN_STARTED` → `READY_FOR_NEXT_START` (런 10 283.0). 분할 5칸 + `sim_speed_scale` 1.0 |
+| 10 | 화면 | ⏳ 사용자 | HUD 트리 패널(북서·남서 `(분할)` + 세부 칸 줄), 세부 칸 주황 하이라이트, 4차 계란판 — 런 10 판정표 4·6·8 을 여기서 닫는다 |
+
+**이 런이 보여준 것**: 실기 원본 값으로 되돌린 상태의 정직한 수치 — 8개 중 7개 분리, 4개 배치, 3개는 이송 계획 거부로 보드 앞에서 놓음(공중 동결 표현), 1개는 진입 실패.
+**이 런 뒤 (T4c ①②, 09-15)**: 공중 동결은 실패를 가린다 → 브릿지가 트레이 밖 릴리스를 **떨어뜨리고**(바닥 콜라이더 신설, 헤드리스 검증), HUD 완료 줄에 **배치 n · 낙하 m**. 화면 확인은 런 13.

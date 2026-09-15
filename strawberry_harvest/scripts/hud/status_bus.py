@@ -29,6 +29,13 @@ HUD_SPEC.md 4.1 참조 구현. 아래 네 가지가 사양과 다르다.
       쿼드트리 순회(1차 스캔 가지치기·잎·분할·세부 자세)를 화면에 트리로 그리는 상태.
       소유자는 scan 하나다. 모양·전이 규칙·표시 규칙은 tree_model.py 에 있고,
       여기서는 빈 값만 만든다.
+
+  (5) result.dropped 추가 (2026-09-15, T4c).
+      분리까지 된 과실을 이송·배치 계획 거부로 트레이 밖에서 놓아 버린 수.
+      실기 플래너의 `_release_and_continue_after_place_failure` 가 호출된 횟수다
+      (hold_on_place_failure=false 일 때만 불린다). 파지 자체가 실패한 경우
+      (PLACE_GATE_BLOCKED) 는 과실이 없으므로 세지 않는다 — 그건 failed 다.
+      소유자는 planner. 완료 줄에 '배치 n · 낙하 m' 으로 나간다.
 """
 from __future__ import annotations
 
@@ -116,7 +123,7 @@ def _blank() -> Dict[str, Any]:
         "region": {"name": "home"},
         "tree": tree_model.blank(),
         "sequence": {"state": "IDLE", "since": 0.0},
-        "result": {"succeeded": 0, "failed": 0, "finished": False},
+        "result": {"succeeded": 0, "failed": 0, "dropped": 0, "finished": False},
         "run": {"started_at": None},
     }
 

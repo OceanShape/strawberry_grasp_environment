@@ -28,6 +28,7 @@ SCALE = 2          # HiDPI 대비 2배로 그려서 절반 크기로 표시한�
 # (이름, 글자, 크기px, 색, 볼드)  — 크기·색은 isaac_sim_hud.py 와 같은 값
 TEXT = _rgb = lambda h: ((h >> 16) & 255, (h >> 8) & 255, h & 255, 255)
 C_TEXT, C_DIM, C_ACCENT = _rgb(0xE8EDF5), _rgb(0x7B8494), _rgb(0xFF6B81)
+C_BAD = _rgb(0xFF4D5E)   # isaac_sim_hud.C_BAD — 노드 램프 빨강과 같은 값
 PHASE = {"IDLE": 0x7B8494, "SCAN_MOVE": 0x4A9EFF, "DETECT": 0x00C8C8, "PLAN": 0xA78BFA,
          "APPROACH": 0xFFB547, "ENTER": 0xFFB547, "GRASP": 0xFF7A3D,
          "DETACH": 0xFF3D5C, "RETREAT": 0x4A9EFF,
@@ -52,6 +53,9 @@ ITEMS = [
     ("node_controller", "제어", 15, C_TEXT, False),
     ("node_scan", "스캔", 15, C_TEXT, False),
     ("final", "수확 완료", 30, C_ACCENT, True),
+    # [T4c 2026-09-15] 완료 둘째 줄 '배치 n · 낙하 m' (isaac_sim_hud._row_final)
+    ("final_placed", "배치", 20, C_TEXT, False),
+    ("final_dropped", "낙하", 20, C_BAD, False),
 ] + [("state_" + k, v, 34, _rgb(PHASE[k]), True) for k, v in STATE_KO.items()] \
   + [("region_" + k, v, 24, C_TEXT, False) for k, v in REGION_KO.items()]
 

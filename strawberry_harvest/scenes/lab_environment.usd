@@ -1,6 +1,6 @@
 #usda 1.0
 (
-    "정적 실험실 환경 조립본 (테이블 + 화이트보드) — main_scene에서 payload로 로드됨"
+    "정적 실험실 환경 조립본 (테이블 + 화이트보드 + 바닥) — main_scene에서 payload로 로드됨"
     defaultPrim = "lab_environment"
     metersPerUnit = 1
     upAxis = "Z"
@@ -26,5 +26,18 @@ def Xform "lab_environment"
         double3 xformOp:scale = (1.09, 0.79, 1)
         double3 xformOp:translate = (0.05, 0.81, 0.66)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+    }
+
+    # [T4c 2026-09-15] 바닥 — 시뮬 전용 소품. 트레이 밖에서 릴리스된 과실이 떨어져 닿는 면.
+    # 보드 앞 릴리스 지점(y≈0.74m)은 테이블 상판(y≤0.30m) 밖이라 이 면이 없으면 과실이
+    # 끝없이 떨어진다. 실기 바닥 높이 자료는 없다: 작업대 높이 0.75m 가정(상판 z=0 기준).
+    # 콜라이더는 layers/physics_layer.usd 의 over 로 붙는다 (table 과 같은 규칙).
+    def Cube "floor"
+    {
+        double size = 1
+        color3f[] primvars:displayColor = [(0.20, 0.21, 0.23)]
+        double3 xformOp:scale = (6, 6, 0.02)
+        double3 xformOp:translate = (0.4, 0.3, -0.76)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
     }
 }

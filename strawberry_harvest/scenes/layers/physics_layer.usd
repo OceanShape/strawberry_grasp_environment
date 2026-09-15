@@ -229,5 +229,12 @@ over "World"
                 uniform token physics:approximation = "none"
             }
         }
+
+        # [T4c 2026-09-15] 바닥 정적 콜라이더 — 낙하한 과실이 멈추는 면 (lab_environment.usd 참조).
+        over "floor" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+        }
     }
 }

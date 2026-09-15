@@ -19,10 +19,14 @@ What it does, once per physics step:
   4. [T2 2026-09-10] kinematic attach: on "ATTACH x y z" from /sim/grasp_event
      (published by sim_executor_bridge when it judges CONTACT) the nearest ripe
      strawberry root prim is captured relative to the gripper base link and
-     follows it every step; on "RELEASE" it is frozen where it is. Attached and
-     released fruit are dropped from /isaac_sim/strawberries -- otherwise a fruit
-     sitting in the tray would be re-detected as a target (the tray lies in the
-     SE quadrant of the board grid). No FixedJoint is created at runtime.
+     follows it every step; on "RELEASE" inside the tray it is frozen where it is,
+     [T4c 2026-09-15] on "RELEASE" outside the tray (planner gave up the place and
+     opened the gripper where it stood) it becomes a dynamic body again and falls
+     under gravity onto the floor collider -- the failure is shown, not hidden.
+     Attached and released fruit are dropped from /isaac_sim/strawberries --
+     otherwise a fruit sitting in the tray would be re-detected as a target (the
+     tray lies in the SE quadrant of the board grid). No FixedJoint is created at
+     runtime.
 """
 import sys
 import threading
@@ -115,7 +119,9 @@ def start_bridge():
     # Run this script -> Play, so a Run means "fresh scene"; fruit frozen in the tray by
     # an earlier run would otherwise stay excluded from publishing forever.
     node.attached = None          # {"path": str, "T_rel": Gf.Matrix4d} while a fruit follows the gripper
-    node.harvested = set()        # prim paths released into the tray -- never published again
+    node.harvested = set()        # prim paths released (tray or not) -- never published again
+    node.dropped = 0              # [T4c] releases outside the tray -> fell under gravity
+    node.tray_bounds = None       # [T4c] lazily computed world-space box of the egg carton
     node.gripper_rigid = None     # lazily created physics view of the gripper base link
 
     if hasattr(builtins, "my_physx_sub"):
@@ -256,13 +262,25 @@ def start_bridge():
     # at CONTACT and replay fruit_world = T_rel * gripper_world every step. The fruit is
     # NOT snapped to the TCP -- an approach that missed by 5 mm leaves the fruit hanging
     # 5 mm off, which is the point of a verification loop. While attached: rigid body
-    # set kinematic, stem joint disabled, colliders off. On RELEASE everything stays as
-    # is (kinematic + colliders off), so the fruit is a frozen prop in the tray and the
-    # retreating gripper cannot be kicked by an immovable body between its jaws.
+    # set kinematic, stem joint disabled, colliders off. On RELEASE inside the tray
+    # everything stays as is (kinematic + colliders off), so the fruit is a frozen prop
+    # in the tray and the retreating gripper cannot be kicked by an immovable body
+    # between its jaws (the egg carton has no collider, so a dynamic fruit would fall
+    # through it).
+    # [T4c 2026-09-15] On RELEASE outside the tray -- the planner rejected the transfer
+    # plan and opened the gripper where it stood (hold_on_place_failure=false) -- the
+    # fruit is made dynamic again (kinematic off, colliders on, stem joint stays off,
+    # velocity zero) and falls onto the floor collider. Freezing it in mid-air hid a
+    # placement failure behind a fruit that looked "held". The parts that touch the
+    # fruit (custom fingertips) have no colliders, so re-enabling the fruit's collider
+    # between the open jaws injects no contact impulse.
     # All physics/xform opinions go to the SESSION layer, so saving the stage never
     # bakes a harvested state into the scene file (same rule as the HUD highlight).
     GRIPPER_BASE_PRIM = "/World/robot_assembly/rh_p12_rn_base"   # cuRobo ee_link
     ATTACH_MATCH_MAX_M = 0.06     # bridge coordinate vs prim: farther than this = disagreement, ignore
+    TRAY_PRIM = "/World/egg_carton"   # in-tray test = inside this prim's world box (x, y) + margin
+    TRAY_XY_MARGIN_M = 0.03           # a release hanging over the carton rim still counts as "in tray"
+    TRAY_Z_ABOVE_M = 0.30             # ... and no higher than this above the carton top
 
     def _stage():
         return omni.usd.get_context().get_stage()
@@ -319,6 +337,60 @@ def start_bridge():
             else:
                 print("[bridge] WARNING: stem joint not found: %s" % joint_path)
 
+    def _set_dropped_physics(stage, berry):
+        """[T4c] Dynamic body again, colliders on, stem joint stays off. Session layer only.
+        The fruit was carried kinematically (no contact), so it starts the fall from rest
+        at the release pose instead of inheriting a kinematic target velocity."""
+        with Usd.EditContext(stage, stage.GetSessionLayer()):
+            rb = UsdPhysics.RigidBodyAPI(berry)
+            rb.CreateKinematicEnabledAttr(False)
+            rb.CreateVelocityAttr(Gf.Vec3f(0.0, 0.0, 0.0))
+            rb.CreateAngularVelocityAttr(Gf.Vec3f(0.0, 0.0, 0.0))
+            for p in Usd.PrimRange(berry):
+                if p.HasAPI(UsdPhysics.CollisionAPI):
+                    UsdPhysics.CollisionAPI(p).CreateCollisionEnabledAttr(True)
+
+    def _remove_session_xform_opinions(stage, path):
+        """[T4c] Drop the session-layer translate/orient opinions written by _follow_attached.
+        PhysX writes simulated poses back to the ROOT layer; a stronger session opinion
+        would mask that write-back and the falling fruit would still look frozen in the
+        viewport (headless check 2026-09-15, scratch test_drop_headless*.py: variant B —
+        copying the PhysX pose into USD each step — made omni.physx teleport the body every
+        step and reset its velocity; removing the opinions instead shows the fall with no
+        jump, because PhysX kept writing the carried pose to the root layer meanwhile)."""
+        spec = stage.GetSessionLayer().GetPrimAtPath(path)
+        if spec is None:
+            return
+        for name in ("xformOp:translate", "xformOp:orient"):
+            if name in spec.properties:
+                spec.RemoveProperty(spec.properties[name])
+
+    def _tray_bounds(stage):
+        """World-space box of the egg carton, computed once per Run (the tray never moves)."""
+        if node.tray_bounds is None:
+            prim = stage.GetPrimAtPath(TRAY_PRIM)
+            if not prim or not prim.IsValid():
+                print("[bridge] WARNING: tray prim not found: %s -- every release counts as outside"
+                      % TRAY_PRIM)
+                node.tray_bounds = False
+            else:
+                box = UsdGeom.BBoxCache(Usd.TimeCode.Default(),
+                                        ["default", "render"]).ComputeWorldBound(prim)
+                r = box.ComputeAlignedRange()
+                lo, hi = r.GetMin(), r.GetMax()
+                node.tray_bounds = (lo[0] - TRAY_XY_MARGIN_M, hi[0] + TRAY_XY_MARGIN_M,
+                                    lo[1] - TRAY_XY_MARGIN_M, hi[1] + TRAY_XY_MARGIN_M,
+                                    hi[2] + TRAY_Z_ABOVE_M)
+                print("[bridge] tray box x[%.3f, %.3f] y[%.3f, %.3f] z<=%.3f (from %s)"
+                      % (node.tray_bounds + (TRAY_PRIM,)))
+        return node.tray_bounds
+
+    def _in_tray(stage, pos):
+        b = _tray_bounds(stage)
+        if not b:
+            return False
+        return b[0] <= pos[0] <= b[1] and b[2] <= pos[1] <= b[3] and pos[2] <= b[4]
+
     def _set_world_xform(stage, prim, world_m):
         """Write translate/orient ops (scale untouched) so the prim lands at world_m."""
         parent_w = _usd_world(prim.GetParent()) if prim.GetParent() else Gf.Matrix4d(1.0)
@@ -368,8 +440,19 @@ def start_bridge():
         pos = _usd_world(prim).ExtractTranslation() if prim and prim.IsValid() else Gf.Vec3d(0, 0, 0)
         node.harvested.add(path)
         node.attached = None
-        print("[bridge] RELEASE %s  frozen at (%.1f, %.1f, %.1f) mm  harvested=%d"
-              % (path.split("/")[-1], pos[0] * 1000, pos[1] * 1000, pos[2] * 1000, len(node.harvested)))
+        name = path.split("/")[-1]
+        if _in_tray(stage, pos):
+            print("[bridge] RELEASE %s  PLACED in tray, frozen at (%.1f, %.1f, %.1f) mm  harvested=%d"
+                  % (name, pos[0] * 1000, pos[1] * 1000, pos[2] * 1000, len(node.harvested)))
+            return
+        # [T4c] outside the tray: let it fall. The count is printed so the Kit log agrees
+        # with the HUD's '낙하' number (harvest_probe counts the planner side).
+        if prim and prim.IsValid():
+            _set_dropped_physics(stage, prim)
+            _remove_session_xform_opinions(stage, path)
+        node.dropped += 1
+        print("[bridge] RELEASE %s  DROPPED outside tray at (%.1f, %.1f, %.1f) mm -> falls  harvested=%d dropped=%d"
+              % (name, pos[0] * 1000, pos[1] * 1000, pos[2] * 1000, len(node.harvested), node.dropped))
 
     def _drain_grasp_events(stage):
         with node.grasp_event_lock:

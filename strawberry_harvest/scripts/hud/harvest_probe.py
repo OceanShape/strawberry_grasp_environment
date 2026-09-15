@@ -274,6 +274,21 @@ def _attach_planner(node):
     _wrap("planner", tray, "execute_marker_place_after_retreat",
           before=_seq("PLACE"), after=_after_place)
 
+    # [T4c 2026-09-15] 낙하 카운터. 배치 실패로 시퀀스를 잠그지 않고 그 자리에서 조우를
+    # 여는 곳은 실행기의 이 메서드 하나다(hold_on_place_failure=false 일 때만 불린다).
+    # 첫 인자 label 이 PLACE_GATE_BLOCKED_* 면 파지 판정에 실패해 과실이 없는 경우라
+    # 세지 않는다(그건 failed). 나머지(계획 거부·트레이 없음·preview hold)는 분리된
+    # 과실을 트레이 밖에서 놓은 것이므로 '낙하' 다. Isaac 브릿지도 같은 사건을
+    # 릴리스 위치로 판정해 Kit 로그에 dropped=n 으로 찍는다 — 두 수가 같아야 한다.
+    def _before_release_and_continue(args, kwargs):
+        label = _arg(args, kwargs, 0, "label")
+        if isinstance(label, str) and label.startswith("PLACE_GATE_BLOCKED"):
+            return
+        status_bus.bump("result", "dropped")
+
+    _wrap("planner", executor, "_release_and_continue_after_place_failure",
+          before=_before_release_and_continue)
+
 
 _RE_SEQ_START = re.compile(
     r"PICK_SEQUENCE_START\s+\S+\s+.*?(\d+)\s+candidate targets.*?skipped_attempted=(\d+)")

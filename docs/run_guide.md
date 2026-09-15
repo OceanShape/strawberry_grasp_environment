@@ -108,6 +108,7 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
        ■■■■□□□□□□□                              11칸 진행 바
 ──────────────────────────────────────────
           수확 완료  5 / 6 (83%)                완주 후에만 (괄호 = 목표 대비 %)
+              배치 5   낙하 1                    (09-15) 트레이 슬롯 릴리스 수 · 이송 거부로 놓아 버린 수
 ```
 
 - **트리**(2026-09-11, 영역·타겟·배치 줄 대체)는 `scan_executor` 의 순회 결정을 실행 중에 그린다. 1차 스캔에서 후보 0 인
@@ -124,6 +125,9 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
   엔딩(`수확 완료 n/m`)은 남는다 — 살아 있는 노드의 파일은 계속 갱신되기 때문이다. `--kill` 은 파일을 지우지 않는다.
 - **완료 줄의 수는 "성공" 이 아니다.** 딸기를 그리퍼에 붙이는 attach 가 없어(파지는 기하 판정뿐)
   *파지 판정 통과 + 트레이 슬롯 릴리스 완료* 까지만 센다.
+- **낙하 (2026-09-15, T4c)**: 둘째 줄 `낙하 m` 은 이송·배치 계획이 거부돼 그 자리에서 놓은 과실 수(플래너 `PICK_SEQUENCE_CONTINUE … released fruit here` 와 같은 수).
+  브릿지는 그 과실을 **떨어뜨린다** — 트레이 밖 릴리스면 kinematic 을 풀고 콜라이더를 켜서 중력에 맡기고, 바닥(`lab_environment.usd` `floor`, 상판 아래 0.75m, **씬 재로드 필요**)에
+  닿아 멈춘다. Kit 로그 `RELEASE … DROPPED outside tray at … -> falls  dropped=n`. 트레이 안 릴리스는 종전대로 동결(`RELEASE … PLACED in tray, frozen at`).
 - **제원 정합 (2026-09-14)**: 브릿지 기동 로그에 `DOOSAN_MOVEIT_REF` 한 줄이 뜨고, 스캔 MoveJoint 마다 `MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 162>120 J3 acc 180>150` 이 남는다.
   **정상이다** — 실기 노드가 보낸 가속도를 자르지 않고 그대로 실행하면서 두산 공식 MoveIt 설정 초과만 기록하는 것이다(`docs/e0509_spec_audit.md` D3).
   시뮬 로봇 J2·J3·J5 한계는 실기 값 ±95·±135·±135 로 좁혔다(D1, **씬 재로드 필요**). J3 는 트레이 위 자세가 정확히 135° 라 한계에 닿는다 — 도착 잔차가 커지면 여기부터 본다.
@@ -516,7 +520,8 @@ place 관련 파라미터를 모두 빼고 `-p tool_model_profile:=legacy_160mm`
 - **[T4b 보강 09-14] 깊이 2 는 보드에 가깝게**: 기동 대조 `SUBDIVIDE_IK_READY … subcell_ee_y=0.433`. 세부 자세 로그 `SUBCELL_POSE root/sw/se tier=lab_plane …`(실기 평면 433) 또는 `tier=parent_y`(부모 거리, 09-11 동작). 스캔 자세 도착마다 `<cell>=VIEWING` 이 발행되고 fake_vision 로그에 `SCAN_CELL root/sw/se (VIEWING) -> 시야 = x[…] z[…]` 가 세부 칸 경계로 찍히면 정상. `SUBDIVIDE_REJECTED … (lab_plane: …)` 는 두 단계 모두 실패.
 - **[T4b] 적응 분할** (2026-09-11): `run_nodes.sh` 는 `subdivide_min_candidates:=3` 으로 띄운다. 분면 근거리 스캔 후보가 3 이상인 분면(현재 배치에서는 sw)만 `SUBDIVIDE root/sw candidates=3 >= 3 cells=[...]` 로 2×2 로 쪼개고, 후보 있는 세부 칸만 `SUBCELL_POSE root/sw/se …` → `MOVING_TO root/sw/se` → `AT_SCAN_POSE root/sw/se` → `SUBCELL_SCAN … unique=1` → pick 순으로 내려간다. 후보가 적은 분면은 `SUBDIVIDE_SKIP`(잎), 빈 세부 칸은 `SUBCELL_EMPTY`(2단 가지치기). 기동 로그 대조에 `SUBDIVIDE_IK_READY` 가 있어야 하며, 없으면 `SUBDIVIDE_DISABLED` 로 분할 없이 종전 흐름으로 돈다. 끄려면 `-p subdivide_min_candidates:=0`
 - **[T2] 딸기 부착 확인** (2026-09-10): 브릿지 로그에 `GRASP_ATTACH 과실 (x, y, z)mm` / `GRASP_RELEASE`, Isaac Script Editor 콘솔(또는 Kit 로그)에
-  `[bridge] ATTACH strawberry_ripe_NN  match N mm  offset …` / `[bridge] RELEASE … frozen at … harvested=N` 이 픽마다 한 쌍씩 찍힌다.
+  `[bridge] ATTACH strawberry_ripe_NN  match N mm  offset …` / `[bridge] RELEASE … PLACED in tray, frozen at … harvested=N`
+  (트레이 밖이면 `RELEASE … DROPPED outside tray at … -> falls  dropped=N`, 09-15) 이 픽마다 한 쌍씩 찍힌다. 기동 시 `[bridge] tray box x[…] y[…]` 한 줄이 계란판 상자다.
   `ATTACH ignored: no ripe fruit within 60 mm` 가 나오면 브릿지 좌표와 씬이 어긋난 것(씬 재로드 누락이 흔한 원인).
 - **씬 로드가 끝나기 전에 브릿지 스크립트를 Run 하면** `Exception: Prim path expression ['/World/robot_assembly'] is invalid` 로
   스크립트가 중단된다 (12:02 런 Kit 로그). 뷰포트에 로봇이 보인 뒤 Run 하고, 이 예외가 났으면 그냥 다시 Run 하면 된다.
