@@ -15,7 +15,7 @@
 - **종료 조건**: 09-09 수정본으로 END-TO-END 재완주 로그 1건(✅ 09-10 런 1) + 시뮬 영상 1편 + 실물 대조 클립쌍 3종 + 산출물 수치 갱신 + 원격 푸시.
 - **남은 예상**: 09-10 에 잡은 "집중 4~6일"은 T4b~T4d 추가 전 값이라 쓰지 않는다. 09-11 계획 변경으로 기한 대신 완료 기준으로 넘어간다.
 - **하지 않기로 확정한 것**: 병든 딸기 솎아내기(원안 C·D), M4 전체, 파지 접촉 물리, 물리 덩굴, 대량 배치 배속 영상. 이유는 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 (구 §5, 2026-09-11 이동).
-- **지금 위치 (2026-09-15)**: T1~T4b 끝. 09-14 에 실기 노드의 가드·운용 한계를 전부 원본으로 되돌리고 시뮬 브릿지·로봇 모델을 실기 값에 맞췄다 → **런 12(09-15)에서 확인: 7/8 분리, 4 배치, 3 이송 거부(J6 spline jump), 1 진입 실패** (`log/m3/README.md` 런 12). **T4c 09-15 완료(런 14: 8 파지 / 4 배치 / 4 낙하, 낙하 전부 바닥 정지, 완료 줄 카운트 일치)**. 다음은 T4d(무작위 배치 5 런 파일럿 → 30 런). 남은 순서는 §4-0.
+- **지금 위치 (2026-09-15)**: T1~T4b 끝. 09-14 에 실기 노드의 가드·운용 한계를 전부 원본으로 되돌리고 시뮬 브릿지·로봇 모델을 실기 값에 맞췄다 → **런 12(09-15)에서 확인: 7/8 분리, 4 배치, 3 이송 거부(J6 spline jump), 1 진입 실패** (`log/m3/README.md` 런 12). **T4c 09-15 완료(런 14: 8 파지 / 4 배치 / 4 낙하, 낙하 전부 바닥 정지, 완료 줄 카운트 일치)**. T4d 도구(생성기·배치 자동화·지표) 09-15 구현 — 다음은 5 런 파일럿 → 30 런. 남은 순서는 §4-0.
 - **M 과 T**: `PORTFOLIO_SPRINT.md` 의 M1~M4 는 **이력(동결)**이다. M3 = 이 문서의 T1~T6, M4 = 제출 이후. 현행 작업 번호는 **T 만** 쓴다.
 
 ---
@@ -78,7 +78,7 @@
 | T4 | 배치 슬롯 진행 + 계란판 메쉬 (4차) + 익은 8/4 | ✅ 09-11 | 런 9 검증 |
 | T4b | 적응 분할 + HUD 쿼드트리·세부 칸 하이라이트 | ✅ 09-12 구현·런 10 실행 / 🔶 화면 확인은 런 14 | 런 10 판정표 1·2·3·5·7 기입, 화면 항목은 런 12·14 |
 | **T4c** | **실기 원본 값 복원 뒤 실패를 정직하게 보여주기** — ① 트레이 밖 릴리스는 공중 동결 대신 **떨어지게**(브릿지; 보드 앞 릴리스 지점은 테이블 밖이라 **바닥 콜라이더 신설**, 런 13 관통 → 두께 1m + CCD) ② HUD 완료 줄에 **배치 n · 낙하 m**(프로브가 실행기의 release-and-continue 경계에서 셈) ③ 런 12: 09-14 변경 전부 실행 확인 + 씬 재로드 ④ 런 13: 관통·무재시작 발견 ⑤ 런 14: 8 파지 / 4 배치 / 4 낙하, `DROP_REST` 4/4 on floor, 버스 dropped 4 = Kit 4 | ✅ 09-15 (런 14, 화면 항목은 사용자 확인) | 시뮬 코드만. 실행기·플래너 무수정 |
-| **T4d** | **무작위 배치 N 회 → 성공률·이송 거부율** — 생성기(`docs/random_layout_audit.md` A1~A7 정리), 씬 재로드 자동화, 런당 지표 기록, N 은 아래 | ☐ | 종전 T7(레이아웃 1회 변경)을 대체 |
+| **T4d** | **무작위 배치 N 회 → 성공률·이송 거부율** — 생성기 `scene_tools/gen_random_layout.py`(A1~A3 한 번에), 배치 자동화 `scripts/run_batch.sh` + Isaac `isaac_batch_orchestrator.py`(파일 신호로 재로드·브릿지·HUD·Play), 런당 지표 `scripts/run_metrics.py`(CSV + Wilson CI), N 은 아래 | 🔶 도구 09-15 구현·오프라인 검증, 5 런 파일럿 대기 | 종전 T7(레이아웃 1회 변경)을 대체 |
 | T5 | 녹화 (롱샷 + 클로즈업, 런 2회) | ☐ | T4c 뒤. 실패 장면은 자막 없이 그대로 |
 | T6 | 수치 갱신 · 문서 정합 · 원격 푸시 | ☐ | |
 | ~~T7~~ | 레이아웃 변경 1회 완주 | ✖ T4d 로 흡수 | |
@@ -485,6 +485,36 @@ slot3 (511.91, 1.83). 열 피치 ≈ **59.7mm(-x)**, 행 피치 ≈ **50.6mm(-y)
   플래너 버스 `dropped 4` = Kit `dropped=4` = `released fruit here` 4, 방어선 0, 292초. 이송 거부 4 = J6 spline jump 3 + J3 swing 201>120 1(전부 원본 가드값).
   런 12 에서 진입 실패했던 ripe_08 은 이번엔 성공(pre-approach 해가 달랐다 — cuRobo 해 선택 간헐성, 고정 한계 아님). 화면 항목(트리·하이라이트·완료 둘째 줄·낙하 장면)은 사용자 확인.
 - **D455 (09-15)**: 실기 카메라 로그로 MinZ 계산 → `docs/d455_min_range.md`. 실기 설정 미확인, 시뮬 관대 축으로 기록.
+
+---
+
+### [~] T4d — 무작위 배치 N 런 → 파지율·이송 거부율·배치율 — **2026-09-15 도구 완성, 파일럿 대기**
+
+**왜**: "하드코딩이 아니다"는 배치를 바꿔 보이는 것이고, 실기도 매번 배치가 달랐다. 한 배치의 8개는 순서·슬롯으로 묶여 독립 표본이 아니므로
+단위는 런이다(§4-0 의 N 문단). 적응 분할의 이득도 고정 배치에선 측정이 안 됐다(G §6-2) — 배치가 바뀌면 분할 발생·단계가 달라지고 그 분포를 기록한다.
+
+**결정 (09-15) — 표본 범위**: 익은 8 · 미숙 4, 이름 고정, **x·z 만** 섞는다(y 0.7828 고정, audit B7·D). x ∈ ±0.42(실기 `DIRECT_GRASP_TARGET_X_RANGE_M`
+±0.45 안쪽 — 실기가 대상에서 빼는 띠에 놓으면 시퀀스가 아니라 그 파라미터를 재는 것, B1), z ∈ 0.35~0.90(런 12~14 배치가 검증된 높이), 중심 간격 ≥75mm,
+위 과실이 덩굴을 뚫는 배치 거부(|dx|<45mm 이고 0<dz<120mm), 분면 경계에서 15mm 띄움(B9). 그 밖의 실기 정책 분기(x>0.25 사다리, 스윙 가드, 이송 거부)는
+제약하지 않는다 — 측정 대상이다. 계란판 컵 봉투(A4·A5)는 손대지 않는다: T4c 뒤 트레이 안 릴리스는 동결이라 시각 문제일 뿐 지표에 안 들어간다.
+
+**도구**
+- `strawberry_harvest/scripts/scene_tools/gen_random_layout.py` — `--snapshot-base`(시연 배치 → `log/m3/random/layouts/base_layout.json`), `--seed N [--apply]`
+  (과실·덩굴 translate + 줄기 joint localPos0 세 곳을 한 번에), `--restore`. 시드별 JSON 에 좌표·기대값(`OVERVIEW_SCAN` 분면 수, 가지치기, 분할 분면, 최소 간격).
+  검증: 시드 1 적용 → 합성 씬에서 과실·덩굴·조인트 좌표 일치, `verify_vines.py` 통과(덩굴-이웃 +26.6mm), 통로 간격 최소 42.9mm, `--restore` 뒤 diff 0.
+- `scripts/run_batch.sh <N> [--seed-start S] [--tag pilot]` — 런마다 생성기 적용 → `/tmp/harvest_batch/request.json` → Isaac 오케스트레이터가 Stop·재로드·브릿지·HUD·Play
+  → `run_nodes.sh`(새 프로세스, 런 13 교훈) "전부 정합" 대기 → 트리거 → `READY_FOR_NEXT_START` 대기 → `--kill` → 로그 4개 + Kit 브릿지 줄(오프셋 슬라이스) +
+  배치 JSON 을 `log/m3/random/<tag>/run_<i>_seed_<s>/` → `run_metrics.py` CSV 누적. 연속 실패 2 회면 중단. 끝나면 base 배치 복원.
+- `strawberry_harvest/scripts/isaac_batch_orchestrator.py` — Script Editor 에서 한 번 Run. 새 토픽·서비스 없이 파일로 신호(HUD 와 같은 규칙).
+- `scripts/run_metrics.py <런 디렉터리> [--csv]` / `--aggregate runs.csv` — grasp/detach/place 율(익은 8 기준), reject 율(분리 중), 거부 이유(J6 spline·J3 swing·IK_FAIL),
+  낙하·정지 위치, 분할 분면·단계 수, 방어선 카운트, 시간; 합계에 95% Wilson 구간. `consistent` = placed+dropped == PICK COMPLETE 이고 dropped == released.
+  런 14 로 검증: 8/8/4 블록/4 placed/4 dropped, consistent True.
+
+**절차**: Isaac 기동 → Script Editor 에서 `isaac_batch_orchestrator.py` Run(1회) → 터미널에서 `bash scripts/run_batch.sh 5 --tag pilot` → 끝나면
+`run_metrics.py --aggregate log/m3/random/pilot/runs.csv`. 30 런은 `--tag main --seed-start 101`. 런당 6~7분(재로드·warmup 포함).
+
+**완료 기준**: 5 런 파일럿이 사람 손 없이 완주하고 CSV 5행이 전부 `consistent`, 그 뒤 30 런. 결과 표는 `portfolio/E_metrics.md` T6 에서.
+**금지 표현**: "무작위 배치에서 성공률 X%"를 파지·수확 성공으로 쓰지 않는다(파지 판정 통과율·배치율로). 배치 실패는 실기 원본 가드의 결과로 그대로 보고한다.
 
 ---
 

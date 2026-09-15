@@ -55,6 +55,17 @@
   - 참고: 같은 표 2·3·7행에는 SW 하나만 분할하던 옛 배치 기준이 남아 있다. 특히 3행의 `SUBDIVIDE_REJECTED 0건` 은 8/4 배치의 오프라인 수치(NW 의 se 칸 거부)와 어긋난다.
 - `portfolio/G_quadtree_interview.md` 시연 레이아웃 문단, `PROGRESS_REPORT.md`·`portfolio/E_metrics.md` 의 런별 수치, `SUBMISSION_PLAN.md` T4 항목.
 
+## G. 결정과 구현 (2026-09-15, T4d)
+
+- A1·A2·A3 → `scene_tools/gen_random_layout.py` 가 세 곳을 한 번에 쓴다. 시연 배치는 `--snapshot-base` 로 `log/m3/random/layouts/base_layout.json` 에 보존, `--restore` 로 복원.
+- B1 → 표본 x ∈ ±0.42 (실기 범위 ±0.45 안쪽). B7 → y 고정. B9 → 분면 경계 15mm 여유. B8 → 중심 간격 ≥75mm 로 자동 충족.
+- B2·B3·B4·B5·B10 → 제약하지 않는다(측정 대상). B6 → legacy_160mm 프로파일에서 `NW_HIGH_TARGET_*` 는 꺼져 있는지 파일럿 로그로 확인할 것.
+- A4·A5·A7(계란판 봉투) → 손대지 않음. T4c 뒤 트레이 안 릴리스는 동결이라 시각 문제만 남는다(지표는 브릿지의 트레이 상자 판정).
+- A6 → 생성기가 통로 규칙(|dx|<45mm 이고 0<dz<120mm 거부)으로 거르고, 적용 뒤 `verify_vines.py` 로 실제 메시 간격을 잰다.
+- C → `run_nodes.sh` 파라미터 그대로(슬롯 8칸 = 익은 8). `subdivide_min_candidates:=3` 도 그대로 — 분할이 0~2회로 달라지는 분포 자체가 기록 대상.
+- E → 시드별 JSON 의 `expect`(분면별 익은 수·가지치기·분할 분면)가 런별 기대값. 판정표 대신 `scripts/run_metrics.py` 의 CSV.
+- 실행 절차는 `docs/run_guide.md` "T4d — 무작위 배치 N 런 자동 실행".
+
 ## F. 확인했고 배치와 무관한 것
 
 - HUD 쿼드트리 패널 (`strawberry_harvest/scripts/hud/tree_model.py`) — 개수·위치 가정 없음, 분면 이름 4개만 쓴다.
