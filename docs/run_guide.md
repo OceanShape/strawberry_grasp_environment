@@ -75,7 +75,7 @@ cd ~/strawberry_grasp_environment && bash scripts/run_batch.sh 5 --tag pilot
 cd ~/strawberry_grasp_environment && python3 scripts/run_metrics.py --aggregate log/m3/random/pilot/runs.csv
 ```
 
-→ 본 실험 30 런은 `bash scripts/run_batch.sh 30 --tag main --seed-start 101` (약 3.5시간). 결과는 `log/m3/random/<tag>/`.
+→ ~~본 실험 30 런~~ — **09-15 개정: 30 런은 하지 않는다.** 파일럿 5 런(서로 다른 배치 5개)이 본 데이터이고, 결과는 `log/m3/random/pilot/` + 배치별 기록표 `log/m3/random/README.md`(SUBMISSION_PLAN T4d). 자동화 실패로 끊긴 런은 같은 시드로 다시 돌린다.
 중간에 멈추려면 `Ctrl+C` → `bash scripts/run_nodes.sh --kill` → `python3 strawberry_harvest/scripts/scene_tools/gen_random_layout.py --restore`.
 자세한 동작은 [T4d 절](#t4d--무작위-배치-n-런-자동-실행-2026-09-15).
 
@@ -324,8 +324,8 @@ bash scripts/run_batch.sh 5 --tag pilot
    요청한 뒤 `isaac_state.json` 이 `ready` 가 되면 `run_nodes.sh` 를 새로 띄워 트리거한다. 결과는 `log/m3/random/<tag>/run_<i>_seed_<s>/`
    (로그 4개, `kit_bridge.log`, `layout.json`, `metrics.json`) 과 `log/m3/random/<tag>/runs.csv`. 끝나면 시연 배치를 파일에 되돌린다
    (`gen_random_layout.py --restore` — Isaac 씬은 다음 재로드 때 반영).
-3. 요약: `python3 scripts/run_metrics.py --aggregate log/m3/random/pilot/runs.csv` (95% Wilson 구간).
-4. 30 런: `bash scripts/run_batch.sh 30 --tag main --seed-start 101` (약 3.5 시간).
+3. 카운트 확인: `python3 scripts/run_metrics.py --aggregate log/m3/random/pilot/runs.csv` — 출력의 Wilson 구간은 **보고에 쓰지 않는다**(09-15 개정, SUBMISSION_PLAN T4d).
+4. ~~30 런~~ 하지 않는다. 대신 런마다 `planner.log`·`scan.log`·`bridge.log` 를 읽어 `log/m3/random/README.md` 배치별 기록표를 채운다(새로 드러난 실기 노드 동작은 H §9 유형으로).
 
 멈추고 싶으면 터미널의 `run_batch.sh` 를 Ctrl-C 한 뒤 `bash scripts/run_nodes.sh --kill`, `python3 strawberry_harvest/scripts/scene_tools/gen_random_layout.py --restore`.
 `isaac_state.json` 이 `error` 면 Isaac 콘솔의 `[batch] … failed` 줄을 본다. 시연 배치(런 12~14)는 `log/m3/random/layouts/base_layout.json` 이 원본이다.

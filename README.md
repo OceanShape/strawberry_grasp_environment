@@ -7,7 +7,7 @@ Isaac Sim 5.1.0 기반 딸기 수확 전체 시뮬레이션 스택. 두산 e0509
 **현재 상태 (2026-09-15)** — 스캔 → 탐지 → 계획 → 접근 → 파지 → 분리 → 이송 → **배치(release)** → 복귀의 수확 핵심 경로가
 09-10 부터 매 런 끝까지 돕니다 (`log/m3/` 런 1~14, 익은 딸기 8개 씬). 09-14 에 시뮬이 실기보다 관대했던 설정을 원본으로 되돌렸고,
 그 뒤 트레이 배치는 8개 중 4개입니다 — 나머지는 실기 플래너의 이송 계획 거부이며 한계로 기록했습니다.
-남은 작업은 **무작위 배치 반복 런(T4d) → 녹화(T5) → 수치 갱신·푸시(T6)** 입니다. 현황 브리핑은 [`PROGRESS_REPORT.md`](PROGRESS_REPORT.md).
+과실 배치를 바꾼 런 5개도 끝까지 돌았습니다(T4d). 남은 작업은 **녹화(T5) → 수치 갱신·푸시(T6)** 입니다. 현황 브리핑은 [`PROGRESS_REPORT.md`](PROGRESS_REPORT.md).
 제출 범위·작업 순서는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md), 착수 금지 목록과 그 근거는 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) 가 기준입니다.
 
 ---

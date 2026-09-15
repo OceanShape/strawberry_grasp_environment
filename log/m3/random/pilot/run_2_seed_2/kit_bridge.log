@@ -1,0 +1,20 @@
+[bridge] initialize failed (1 so far): AttributeError("'NoneType' object has no attribute 'create_articulation_view'")
+[bridge] articulation (re)initialized
+[bridge] DOF map: {'joint_1': 0, 'joint_2': 1, 'joint_3': 2, 'joint_4': 3, 'joint_5': 4, 'joint_6': 5, 'rh_l1': 6, 'rh_p12_rn': 7, 'rh_l2': 8, 'rh_r2': 9}
+[bridge] apply_action recovered (after 1 failures)
+[bridge] gripper pose source: SingleRigidPrim
+[bridge] ATTACH strawberry_ripe_05  match 0.0 mm  offset from gripper base (27.5, 0.4, 254.0) mm
+[bridge] tray box x[0.565, 0.841] y[-0.205, 0.207] z<=0.357 (from /World/egg_carton)
+[bridge] RELEASE strawberry_ripe_05  PLACED in tray, frozen at (770.8, 137.2, 36.9) mm  harvested=1
+[bridge] ATTACH strawberry_ripe_03  match 0.0 mm  offset from gripper base (31.0, 2.1, 245.9) mm
+[bridge] RELEASE strawberry_ripe_03  DROPPED outside tray at (283.0, 739.1, 708.6) mm -> falls  harvested=2 dropped=1
+[bridge] DROP_REST strawberry_ripe_03  at (287.4, 756.1, -731.5) mm after 3.0 s -> on floor
+[bridge] ATTACH strawberry_ripe_06  match 0.0 mm  offset from gripper base (29.3, 0.7, 257.5) mm
+[bridge] RELEASE strawberry_ripe_06  DROPPED outside tray at (68.6, 738.8, 404.0) mm -> falls  harvested=3 dropped=2
+[bridge] DROP_REST strawberry_ripe_06  at (91.7, 769.1, -731.5) mm after 3.0 s -> on floor
+[bridge] ATTACH strawberry_ripe_04  match 0.0 mm  offset from gripper base (29.3, 0.5, 256.8) mm
+[bridge] RELEASE strawberry_ripe_04  PLACED in tray, frozen at (706.0, 137.4, 35.7) mm  harvested=4
+[bridge] ATTACH strawberry_ripe_02  match 0.0 mm  offset from gripper base (33.2, 4.5, 255.7) mm
+[bridge] RELEASE strawberry_ripe_02  PLACED in tray, frozen at (771.6, 74.3, 31.9) mm  harvested=5
+[bridge] ATTACH strawberry_ripe_07  match 0.0 mm  offset from gripper base (29.8, -0.9, 256.9) mm
+[bridge] RELEASE strawberry_ripe_07  PLACED in tray, frozen at (709.9, 71.2, 36.3) mm  harvested=6

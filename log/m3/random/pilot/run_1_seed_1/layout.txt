@@ -1,0 +1,15 @@
+  ripe_01    x -0.307  z 0.816  nw
+  ripe_02    x +0.222  z 0.490  se
+  ripe_03    x -0.004  z 0.597  sw
+  ripe_04    x +0.127  z 0.784  ne
+  ripe_05    x -0.341  z 0.366  sw
+  ripe_06    x +0.282  z 0.588  se
+  ripe_07    x +0.220  z 0.351  se
+  ripe_08    x -0.046  z 0.747  nw
+  unripe_02  x -0.228  z 0.870  nw
+  unripe_04  x +0.337  z 0.367  se
+  unripe_05  x +0.369  z 0.560  se
+  unripe_06  x -0.238  z 0.582  sw
+expect: OVERVIEW_SCAN nw:2 ne:1 se:3 sw:2  pruned []  subdivide ['se']  min spacing 91.4mm
+saved log/m3/random/layouts/seed_1.json
+applied seed 1 -> layout_layer.usd / physics_layer.usd. 씬 재로드 필요.

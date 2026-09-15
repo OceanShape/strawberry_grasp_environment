@@ -1,0 +1,188 @@
+[INFO] [1789457097.988679316] [scan_executor_node]: Loaded 4 scan targets from /home/oceanshape/strawberry_grasp_environment/install/strawberry_motion/share/strawberry_motion/config/scan_pose_candidates_refit_candidate.yaml
+[INFO] [1789457097.988886699] [scan_executor_node]: MoveJoint speeds: scan vel=120.0 acc=180.0, overview return vel=120.0 acc=180.0
+[INFO] [1789457097.989041429] [scan_executor_node]: MoveJoint service dispatch timeout: 30.0s; arrival is verified from /joint_states
+[INFO] [1789457098.549964226] [scan_executor_node]: SUBDIVIDE_IK_READY min_candidates=3 max_joint_delta=60deg seeds=32 init=0.6s subcell_ee_y=0.433
+[INFO] [1789457098.560139506] [scan_executor_node]: scan_executor_node ready; explicit /strawberry/scan/start required
+[harvest_probe] 계측 부착: role=scan -> /tmp/harvest_hud_scan.json
+[INFO] [1789457098.602871828] [scan_executor_node]: START_ACCEPTED explicit request; initial pose verified
+[INFO] [1789457098.604009544] [scan_executor_node]: TRAVERSAL_SCAN_STARTED cells=['root/nw', 'root/ne', 'root/se', 'root/sw'] (4/4 quadrants)
+[INFO] [1789457098.604751141] [scan_executor_node]: OVERVIEW_SCAN_STARTED — scene_positions 로 분면별 익은 과실 판정, 최대 3.0s
+[INFO] [1789457101.607544754] [scan_executor_node]: OVERVIEW_SCAN nw:1  ne:3  se:1  sw:3
+[INFO] [1789457101.608299656] [scan_executor_node]: MOVING_TO root/nw  endpoint_deg=[144.1 22.9 -1.0 -238.5 -75.3 108.7]  (direct MoveJoint, YAML pose)
+[INFO] [1789457101.608738419] [scan_executor_node]: Joint equivalent rewrite J4 -238.5 -> 121.5 deg (current 175.9, shorter by 360.0 deg)
+[INFO] [1789457101.609167429] [scan_executor_node]: Joint equivalent rewrite J4 -238.5 -> 121.5 deg (current 175.9, shorter by 360.0 deg)
+[INFO] [1789457103.613824699] [scan_executor_node]: MoveJoint response: success=True  target=[144.1 22.9 -1.0 121.5 -75.3 108.7]  vel=120.0  acc=180.0
+[INFO] [1789457103.614443287] [scan_executor_node]: AT_SCAN_POSE root/nw joints_deg=[144.0 22.7 -0.7 121.6 -75.2 108.7] — adaptive detection wait up to 3.0s
+[INFO] [1789457106.619510126] [scan_executor_node]: TARGET_FOUND root/nw 3 pick candidate(s) detected
+[INFO] [1789457106.620070262] [scan_executor_node]: SUBCELL_SCAN_ORDER root/nw root/nw/sw:0  root/nw/se:1  root/nw/nw:0  root/nw/ne:0
+[INFO] [1789457106.620462570] [scan_executor_node]: SUBDIVIDE_SKIP root/nw candidates=1 < 3 — 잎(leaf), 부모 자세에서 pick
+[INFO] [1789457106.620920080] [scan_executor_node]: SUBCELL_EMPTY root/nw/sw no pick candidate
+[INFO] [1789457106.621532318] [scan_executor_node]: PICK_SEQUENCE_START root/nw/se — 1 candidate targets (raw=1 skipped_attempted=0)
+[INFO] [1789457106.621911063] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/nw/se timeout=60s max_total_picks=0
+[INFO] [1789457106.622308724] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(-185,783,854)mm radius=25mm
+[INFO] [1789457106.622757951] [scan_executor_node]: PICK_TRIGGER root/nw/se 1/1 pos=(-185,783,854)mm
+[INFO] [1789457113.549551620] [scan_executor_node]: PICK_ATTEMPT_DONE root/nw/se 1/1 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457113.550016928] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457114.551217592] [scan_executor_node]: PICK_SEQUENCE_DONE root/nw/se — 1/1 attempted
+[INFO] [1789457114.551672641] [scan_executor_node]: SUBCELL_EMPTY root/nw/nw no pick candidate
+[INFO] [1789457114.552064912] [scan_executor_node]: SUBCELL_EMPTY root/nw/ne no pick candidate
+[INFO] [1789457114.552623937] [scan_executor_node]: INTER_CELL_DIRECT — no overview reset; continuing to next cell
+[INFO] [1789457114.552986045] [scan_executor_node]: CELL_RESCAN_AFTER_PICK root/nw pass=1 — checking remaining targets
+[INFO] [1789457114.553530718] [scan_executor_node]: MOVING_TO root/nw  endpoint_deg=[144.1 22.9 -1.0 -238.5 -75.3 108.7]  (direct MoveJoint, YAML pose)
+[INFO] [1789457114.553926632] [scan_executor_node]: Joint equivalent rewrite J4 -238.5 -> 121.5 deg (current 121.5, shorter by 360.0 deg)
+[INFO] [1789457114.554312839] [scan_executor_node]: Joint equivalent rewrite J4 -238.5 -> 121.5 deg (current 121.5, shorter by 360.0 deg)
+[INFO] [1789457114.654877856] [scan_executor_node]: MoveJoint response: success=True  target=[144.1 22.9 -1.0 121.5 -75.3 108.7]  vel=120.0  acc=180.0
+[INFO] [1789457114.655286549] [scan_executor_node]: AT_SCAN_POSE root/nw joints_deg=[144.1 23.0 -0.9 121.5 -75.3 108.7] — adaptive detection wait up to 3.0s
+[INFO] [1789457117.659922939] [scan_executor_node]: TARGET_FOUND root/nw 3 pick candidate(s) detected
+[INFO] [1789457117.660419506] [scan_executor_node]: SUBCELL_SCAN_ORDER root/nw root/nw/sw:0  root/nw/se:1  root/nw/nw:0  root/nw/ne:0
+[INFO] [1789457117.660804154] [scan_executor_node]: SUBDIVIDE_SKIP root/nw candidates=1 < 3 — 잎(leaf), 부모 자세에서 pick
+[INFO] [1789457117.661230583] [scan_executor_node]: SUBCELL_EMPTY root/nw/sw no pick candidate
+[INFO] [1789457117.661732714] [scan_executor_node]: PICK_SKIP_ATTEMPTED root/nw/se pos=(-185,783,854)mm
+[INFO] [1789457117.662192578] [scan_executor_node]: PICK_SEQUENCE_START root/nw/se — 0 candidate targets (raw=1 skipped_attempted=1)
+[INFO] [1789457117.662555515] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/nw/se timeout=60s max_total_picks=0
+[INFO] [1789457117.662919099] [scan_executor_node]: PICK_SEQUENCE_DONE root/nw/se — 0/0 attempted
+[INFO] [1789457117.663315749] [scan_executor_node]: SUBCELL_EMPTY root/nw/nw no pick candidate
+[INFO] [1789457117.663710434] [scan_executor_node]: SUBCELL_EMPTY root/nw/ne no pick candidate
+[INFO] [1789457117.664218294] [scan_executor_node]: INTER_CELL_DIRECT — no overview reset; continuing to next cell
+[INFO] [1789457117.664827232] [scan_executor_node]: MOVING_TO root/ne  endpoint_deg=[18.9 26.0 1.0 74.6 78.2 -115.6]  (direct MoveJoint, YAML pose)
+[INFO] [1789457117.665219351] [scan_executor_node]: Joint equivalent rewrite J6 -115.6 -> 244.4 deg (current 108.7, shorter by 88.6 deg)
+[INFO] [1789457117.665621509] [scan_executor_node]: Joint equivalent rewrite J6 -115.6 -> 244.4 deg (current 108.7, shorter by 88.6 deg)
+[INFO] [1789457119.819248733] [scan_executor_node]: MoveJoint response: success=True  target=[18.9 26.0 1.0 74.6 78.2 244.4]  vel=120.0  acc=180.0
+[INFO] [1789457119.819816109] [scan_executor_node]: AT_SCAN_POSE root/ne joints_deg=[19.1 26.0 1.1 74.7 77.9 244.2] — adaptive detection wait up to 3.0s
+[INFO] [1789457122.824090505] [scan_executor_node]: TARGET_FOUND root/ne 9 pick candidate(s) detected
+[INFO] [1789457122.824460877] [scan_executor_node]: SUBCELL_SCAN_ORDER root/ne root/ne/sw:1  root/ne/se:1  root/ne/nw:1  root/ne/ne:0
+[INFO] [1789457122.824808529] [scan_executor_node]: SUBDIVIDE root/ne candidates=3 >= 3 cells=['sw', 'se', 'nw'] — 후보 있는 세부 칸만 세부 자세로 방문
+[INFO] [1789457123.597974931] [scan_executor_node]: SUBCELL_POSE root/ne/sw tier=lab_plane dJ_max=57.5deg dJ=[37 26 58 18 36 19] ee_mm=[314.8, 279.9, 883.4] -> [178.6, 433.0, 784.7] joints_deg=[55.6 -0.2 58.5 56.0 42.6 -134.6] (실기 깊이 2 평면 y=0.433 로 이동, 부모 시드 IK)
+[INFO] [1789457123.598786845] [scan_executor_node]: MOVING_TO root/ne/sw  endpoint_deg=[55.6 -0.2 58.5 56.0 42.6 -134.6]  (direct MoveJoint, YAML pose)
+[INFO] [1789457123.599208676] [scan_executor_node]: Joint equivalent rewrite J6 -134.6 -> 225.4 deg (current 244.4, shorter by 360.0 deg)
+[INFO] [1789457123.599620093] [scan_executor_node]: Joint equivalent rewrite J6 -134.6 -> 225.4 deg (current 244.4, shorter by 360.0 deg)
+[INFO] [1789457124.952012150] [scan_executor_node]: MoveJoint response: success=True  target=[55.6 -0.2 58.5 56.0 42.6 225.4]  vel=120.0  acc=180.0
+[INFO] [1789457124.952384173] [scan_executor_node]: AT_SCAN_POSE root/ne/sw joints_deg=[55.5 -0.0 58.3 56.1 42.8 225.5] — adaptive detection wait up to 3.0s
+[INFO] [1789457127.957867223] [scan_executor_node]: SUBCELL_SCAN root/ne/sw raw=3 in_cell=3 unique=1 (분면 시야 중 이 칸의 것만)
+[INFO] [1789457127.958318262] [scan_executor_node]: PICK_SEQUENCE_START root/ne/sw — 1 candidate targets (raw=1 skipped_attempted=0)
+[INFO] [1789457127.958503701] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/ne/sw timeout=60s max_total_picks=0
+[INFO] [1789457127.958694947] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(103,783,758)mm radius=25mm
+[INFO] [1789457127.958920392] [scan_executor_node]: PICK_TRIGGER root/ne/sw 1/1 pos=(103,783,758)mm
+[INFO] [1789457161.201056152] [scan_executor_node]: PICK_ATTEMPT_DONE root/ne/sw 1/1 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457161.201375200] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457162.202041403] [scan_executor_node]: PICK_SEQUENCE_DONE root/ne/sw — 1/1 attempted
+[INFO] [1789457162.541740480] [scan_executor_node]: SUBCELL_POSE root/ne/se tier=parent_y dJ_max=23.3deg dJ=[6 3 20 9 1 23] ee_mm=[314.8, 279.9, 883.4] -> [451.1, 279.9, 784.7] joints_deg=[13.4 28.8 20.7 84.0 77.3 -138.9] (부모 y 유지, x·z 평행이동, 부모 시드 IK)
+[INFO] [1789457162.542136845] [scan_executor_node]: MOVING_TO root/ne/se  endpoint_deg=[13.4 28.8 20.7 84.0 77.3 -138.9]  (direct MoveJoint, YAML pose)
+[INFO] [1789457163.744269148] [scan_executor_node]: MoveJoint response: success=True  target=[13.4 28.8 20.7 84.0 77.3 -138.9]  vel=120.0  acc=180.0
+[INFO] [1789457163.744649819] [scan_executor_node]: AT_SCAN_POSE root/ne/se joints_deg=[13.7 28.8 20.9 83.8 77.1 -138.9] — adaptive detection wait up to 3.0s
+[INFO] [1789457166.748924296] [scan_executor_node]: SUBCELL_SCAN root/ne/se raw=6 in_cell=3 unique=1 (분면 시야 중 이 칸의 것만)
+[INFO] [1789457166.749411688] [scan_executor_node]: PICK_SEQUENCE_START root/ne/se — 1 candidate targets (raw=1 skipped_attempted=0)
+[INFO] [1789457166.749676940] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/ne/se timeout=60s max_total_picks=0
+[INFO] [1789457166.749940468] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(372,783,707)mm radius=25mm
+[INFO] [1789457166.750245034] [scan_executor_node]: PICK_TRIGGER root/ne/se 1/1 pos=(372,783,707)mm
+[INFO] [1789457190.690096563] [scan_executor_node]: PICK_ATTEMPT_DONE root/ne/se 1/1 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457190.690378062] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457191.691686323] [scan_executor_node]: PICK_SEQUENCE_DONE root/ne/se — 1/1 attempted
+[INFO] [1789457191.974391423] [scan_executor_node]: SUBDIVIDE_REJECTED root/ne/nw reason=IK_FAIL goal_ee_mm=[178.6, 279.9, 982.2] ik_solutions=0 (lab_plane: IK_FAIL) — 부모 자세에서 pick
+[INFO] [1789457191.974823216] [scan_executor_node]: SUBDIVIDE_RETURN_TO_PARENT root/ne — 부모 자세로 복귀한 뒤 pick
+[INFO] [1789457191.975196125] [scan_executor_node]: MOVING_TO root/ne  endpoint_deg=[18.9 26.0 1.0 74.6 78.2 -115.6]  (direct MoveJoint, YAML pose)
+[INFO] [1789457192.927507636] [scan_executor_node]: MoveJoint response: success=True  target=[18.9 26.0 1.0 74.6 78.2 -115.6]  vel=120.0  acc=180.0
+[INFO] [1789457192.928112599] [scan_executor_node]: PICK_SEQUENCE_START root/ne/nw — 1 candidate targets (raw=1 skipped_attempted=0)
+[INFO] [1789457192.928293424] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/ne/nw timeout=60s max_total_picks=0
+[INFO] [1789457192.928473115] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(248,783,868)mm radius=25mm
+[INFO] [1789457192.928697930] [scan_executor_node]: PICK_TRIGGER root/ne/nw 1/1 pos=(248,783,868)mm
+[INFO] [1789457196.011903170] [scan_executor_node]: PICK_ATTEMPT_DONE root/ne/nw 1/1 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457196.012189905] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457197.012921451] [scan_executor_node]: PICK_SEQUENCE_DONE root/ne/nw — 1/1 attempted
+[INFO] [1789457197.013163403] [scan_executor_node]: SUBCELL_EMPTY root/ne/ne no pick candidate — 2단 가지치기
+[INFO] [1789457197.013755696] [scan_executor_node]: INTER_CELL_DIRECT — no overview reset; continuing to next cell
+[INFO] [1789457197.013981391] [scan_executor_node]: CELL_RESCAN_AFTER_PICK root/ne pass=1 — checking remaining targets
+[INFO] [1789457197.014507388] [scan_executor_node]: MOVING_TO root/ne  endpoint_deg=[18.9 26.0 1.0 74.6 78.2 -115.6]  (direct MoveJoint, YAML pose)
+[INFO] [1789457197.115511131] [scan_executor_node]: MoveJoint response: success=True  target=[18.9 26.0 1.0 74.6 78.2 -115.6]  vel=120.0  acc=180.0
+[INFO] [1789457197.115887355] [scan_executor_node]: AT_SCAN_POSE root/ne joints_deg=[18.9 26.1 1.1 74.6 78.2 -115.7] — adaptive detection wait up to 3.0s
+[INFO] [1789457200.120173062] [scan_executor_node]: TARGET_FOUND root/ne 3 pick candidate(s) detected
+[INFO] [1789457200.120451685] [scan_executor_node]: SUBCELL_SCAN_ORDER root/ne root/ne/sw:0  root/ne/se:0  root/ne/nw:1  root/ne/ne:0
+[INFO] [1789457200.120622585] [scan_executor_node]: SUBDIVIDE_SKIP root/ne candidates=1 < 3 — 잎(leaf), 부모 자세에서 pick
+[INFO] [1789457200.120903660] [scan_executor_node]: SUBCELL_EMPTY root/ne/sw no pick candidate
+[INFO] [1789457200.121071891] [scan_executor_node]: SUBCELL_EMPTY root/ne/se no pick candidate
+[INFO] [1789457200.121374712] [scan_executor_node]: PICK_SKIP_ATTEMPTED root/ne/nw pos=(248,783,868)mm
+[INFO] [1789457200.121577504] [scan_executor_node]: PICK_SEQUENCE_START root/ne/nw — 0 candidate targets (raw=1 skipped_attempted=1)
+[INFO] [1789457200.121743744] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/ne/nw timeout=60s max_total_picks=0
+[INFO] [1789457200.121905255] [scan_executor_node]: PICK_SEQUENCE_DONE root/ne/nw — 0/0 attempted
+[INFO] [1789457200.122076206] [scan_executor_node]: SUBCELL_EMPTY root/ne/ne no pick candidate
+[INFO] [1789457200.122331122] [scan_executor_node]: INTER_CELL_DIRECT — no overview reset; continuing to next cell
+[INFO] [1789457200.122614204] [scan_executor_node]: MOVING_TO root/se  endpoint_deg=[22.7 -4.6 103.6 97.7 68.2 -190.8]  (direct MoveJoint, YAML pose)
+[INFO] [1789457201.875857540] [scan_executor_node]: MoveJoint response: success=True  target=[22.7 -4.6 103.6 97.7 68.2 -190.8]  vel=120.0  acc=180.0
+[INFO] [1789457201.876206768] [scan_executor_node]: AT_SCAN_POSE root/se joints_deg=[22.7 -4.5 103.4 97.6 68.2 -190.7] — adaptive detection wait up to 3.0s
+[INFO] [1789457204.881091002] [scan_executor_node]: TARGET_FOUND root/se 3 pick candidate(s) detected
+[INFO] [1789457204.881616038] [scan_executor_node]: SUBCELL_SCAN_ORDER root/se root/se/sw:0  root/se/se:1  root/se/nw:0  root/se/ne:0
+[INFO] [1789457204.882013316] [scan_executor_node]: SUBDIVIDE_SKIP root/se candidates=1 < 3 — 잎(leaf), 부모 자세에서 pick
+[INFO] [1789457204.882483288] [scan_executor_node]: SUBCELL_EMPTY root/se/sw no pick candidate
+[INFO] [1789457204.883141006] [scan_executor_node]: PICK_SEQUENCE_START root/se/se — 1 candidate targets (raw=1 skipped_attempted=0)
+[INFO] [1789457204.883519136] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/se/se timeout=60s max_total_picks=0
+[INFO] [1789457204.883933279] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(337,783,412)mm radius=25mm
+[INFO] [1789457204.884404073] [scan_executor_node]: PICK_TRIGGER root/se/se 1/1 pos=(337,783,412)mm
+[INFO] [1789457227.237803701] [scan_executor_node]: PICK_ATTEMPT_DONE root/se/se 1/1 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457227.238207626] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457228.239150740] [scan_executor_node]: PICK_SEQUENCE_DONE root/se/se — 1/1 attempted
+[INFO] [1789457228.239620107] [scan_executor_node]: SUBCELL_EMPTY root/se/nw no pick candidate
+[INFO] [1789457228.240054368] [scan_executor_node]: SUBCELL_EMPTY root/se/ne no pick candidate
+[INFO] [1789457228.240653969] [scan_executor_node]: INTER_CELL_DIRECT — no overview reset; continuing to next cell
+[INFO] [1789457228.241024541] [scan_executor_node]: CELL_RESCAN_AFTER_PICK root/se pass=1 — checking remaining targets
+[INFO] [1789457228.241616017] [scan_executor_node]: MOVING_TO root/se  endpoint_deg=[22.7 -4.6 103.6 97.7 68.2 -190.8]  (direct MoveJoint, YAML pose)
+[INFO] [1789457228.292414079] [scan_executor_node]: MoveJoint response: success=True  target=[22.7 -4.6 103.6 97.7 68.2 -190.8]  vel=120.0  acc=180.0
+[INFO] [1789457228.293057653] [scan_executor_node]: AT_SCAN_POSE root/se joints_deg=[22.7 -4.5 103.6 97.7 68.2 -190.8] — adaptive detection wait up to 3.0s
+[INFO] [1789457231.298086474] [scan_executor_node]: SCANNED_EMPTY root/se no detection in dwell window
+[INFO] [1789457231.298392672] [scan_executor_node]: INTER_CELL_DIRECT — no overview reset; continuing to next cell
+[INFO] [1789457231.298841468] [scan_executor_node]: MOVING_TO root/sw  endpoint_deg=[150.3 -11.9 109.1 -97.8 63.3 10.5]  (direct MoveJoint, YAML pose)
+[INFO] [1789457231.299065928] [scan_executor_node]: Joint equivalent rewrite J4 -97.8 -> 262.2 deg (current 97.7, shorter by 31.0 deg)
+[INFO] [1789457231.299224617] [scan_executor_node]: Joint equivalent rewrite J6 10.5 -> -349.5 deg (current -190.8, shorter by 42.6 deg)
+[INFO] [1789457231.299421697] [scan_executor_node]: Joint equivalent rewrite J4 -97.8 -> 262.2 deg (current 97.7, shorter by 31.0 deg)
+[INFO] [1789457231.299574567] [scan_executor_node]: Joint equivalent rewrite J6 10.5 -> -349.5 deg (current -190.8, shorter by 42.6 deg)
+[INFO] [1789457233.553573583] [scan_executor_node]: MoveJoint response: success=True  target=[150.3 -11.9 109.1 262.2 63.3 -349.5]  vel=120.0  acc=180.0
+[INFO] [1789457233.553912870] [scan_executor_node]: AT_SCAN_POSE root/sw joints_deg=[150.1 -11.9 109.1 262.0 63.3 -349.3] — adaptive detection wait up to 3.0s
+[INFO] [1789457236.558342698] [scan_executor_node]: TARGET_FOUND root/sw 9 pick candidate(s) detected
+[INFO] [1789457236.558681067] [scan_executor_node]: SUBCELL_SCAN_ORDER root/sw root/sw/sw:0  root/sw/se:0  root/sw/nw:2  root/sw/ne:1
+[INFO] [1789457236.559047428] [scan_executor_node]: SUBDIVIDE root/sw candidates=3 >= 3 cells=['nw', 'ne'] — 후보 있는 세부 칸만 세부 자세로 방문
+[INFO] [1789457236.559218728] [scan_executor_node]: SUBCELL_EMPTY root/sw/sw no pick candidate — 2단 가지치기
+[INFO] [1789457236.559402049] [scan_executor_node]: SUBCELL_EMPTY root/sw/se no pick candidate — 2단 가지치기
+[INFO] [1789457236.685660402] [scan_executor_node]: SUBCELL_POSE root/sw/nw tier=lab_plane dJ_max=43.8deg dJ=[4 28 44 9 5 18] ee_mm=[-247.7, 317.3, 533.9] -> [-384.0, 433.0, 632.6] joints_deg=[146.3 15.8 65.3 -88.8 58.3 -7.7] (실기 깊이 2 평면 y=0.433 로 이동, 부모 시드 IK)
+[INFO] [1789457236.686206063] [scan_executor_node]: MOVING_TO root/sw/nw  endpoint_deg=[146.3 15.8 65.3 -88.8 58.3 -7.7]  (direct MoveJoint, YAML pose)
+[INFO] [1789457236.686452054] [scan_executor_node]: Joint equivalent rewrite J4 -88.8 -> 271.2 deg (current 262.2, shorter by 342.0 deg)
+[INFO] [1789457236.686778395] [scan_executor_node]: Joint equivalent rewrite J4 -88.8 -> 271.2 deg (current 262.2, shorter by 342.0 deg)
+[INFO] [1789457240.493211196] [scan_executor_node]: MoveJoint response: success=True  target=[146.3 15.8 65.3 271.2 58.3 -7.7]  vel=120.0  acc=180.0
+[INFO] [1789457240.493898287] [scan_executor_node]: AT_SCAN_POSE root/sw/nw joints_deg=[146.3 15.8 65.3 271.2 58.3 -7.9] — adaptive detection wait up to 3.0s
+[INFO] [1789457243.499607112] [scan_executor_node]: SUBCELL_SCAN root/sw/nw raw=6 in_cell=6 unique=2 (분면 시야 중 이 칸의 것만)
+[INFO] [1789457243.500018491] [scan_executor_node]: PICK_SEQUENCE_START root/sw/nw — 2 candidate targets (raw=2 skipped_attempted=0)
+[INFO] [1789457243.500201960] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/sw/nw timeout=60s max_total_picks=0
+[INFO] [1789457243.500418395] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(-409,783,469)mm radius=25mm
+[INFO] [1789457243.500645087] [scan_executor_node]: PICK_TRIGGER root/sw/nw 1/2 pos=(-409,783,469)mm
+[INFO] [1789457277.445854633] [scan_executor_node]: PICK_ATTEMPT_DONE root/sw/nw 1/2 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457277.446074527] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457278.446978099] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(-396,783,606)mm radius=25mm
+[INFO] [1789457278.447314905] [scan_executor_node]: PICK_TRIGGER root/sw/nw 2/2 pos=(-396,783,606)mm
+[INFO] [1789457303.977926280] [scan_executor_node]: PICK_ATTEMPT_DONE root/sw/nw 2/2 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457303.978143592] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457304.978949277] [scan_executor_node]: PICK_SEQUENCE_DONE root/sw/nw — 2/2 attempted
+[INFO] [1789457305.331252310] [scan_executor_node]: SUBCELL_POSE root/sw/ne tier=parent_y dJ_max=26.2deg dJ=[21 16 5 18 21 26] ee_mm=[-247.7, 317.3, 533.9] -> [-111.5, 317.3, 632.6] joints_deg=[129.1 -28.0 104.4 -80.2 42.0 -15.8] (부모 y 유지, x·z 평행이동, 부모 시드 IK)
+[INFO] [1789457305.331665643] [scan_executor_node]: MOVING_TO root/sw/ne  endpoint_deg=[129.1 -28.0 104.4 -80.2 42.0 -15.8]  (direct MoveJoint, YAML pose)
+[INFO] [1789457305.331874641] [scan_executor_node]: Joint equivalent rewrite J4 -80.2 -> 279.8 deg (current 271.2, shorter by 342.8 deg)
+[INFO] [1789457305.332085633] [scan_executor_node]: Joint equivalent rewrite J4 -80.2 -> 279.8 deg (current 271.2, shorter by 342.8 deg)
+[INFO] [1789457306.585189442] [scan_executor_node]: MoveJoint response: success=True  target=[129.1 -28.0 104.4 279.8 42.0 -15.8]  vel=120.0  acc=180.0
+[INFO] [1789457306.585547451] [scan_executor_node]: AT_SCAN_POSE root/sw/ne joints_deg=[129.2 -27.8 104.2 279.7 42.1 -15.7] — adaptive detection wait up to 3.0s
+[INFO] [1789457309.591334997] [scan_executor_node]: SUBCELL_SCAN root/sw/ne raw=3 in_cell=3 unique=1 (분면 시야 중 이 칸의 것만)
+[INFO] [1789457309.592085279] [scan_executor_node]: PICK_SEQUENCE_START root/sw/ne — 1 candidate targets (raw=1 skipped_attempted=0)
+[INFO] [1789457309.592469068] [scan_executor_node]: PICK_ALL_DETECTED_TARGETS root/sw/ne timeout=60s max_total_picks=0
+[INFO] [1789457309.592876620] [scan_executor_node]: PICK_ATTEMPT_BLACKLIST_ADD pos=(-26,783,486)mm radius=25mm
+[INFO] [1789457309.593358262] [scan_executor_node]: PICK_TRIGGER root/sw/ne 1/1 pos=(-26,783,486)mm
+[INFO] [1789457343.160431444] [scan_executor_node]: PICK_ATTEMPT_DONE root/sw/ne 1/1 — planner sequence ended (success is verified by gripper/manual KPI, not this Empty topic)
+[INFO] [1789457343.160856335] [scan_executor_node]: PICK_ATTEMPT_SETTLE 1.0s before next target
+[INFO] [1789457344.162192662] [scan_executor_node]: PICK_SEQUENCE_DONE root/sw/ne — 1/1 attempted
+[INFO] [1789457344.162700280] [scan_executor_node]: CELL_RESCAN_AFTER_PICK root/sw pass=1 — checking remaining targets
+[INFO] [1789457344.163023665] [scan_executor_node]: MOVING_TO root/sw  endpoint_deg=[150.3 -11.9 109.1 -97.8 63.3 10.5]  (direct MoveJoint, YAML pose)
+[INFO] [1789457344.163303830] [scan_executor_node]: Joint equivalent rewrite J4 -97.8 -> 262.2 deg (current 279.8, shorter by 360.0 deg)
+[INFO] [1789457344.163728001] [scan_executor_node]: Joint equivalent rewrite J4 -97.8 -> 262.2 deg (current 279.8, shorter by 360.0 deg)
+[INFO] [1789457345.165808797] [scan_executor_node]: MoveJoint response: success=True  target=[150.3 -11.9 109.1 262.2 63.3 10.5]  vel=120.0  acc=180.0
+[INFO] [1789457345.166428084] [scan_executor_node]: AT_SCAN_POSE root/sw joints_deg=[150.1 -12.0 109.1 262.3 63.2 10.3] — adaptive detection wait up to 3.0s
+[INFO] [1789457348.171167929] [scan_executor_node]: SCANNED_EMPTY root/sw no detection in dwell window
+[INFO] [1789457348.171478492] [scan_executor_node]: RETURNING_TO_OVERVIEW
+[INFO] [1789457349.874179096] [scan_executor_node]: MoveJoint response: success=True  target=[88.0 -94.9 129.9 175.9 -31.3 93.4]  vel=120.0  acc=180.0
+[INFO] [1789457349.874498955] [scan_executor_node]: AT_OVERVIEW joints_deg=[88.1 -94.7 129.9 176.1 -31.2 93.3]
+[INFO] [1789457349.874679437] [scan_executor_node]: HARVEST_PRIORITY_ORDER root/nw:3  root/ne:3  root/se:0  root/sw:0
+[INFO] [1789457349.874835645] [scan_executor_node]: SCAN_COMPLETE
+[INFO] [1789457349.875194857] [scan_executor_node]: READY_FOR_NEXT_START

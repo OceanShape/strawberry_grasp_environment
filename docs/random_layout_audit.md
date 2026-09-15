@@ -30,7 +30,7 @@
 | B3 | `harvest_motion_params.py:171` `MAX_HARVEST_JOINT_DELTA_DEG` | J1 75도 — 원본 (09-08 에 95 로 올렸다가 **09-14 원복**) | 특정 과실에서 막혀서 푼 스윙 상한. 새 위치가 다시 걸릴 수 있다 |
 | B4 | `harvest_motion_params.py:187` `MAX_TAUGHT_PLACE_TRANSFER_JOINT_DELTA_DEG` | J2 100·J3 120 — 원본 (09-08·09-10 상향분 **09-14 원복**) | 같은 성격. 위쪽 과실일수록 트레이 이송 스윙이 크다. **런 10·11 에서 실제 발생** — ripe_08 slot 4 J3 186°, ripe_04 slot 9 J3 198°. 후퇴 자세가 같아도 IK 분기가 호출마다 달라 간헐적. 무작위 배치에서는 어느 과실에서든 날 수 있다 (`PLANNER_CHANGES.md` 09-12). **09-12 사용자 결정: 실기 플래너 한계로 기록, 고치지 않음** (`portfolio/H_scope_decisions.md` §9) |
 | B5 | `harvest_motion_params.py:200` `COLLISION_ACTIVATION_DISTANCE_M` | 5mm | ripe_02·03 이 40mm 로 밀린 실측에서 정한 값 (보드에 붙은 과실 기준) |
-| B6 | `harvest_motion_params.py:59~64` `NW_HIGH_TARGET_*` | z ≥ 0.750 등 | `measured_tcp_model` 조건이 붙어 있어 legacy_160mm 프로파일로 도는 지금 시뮬에서는 꺼져 있을 것 — **확인 필요** |
+| B6 | `harvest_motion_params.py:59~64` `NW_HIGH_TARGET_*` | z ≥ 0.750 등 | `measured_tcp_model` 조건이 붙어 있어 legacy_160mm 프로파일로 도는 지금 시뮬에서는 꺼져 있을 것 — **09-15 확인: 꺼져 있음** (G 절) |
 | B7 | y 고정 | 과실 중심 y = 보드면 − 27.2mm (`fake_vision_node.py:115` 가 2cm 넘게 벗어나면 경고) | 보드에 매단 구조라 무작위는 x·z 만 |
 | B8 | `scan_executor_node.py:791` 중복 제거 30mm, 파라미터 `attempted_target_blacklist_radius_m` 25mm | — | 과실 중심 간격이 이보다 가까우면 한 과실로 합쳐진다. 과실 폭 약 54mm 라 겹치지 않게만 뽑으면 자동으로 지켜진다 |
 | B9 | 분면·세부 칸 경계 x 0.050, z 0.660 (`scan_executor_node.py:94~95`, `quadrant_filter.py:22~23`) | 보드 고정값 | 그대로 두되, 경계선 위 과실은 분면·세부 칸 판정이 흔들린다. 생성기에서 경계로부터 띄울지 정한다 |
@@ -59,11 +59,12 @@
 
 - A1·A2·A3 → `scene_tools/gen_random_layout.py` 가 세 곳을 한 번에 쓴다. 시연 배치는 `--snapshot-base` 로 `log/m3/random/layouts/base_layout.json` 에 보존, `--restore` 로 복원.
 - B1 → 표본 x ∈ ±0.42 (실기 범위 ±0.45 안쪽). B7 → y 고정. B9 → 분면 경계 15mm 여유. B8 → 중심 간격 ≥75mm 로 자동 충족.
-- B2·B3·B4·B5·B10 → 제약하지 않는다(측정 대상). B6 → legacy_160mm 프로파일에서 `NW_HIGH_TARGET_*` 는 꺼져 있는지 파일럿 로그로 확인할 것.
+- B2·B3·B4·B5·B10 → 제약하지 않는다(측정 대상). B6 → **09-15 확인: 꺼져 있다**(파일럿 로그에 해당 줄 0, `measured_tcp_260mm` 프로파일은 로드 불가). 그 결과 보드 가장자리 위쪽 과실 8개 미파지 → `portfolio/H_scope_decisions.md` §10.
 - A4·A5·A7(계란판 봉투) → 손대지 않음. T4c 뒤 트레이 안 릴리스는 동결이라 시각 문제만 남는다(지표는 브릿지의 트레이 상자 판정).
 - A6 → 생성기가 통로 규칙(|dx|<45mm 이고 0<dz<120mm 거부)으로 거르고, 적용 뒤 `verify_vines.py` 로 실제 메시 간격을 잰다.
 - C → `run_nodes.sh` 파라미터 그대로(슬롯 8칸 = 익은 8). `subdivide_min_candidates:=3` 도 그대로 — 분할이 0~2회로 달라지는 분포 자체가 기록 대상.
-- E → 시드별 JSON 의 `expect`(분면별 익은 수·가지치기·분할 분면)가 런별 기대값. 판정표 대신 `scripts/run_metrics.py` 의 CSV.
+- E → 시드별 JSON 의 `expect`(분면별 익은 수·가지치기·분할 분면)가 런별 기대값. 카운트는 `scripts/run_metrics.py` 의 CSV, 정성 기록은 `log/m3/random/README.md` 배치별 표.
+- **09-15 개정**: 30 런 비율·신뢰구간은 하지 않는다 → 서로 다른 배치 3~5개 완주 + 배치별 기록(SUBMISSION_PLAN T4d). 이 문서의 A~F 조사는 그대로 유효하다.
 - 실행 절차는 `docs/run_guide.md` "T4d — 무작위 배치 N 런 자동 실행".
 
 ## F. 확인했고 배치와 무관한 것

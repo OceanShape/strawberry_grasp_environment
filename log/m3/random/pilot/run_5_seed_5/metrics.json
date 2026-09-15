@@ -1,0 +1,57 @@
+{
+ "dir": "log/m3/random/pilot/run_5_seed_5",
+ "seed": 5,
+ "ripe": 8,
+ "duration_s": 251,
+ "overview": {
+  "nw": 1,
+  "ne": 3,
+  "se": 1,
+  "sw": 3
+ },
+ "pruned": [],
+ "subdivide": [
+  "ne",
+  "sw"
+ ],
+ "subdivide_skip": 4,
+ "subcell_lab_plane": 2,
+ "subcell_parent_y": 2,
+ "subcell_rejected": 1,
+ "subcell_empty": 15,
+ "viewing": 2,
+ "pick_attempts": 8,
+ "pick_complete": 6,
+ "aborts": [
+  "grasp 전체 실패 — 12개 후보 모두 reject (target=(-185,783,889)mm star",
+  "grasp 전체 실패 — 12개 후보 모두 reject (target=(248,783,903)mm start"
+ ],
+ "place_blocked": 3,
+ "place_blocked_reasons": [
+  "J6_spline_jump",
+  "J6_spline_jump",
+  "J3_swing"
+ ],
+ "released_here": 3,
+ "guard_j3_swing": 1,
+ "guard_j6_spline": 2,
+ "grasp_contact": 6,
+ "grasp_judged": 6,
+ "joint_command_rejected": 0,
+ "arm_arrival_timeout": 0,
+ "stalled": 1,
+ "clamped": 0,
+ "exec_timeout": 0,
+ "movej_over_moveit": 13,
+ "placed": 3,
+ "dropped": 3,
+ "drop_on_floor": 3,
+ "drop_caught": 0,
+ "drop_below_floor": 0,
+ "kit_lines": 21,
+ "grasp_rate": 0.75,
+ "detach_rate": 0.75,
+ "reject_rate": 0.5,
+ "place_rate": 0.375,
+ "consistent": true
+}

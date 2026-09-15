@@ -1,0 +1,23 @@
+[bridge] initialize failed (1 so far): AttributeError("'NoneType' object has no attribute 'create_articulation_view'")
+[bridge] articulation (re)initialized
+[bridge] DOF map: {'joint_1': 0, 'joint_2': 1, 'joint_3': 2, 'joint_4': 3, 'joint_5': 4, 'joint_6': 5, 'rh_l1': 6, 'rh_p12_rn': 7, 'rh_l2': 8, 'rh_r2': 9}
+[bridge] apply_action recovered (after 29 failures)
+[bridge] gripper pose source: SingleRigidPrim
+[bridge] ATTACH strawberry_ripe_08  match 0.0 mm  offset from gripper base (28.8, -1.1, 250.4) mm
+[bridge] tray box x[0.565, 0.841] y[-0.205, 0.207] z<=0.357 (from /World/egg_carton)
+[bridge] RELEASE strawberry_ripe_08  PLACED in tray, frozen at (767.4, 136.6, 37.4) mm  harvested=1
+[bridge] ATTACH strawberry_ripe_04  match 0.0 mm  offset from gripper base (28.9, 1.0, 249.8) mm
+[bridge] RELEASE strawberry_ripe_04  PLACED in tray, frozen at (699.1, 137.1, 36.3) mm  harvested=2
+[bridge] ATTACH strawberry_ripe_07  match 0.0 mm  offset from gripper base (30.4, 0.3, 258.1) mm
+[bridge] RELEASE strawberry_ripe_07  DROPPED outside tray at (220.6, 738.5, 318.2) mm -> falls  harvested=3 dropped=1
+[bridge] DROP_REST strawberry_ripe_07  at (242.3, 765.3, -731.5) mm after 3.0 s -> on floor
+[bridge] ATTACH strawberry_ripe_02  match 0.0 mm  offset from gripper base (29.4, 0.5, 257.4) mm
+[bridge] RELEASE strawberry_ripe_02  DROPPED outside tray at (222.1, 738.8, 456.6) mm -> falls  harvested=4 dropped=2
+[bridge] DROP_REST strawberry_ripe_02  at (44.8, 936.9, -730.0) mm after 3.0 s -> on floor
+[bridge] ATTACH strawberry_ripe_06  match 0.0 mm  offset from gripper base (28.2, 1.1, 255.8) mm
+[bridge] RELEASE strawberry_ripe_06  DROPPED outside tray at (282.8, 739.2, 553.5) mm -> falls  harvested=5 dropped=3
+[bridge] DROP_REST strawberry_ripe_06  at (106.1, 794.5, -728.4) mm after 3.0 s -> on floor
+[bridge] ATTACH strawberry_ripe_05  match 0.0 mm  offset from gripper base (30.9, 4.8, 257.5) mm
+[bridge] RELEASE strawberry_ripe_05  PLACED in tray, frozen at (773.5, 75.1, 34.0) mm  harvested=6
+[bridge] ATTACH strawberry_ripe_03  match 0.0 mm  offset from gripper base (29.2, -0.6, 256.0) mm
+[bridge] RELEASE strawberry_ripe_03  PLACED in tray, frozen at (708.7, 69.8, 36.8) mm  harvested=7
