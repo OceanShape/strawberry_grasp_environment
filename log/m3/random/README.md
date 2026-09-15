@@ -54,6 +54,10 @@
 
 반영: 새 한계는 `portfolio/H_scope_decisions.md` §10, 카운트 한 행은 `portfolio/E_metrics.md` §4, 임계 3 답변은 `portfolio/G_quadtree_interview.md` §6-3 4번.
 
+## 영상용 배치 (T5 A-5)
+
+09-15 사용자 결정: 시연 배치 영상(A-4)에 더해 **배치 변경 런 1개를 롱샷으로 찍는다.** 기본 시드 **4**(닿는 과실 6개 전부 파지, 배치 5/6, sw 분할에 부모 거리 단계 포함, 건너뜀 2). 절차는 `portfolio/README.md` 런 3.
+
 ## 시연 배치 복원 확인
 
 `run_batch.sh` 는 끝나면 `gen_random_layout.py --restore` 로 세 파일을 되돌린다. **09-15 확인: `git diff --stat strawberry_harvest/scenes/layers/` 비어 있음.** T5 전에 Isaac 씬을 재로드한다(Isaac 은 마지막 배치 5 를 들고 있다).
