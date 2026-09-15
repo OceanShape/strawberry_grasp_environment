@@ -1,0 +1,81 @@
+# J6 등가각 창 재생 — 2026-09-16 (scripts/replay_j6_wrap_window.py)
+
+## run_logs/20260916_023646 (09-16 02:36 런, 수정 전 — 노드 로그는 보존 안 함, 런 14 와 같은 값)
+=== old ±359.4: 360° 회전 2회, 창 밖 정차 4회, MoveJoint J6 누적 회전 592°
+  MoveJoint root/nw      J6    93.4 ->   108.7  ( 15.3°)
+  MoveJoint root/nw/sw   J6   108.7 ->   128.3  ( 19.6°)
+  PICK      root/nw/sw   J6   128.3 (창 안, 회전 없음)
+  MoveJoint root/nw/se   J6   128.3 ->    88.7  ( 39.6°)
+  PICK      root/nw/se   J6    88.7 (창 안, 회전 없음)
+  MoveJoint root/nw      J6    88.7 ->   108.7  ( 20.0°)
+  MoveJoint root/ne      J6   108.7 ->   244.4  (135.7°) ★창밖
+  PICK      root/ne/sw   J6   244.4 -> 플래너 재작성  -115.6  ★360° 회전
+  MoveJoint root/ne      J6  -115.6 ->  -115.6  (  0.0°)
+  MoveJoint overview     J6  -115.6 ->  -266.6  (151.0°) ★창밖
+  MoveJoint root/sw      J6  -266.6 ->  -349.5  ( 82.9°) ★창밖
+  MoveJoint root/sw/se   J6  -349.5 ->  -311.7  ( 37.8°) ★창밖
+  PICK      root/sw/se   J6  -311.7 -> 플래너 재작성    48.3  ★360° 회전
+  MoveJoint root/sw/nw   J6    48.3 ->    -7.7  ( 56.0°)
+  PICK      root/sw/nw   J6    -7.7 (창 안, 회전 없음)
+  MoveJoint root/sw/ne   J6    -7.7 ->   -15.8  (  8.1°)
+  PICK      root/sw/ne   J6   -15.8 (창 안, 회전 없음)
+  MoveJoint root/sw      J6   -15.8 ->    10.5  ( 26.3°)
+=== new ±225: 360° 회전 0회, 창 밖 정차 0회, MoveJoint J6 누적 회전 739°
+  MoveJoint root/nw      J6    93.4 ->   108.7  ( 15.3°)
+  MoveJoint root/nw/sw   J6   108.7 ->   128.3  ( 19.6°)
+  PICK      root/nw/sw   J6   128.3 (창 안, 회전 없음)
+  MoveJoint root/nw/se   J6   128.3 ->    88.7  ( 39.6°)
+  PICK      root/nw/se   J6    88.7 (창 안, 회전 없음)
+  MoveJoint root/nw      J6    88.7 ->   108.7  ( 20.0°)
+  MoveJoint root/ne      J6   108.7 ->  -115.6  (224.3°)
+  PICK      root/ne/sw   J6  -115.6 (창 안, 회전 없음)
+  MoveJoint root/ne      J6  -115.6 ->  -115.6  (  0.0°)
+  MoveJoint overview     J6  -115.6 ->    93.4  (209.0°)
+  MoveJoint root/sw      J6    93.4 ->    10.5  ( 82.9°)
+  MoveJoint root/sw/se   J6    10.5 ->    48.3  ( 37.8°)
+  PICK      root/sw/se   J6    48.3 (창 안, 회전 없음)
+  MoveJoint root/sw/nw   J6    48.3 ->    -7.7  ( 56.0°)
+  PICK      root/sw/nw   J6    -7.7 (창 안, 회전 없음)
+  MoveJoint root/sw/ne   J6    -7.7 ->   -15.8  (  8.1°)
+  PICK      root/sw/ne   J6   -15.8 (창 안, 회전 없음)
+  MoveJoint root/sw      J6   -15.8 ->    10.5  ( 26.3°)
+
+## log/m3/20260915T141302-5c8c7687 (런 14)
+=== old ±359.4: 360° 회전 2회, 창 밖 정차 4회, MoveJoint J6 누적 회전 592°
+  MoveJoint root/nw      J6    93.4 ->   108.7  ( 15.3°)
+  MoveJoint root/nw/sw   J6   108.7 ->   128.3  ( 19.6°)
+  PICK      root/nw/sw   J6   128.3 (창 안, 회전 없음)
+  MoveJoint root/nw/se   J6   128.3 ->    88.7  ( 39.6°)
+  PICK      root/nw/se   J6    88.7 (창 안, 회전 없음)
+  MoveJoint root/nw      J6    88.7 ->   108.7  ( 20.0°)
+  MoveJoint root/ne      J6   108.7 ->   244.4  (135.7°) ★창밖
+  PICK      root/ne/sw   J6   244.4 -> 플래너 재작성  -115.6  ★360° 회전
+  MoveJoint root/ne      J6  -115.6 ->  -115.6  (  0.0°)
+  MoveJoint overview     J6  -115.6 ->  -266.6  (151.0°) ★창밖
+  MoveJoint root/sw      J6  -266.6 ->  -349.5  ( 82.9°) ★창밖
+  MoveJoint root/sw/se   J6  -349.5 ->  -311.7  ( 37.8°) ★창밖
+  PICK      root/sw/se   J6  -311.7 -> 플래너 재작성    48.3  ★360° 회전
+  MoveJoint root/sw/nw   J6    48.3 ->    -7.7  ( 56.0°)
+  PICK      root/sw/nw   J6    -7.7 (창 안, 회전 없음)
+  MoveJoint root/sw/ne   J6    -7.7 ->   -15.8  (  8.1°)
+  PICK      root/sw/ne   J6   -15.8 (창 안, 회전 없음)
+  MoveJoint root/sw      J6   -15.8 ->    10.5  ( 26.3°)
+=== new ±225: 360° 회전 0회, 창 밖 정차 0회, MoveJoint J6 누적 회전 739°
+  MoveJoint root/nw      J6    93.4 ->   108.7  ( 15.3°)
+  MoveJoint root/nw/sw   J6   108.7 ->   128.3  ( 19.6°)
+  PICK      root/nw/sw   J6   128.3 (창 안, 회전 없음)
+  MoveJoint root/nw/se   J6   128.3 ->    88.7  ( 39.6°)
+  PICK      root/nw/se   J6    88.7 (창 안, 회전 없음)
+  MoveJoint root/nw      J6    88.7 ->   108.7  ( 20.0°)
+  MoveJoint root/ne      J6   108.7 ->  -115.6  (224.3°)
+  PICK      root/ne/sw   J6  -115.6 (창 안, 회전 없음)
+  MoveJoint root/ne      J6  -115.6 ->  -115.6  (  0.0°)
+  MoveJoint overview     J6  -115.6 ->    93.4  (209.0°)
+  MoveJoint root/sw      J6    93.4 ->    10.5  ( 82.9°)
+  MoveJoint root/sw/se   J6    10.5 ->    48.3  ( 37.8°)
+  PICK      root/sw/se   J6    48.3 (창 안, 회전 없음)
+  MoveJoint root/sw/nw   J6    48.3 ->    -7.7  ( 56.0°)
+  PICK      root/sw/nw   J6    -7.7 (창 안, 회전 없음)
+  MoveJoint root/sw/ne   J6    -7.7 ->   -15.8  (  8.1°)
+  PICK      root/sw/ne   J6   -15.8 (창 안, 회전 없음)
+  MoveJoint root/sw      J6   -15.8 ->    10.5  ( 26.3°)

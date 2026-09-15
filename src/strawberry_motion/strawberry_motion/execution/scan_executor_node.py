@@ -161,6 +161,18 @@ _JOINT_LIMITS_RAD = [
 ]
 _OVERVIEW_WRAP_EQUIVALENT_JOINT_IDX = {0, 3, 5}
 _MOVE_TARGET_WRAP_EQUIVALENT_JOINT_IDX = {3, 5}  # keep J1 branch explicit in taught YAML
+# [FIX 2026-09-16] MoveJoint 등가각 선택 창. 종전에는 J4·J6 모두 _JOINT_LIMITS_RAD(±359.4)에서
+# 골라 로봇을 J6 244°·-312° 같은 자리에 세웠다. 플래너(harvest_motion_params
+# OPERATIONAL_JOINT_LIMITS_DEG)는 J6 를 ±225 로 보고 cuRobo 궤적을 그 창으로 고쳐 쓰므로,
+# 그 자리에서 시작한 다음 계획은 첫 점이 로봇 위치에서 정확히 360° 떨어진 값이 되고
+# 브릿지가 플랜지를 한 바퀴 돌렸다 (런 14·09-16 런 픽당 2회, 3.3~3.9 s). 실행기가 플래너의
+# 운용 한계 밖에 관절을 세우는 설계 불일치라 J6 창을 플래너와 같은 ±225 로 맞춘다.
+# J4 는 플래너 창이 ±360 이라 그대로. 실기 원본 순서(sw→ne→se, NW 누락)에서는 이 조합이
+# 나오지 않아 실기에서 안 보였다 — portfolio/H_scope_decisions.md §11.
+_MOVE_TARGET_WRAP_WINDOW_DEG = {
+    3: (float(np.rad2deg(_JOINT_LIMITS_RAD[3][0])), float(np.rad2deg(_JOINT_LIMITS_RAD[3][1]))),
+    5: (-225.0, 225.0),
+}
 
 
 def _as_bool(value) -> bool:
@@ -768,8 +780,7 @@ class ScanExecutorNode(Node):
 
         adjusted = [float(v) for v in target_deg]
         for idx in _MOVE_TARGET_WRAP_EQUIVALENT_JOINT_IDX:
-            lo = float(np.rad2deg(_JOINT_LIMITS_RAD[idx][0]))
-            hi = float(np.rad2deg(_JOINT_LIMITS_RAD[idx][1]))
+            lo, hi = _MOVE_TARGET_WRAP_WINDOW_DEG[idx]   # [FIX 2026-09-16] J6 ±225
             base = adjusted[idx]
             candidates = [base + 360.0 * k for k in range(-2, 3)]
             candidates = [c for c in candidates if lo <= c <= hi]
@@ -1597,6 +1608,7 @@ class ScanExecutorNode(Node):
         offset = subcell_center_offset_m(self._quadrant_bounds(parent_cell), subcell)
         limits_deg = [(float(np.rad2deg(lo)), float(np.rad2deg(hi)))
                       for lo, hi in _JOINT_LIMITS_RAD]
+        limits_deg[5] = _MOVE_TARGET_WRAP_WINDOW_DEG[5]   # [FIX 2026-09-16] 세부 자세도 J6 ±225 안
         try:
             joints, info, tier = derive_subcell_joints_tiered(
                 parent_joints_deg, offset,
