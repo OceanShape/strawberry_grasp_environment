@@ -1,4 +1,4 @@
-# 실행 가이드 — 터미널 3개
+# 실행 가이드 — 터미널 3개 (단일 런) / 터미널 1개 (무작위 배치 N 런)
 
 > **담당: 실행 절차.** 터미널 명령·기동 확인·증상별 대처.
 > **모든 파라미터 값의 기준은 [`parameters.md`](parameters.md) 다.**
@@ -39,6 +39,42 @@ cd ~/strawberry_grasp_environment && source /opt/ros/humble/setup.bash && source
 > **기동 순서 의존성은 원래 없었다** — 네 노드 모두 초기화 시점에 blocking wait 이
 > 하나도 없고, ROS2 디스커버리가 연결을 비동기로 맺는다. 순서가 중요한 지점은
 > **트리거 하나뿐**이고, 그건 터미널 3으로 분리돼 있다.
+
+---
+
+## 복붙용 — 무작위 배치 N 런 (T4d, 터미널 1개 + Isaac)
+
+위 터미널 3개 방식과 **다르다.** `run_batch.sh` 가 런마다 배치 변경 → 노드 기동(`run_nodes.sh`) → 트리거 → 완주 대기 → 노드 종료 →
+로그 수집까지 **전부** 한다. `run_nodes.sh` 를 따로 켜지 않는다(켜 둔 노드가 있으면 시작할 때 끈다).
+Isaac 쪽은 오케스트레이터가 런마다 Stop → 씬 재로드 → 브릿지·HUD Run → Play 를 한다. 씬 로드·브릿지·HUD·Play 를 **손으로 하지 않는다**
+(미리 해 둬도 첫 런에서 다시 하므로 무해하다).
+
+**Isaac Sim**
+
+```bash
+bash scripts/run_isaacsim.sh
+```
+
+→ 뜬 뒤 Script Editor 에서 `strawberry_harvest/scripts/isaac_batch_orchestrator.py` **하나만** Run. 콘솔에 `[batch] orchestrator armed` 가 뜨면 준비 완료.
+
+**터미널 — 배치 실행** (파일럿 5 런, 약 35분)
+
+```bash
+cd ~/strawberry_grasp_environment && bash scripts/run_batch.sh 5 --tag pilot
+```
+
+→ 끝날 때까지 Isaac·터미널을 건드리지 않는다. 첫 런에서 Isaac 이 스스로 씬을 다시 열고 콘솔에 `[batch] run 1 ready` 가 뜨는지만 본다
+(재로드에서 멈추면 5분 뒤 중단된다). 끝나면 시연 배치를 파일에 되돌리므로 **T5 녹화 전에는 씬을 재로드**한다.
+
+**요약 보기**
+
+```bash
+cd ~/strawberry_grasp_environment && python3 scripts/run_metrics.py --aggregate log/m3/random/pilot/runs.csv
+```
+
+→ 본 실험 30 런은 `bash scripts/run_batch.sh 30 --tag main --seed-start 101` (약 3.5시간). 결과는 `log/m3/random/<tag>/`.
+중간에 멈추려면 `Ctrl+C` → `bash scripts/run_nodes.sh --kill` → `python3 strawberry_harvest/scripts/scene_tools/gen_random_layout.py --restore`.
+자세한 동작은 [T4d 절](#t4d--무작위-배치-n-런-자동-실행-2026-09-15).
 
 ---
 
