@@ -105,7 +105,8 @@ USD 조인트 프레임이 URDF 와 **0.000°** 로 일치한다. 평행도 실�
 
 | 값 | 현재 |
 |---|---|
-| 순회 순서 | `_ALL_CELLS_ZORDER = ["root/nw", "root/ne", "root/se", "root/sw"]` (실기와 동일) |
+| 깊이 1 순회 순서 | `_ALL_CELLS_CLOCKWISE_ORDER = ["root/nw", "root/ne", "root/se", "root/sw"]` — 원 팀 실기 기록(민1 STEP 6) 순서 그대로, 기록에 이유 없음. 시계 방향(Z-order 아님). 원본 이름 `_ALL_CELLS_ZORDER` 를 09-17 에 바꿈(동작 불변). `overview_prescan:=true` 면 익은 과실 0개 분면만 빠지고 순서는 유지 |
+| 깊이 2 순서 | `_group_poses_by_subcell` 고정 목록 sw → se → nw → ne (원본 "lower-first": 아래쪽이 꼭지 높이에 가깝다). 후보 0개 칸 건너뜀. 칸 안 과실은 `(x, z)` 오름차순 |
 | 실행 인자 | `-p target_cell:=all` — 4분면 전부. 단일 분면은 `root/nw` 등 |
 | 스캔 자세 | `config/scan_pose_candidates_refit_candidate.yaml` `version: v12_gripper_centered_manual_teach` — **실기 DART 수동 티칭 값 그대로** |
 | overview | `[87.98, −94.92, 129.89, 175.94, −31.34, 93.42]` |

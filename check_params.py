@@ -136,8 +136,8 @@ def main():
         "%.3f rad -> 파츠 간격 0.3mm. 1.0 이면 9.4mm 로 줄기를 못 문다" % close)
 
     print("\n순회")
-    first = grab(scan, r'_ALL_CELLS_ZORDER = \["([^"]+)"')
-    chk("_ALL_CELLS_ZORDER 첫 셀", first == "root/nw", "%s (실기 순서 nw->ne->se->sw)" % first)
+    first = grab(scan, r'_ALL_CELLS_CLOCKWISE_ORDER = \["([^"]+)"')
+    chk("_ALL_CELLS_CLOCKWISE_ORDER 첫 셀", first == "root/nw", "%s (실기 순서 nw->ne->se->sw)" % first)
 
     print()
     if fails:

@@ -169,7 +169,7 @@ J1 이 176° 도는 해가 20% 나온 것이 그 증상이었다 (F §4). 분면
 | 계층 이름 | `cell_id` = `root/nw/se` 식 | 트리 경로가 그대로 셀 이름 |
 | YAML 세부 자세 탐색 | `scan_executor_node._compute_scan_order` | `target_cell:=root/nw` 로 띄우면 YAML 에 `root/nw/nw..sw` 가 있을 때 그 4자세를 순서대로 방문 (`SUBCELL_SCAN_STARTED`) |
 | collect-then-pick | `collect_then_pick`, `collect_pick_ready_cell` 파라미터 | 세부 4자세를 돌며 후보를 모은 뒤 부모의 pick-ready 자세로 가서 순위대로 pick |
-| 논리 분할 | `_group_poses_by_subcell` | 한 시야의 탐지를 2×2 로 나눠 **수확 순서**만 정함 (이동 없음) |
+| 논리 분할 | `_group_poses_by_subcell` | 한 시야의 탐지를 2×2 로 나눠 **수확 순서**만 정함 (이동 없음). 순서는 아래쪽 먼저 sw → se → nw → ne (§8 순서 Q) |
 | 실기 깊이 2 자세 | `compute_nw_pick_ready_pose.py` `SUBCELLS_DEG` | NW 4칸, 물리 검증됨. 현재 YAML 에는 없음 |
 
 **없는 것 (판정):** "언제 쪼갤지"를 정하는 런타임 규칙이 없다. 쪼갤지 여부는 사람이 오프라인에서
@@ -218,7 +218,7 @@ J1 이 176° 도는 해가 20% 나온 것이 그 증상이었다 (F §4). 분면
    overview 에서 `scene_positions` 를 모아 분면별로 센다. 0개 분면은 순회에서 뺀다.
    상태 문자열: `OVERVIEW_SCAN nw:2 ne:1 se:0 sw:3`, `TRAVERSAL_PRUNED skip=[root/se]`.
    `pick_pose` 가 아니라 `scene_positions` 를 쓰는 이유가 근거 ① 그 자체다.
-2. 순회 순서는 실기 그대로 nw, ne, se, sw. 개수순 재정렬은 하지 않는다.
+2. 순회 순서는 실기 그대로 nw, ne, se, sw(`_ALL_CELLS_CLOCKWISE_ORDER`). 가지치기는 0개 분면을 **빼기만** 하고 남은 순서는 그대로다. 개수순 재정렬은 하지 않는다(`HARVEST_PRIORITY_ORDER` 는 상태 로그일 뿐). 기준은 §8 순서 Q.
 3. 가지치기가 만드는 **비인접 이동 쌍**의 안전. 관절공간 직선(MoveJoint 폴백) 여유를 20개 순서쌍 전부 FK 로 계산했다 (보드 810, v12 자세):
 
 | 이동 쌍 | 최대 스윙 | 보드 여유 |
@@ -377,6 +377,22 @@ HUD 트리 패널(09-11 구현, 화면 확인은 런 10)이 가지치기·잎·�
 반대라 바로 가면 약 200° 재배치다(§5). 그래서 **보장 대신 검사와 퇴화**로 설계했다: 세부 자세마다 IK 해·관절 변화 ≤60°·이동 중 보드 여유를
 확인하고, 하나라도 안 되면 `SUBDIVIDE_REJECTED` 로 그 칸만 부모 자세에서 pick 한다. 최악의 경우가 "분할하지 않은 것"과 같다.
 
+**Q. 분면·세부 칸은 어떤 순서로 방문하나? 기준은?**
+→ 깊이마다 기준이 다르고, 둘 다 원 팀 것을 그대로 쓴다. 이 프로젝트가 새로 정한 순서는 없다.
+
+| | 깊이 1 (분면) | 깊이 2 (세부 칸) |
+|---|---|---|
+| 순서 | nw → ne → se → sw | sw → se → nw → ne |
+| 코드 | `scan_executor_node._ALL_CELLS_CLOCKWISE_ORDER` | `_group_poses_by_subcell` 의 고정 목록 → `_subdivide_and_pick` 이 그 순서로 돈다 |
+| 출처 | 원 팀 실기 기록 `~/민1` STEP 6 · `~/민2` §7 — 분면 간 직접 이동(`INTER_CELL_DIRECT`)으로 4셀 순회 실기 검증. 그 전 세대 스냅샷도 같은 순서, 최종 세대 `_baseline` 만 데모용 sw 시작 | 원 팀 최종 세대 실행기 docstring (`_baseline/.../scan_executor_node.py` 같은 함수). 그 전 세대 스냅샷(`~/바탕화면/strawberry_grasp_isaac/docs/scan_executor_node.py`, 리포 밖)은 깊이 2 도 nw → ne → se → sw 였다 — 최종 세대에서 lower-first 로 바뀌었고 이유는 docstring 에만 있다 |
+| 기록된 이유 | **없다.** 모양은 왼쪽 위에서 시작하는 시계 방향이라 이동이 모두 옆 분면이다 — 이건 관찰이지 원 팀 근거가 아니다 | "아래쪽 먼저(lower-first)": 아래 탐지는 꼭지/KP1 높이에 가깝고, 위 탐지는 잎·꽃받침·가지가 걸린 어려운 경우가 많다 |
+| 건너뛰기 | overview 1차 스캔에서 익은 과실 0개 분면(`TRAVERSAL_PRUNED`, 시뮬 `overview_prescan:=true`) | 후보 0개 칸(`SUBCELL_EMPTY … 2단 가지치기`). 세부 자세 유도 실패 칸은 순서는 그대로 두고 부모 자세에서 pick |
+| 칸 안의 과실 | — | `(x, z)` 오름차순 — x 가 작은 것 먼저, 같으면 낮은 것 먼저 |
+
+동적 순서(이동 거리 최소·개수순)는 없다. 가지치기는 빼기만 하고 남은 순서를 바꾸지 않는다.
+09-09 에 깊이 1 을 원본 데모 순서(sw → nw_flat → ne → se, 이것도 시계 방향)에서 원 팀 기록 순서로 되돌렸다.
+원본 상수 이름 `_ALL_CELLS_ZORDER` 는 틀린 이름이라(Z-order 면 nw → ne → sw → se) 09-17 에 `_ALL_CELLS_CLOCKWISE_ORDER` 로 바꿨다. 동작은 같다.
+
 **Q. 실기에서 가지치기를 했나?**
 → 안 했다. §3 의 한 문장. 감추지 않는다.
 
@@ -411,6 +427,9 @@ overview 경유로 막았다. 켜져 있지만 죽어 있는 안전망을 로그
 - "픽셀 크기 1.9mm" 같은 근사치를 단정 — 경향으로만.
 - ①(인식)·②(관절 자세)를 "트리라서 가능한 것"으로 — 그리드여도 성립한다. 트리 전용은 ③(가지치기·적응 분할)뿐이다 (§2 머리).
 - 근거 ①을 "정확도"라는 이름으로 — "레벨마다 얻는 정보가 다르다(해상도)"로 (§2 ①).
+- "Z-order 로 순회한다" — 시계 방향이다. 원본 상수 이름 `_ALL_CELLS_ZORDER` 가 틀렸던 것이다 (§8 순서 Q, 09-17 이름 변경).
+- "이동 거리가 최소가 되도록 순서를 정했다" / "원 팀이 인접 이동이라서 시계 방향을 골랐다" — 계산한 적 없고 기록에도 이유가 없다. **"원 팀 실기 기록의 순서를 그대로 썼다"**까지만.
+- "깊이 2 도 같은 순서" — 깊이 2 는 아래쪽 먼저 sw → se → nw → ne 다.
 - 기존 금지 목록(`SUBMISSION_PLAN.md` §7) 은 그대로 유효.
 
 ---

@@ -117,7 +117,7 @@ def main():
     # 분면마다 "overview 에서 가장 가까운 해" 를 따로 고르면, 이웃 분면끼리
     # 손목 브랜치가 제각각이 되어 순회 중 100도 넘는 스윙이 생긴다.
     # 그래서 후보를 전부 모아두고, 순회 순서를 따라 **연쇄로** 고른다.
-    ORDER = ["root/sw", "root/nw", "root/ne", "root/se"]   # _ALL_CELLS_ZORDER
+    ORDER = ["root/sw", "root/nw", "root/ne", "root/se"]   # 09-09 당시 실행기 순서(원본 데모 sw 시작, nw_flat->nw). 현행 실행기 _ALL_CELLS_CLOCKWISE_ORDER 는 nw 시작
 
     def wrap_norm(sol_deg, ref_deg):
         """J4/J6 를 ref 에 가장 가까운 360도 등가로 정규화."""

@@ -115,11 +115,16 @@ _INITIAL_SINGLE_CELL_CANDIDATES = [
     "root/se",
     "root/sw",
 ]
-# [2026-09-09] 실기 순회 순서로 되돌림.
-# 종전 값 ["root/sw", "root/nw_flat", "root/ne", "root/se"] 는 데모 촬영용으로
-# SW 부터 돌게 바꾼 것이었다. 실기 기록(민1 STEP 6)의 순서는 아래이고,
-# overview 를 경유하지 않는 INTER_CELL_DIRECT 로 검증됐다.
-_ALL_CELLS_ZORDER = ["root/nw", "root/ne", "root/se", "root/sw"]
+# 깊이 1 분면 순회 순서. 기준 = 원 팀 실기 기록(민1 STEP 6·민2 §7)의 순서 그대로:
+# nw -> ne -> se -> sw, 분면 사이 INTER_CELL_DIRECT(overview 미경유)로 4셀 순회 실기 검증.
+# 기록에 이 순서를 고른 이유는 적혀 있지 않다. 모양은 왼쪽 위에서 시작하는 시계 방향이라
+# 매 이동이 옆 분면으로만 간다(대각선 없음) — 이건 관찰이지 원 팀이 적은 근거가 아니다.
+# 깊이 2(_group_poses_by_subcell)는 기준이 달라 아래쪽 먼저 sw -> se -> nw -> ne 다.
+# [2026-09-09] 순서 복원: 종전 값 ["root/sw", "root/nw_flat", "root/ne", "root/se"] 는 원본의
+# 데모 촬영용 SW 시작 순서(이것도 시계 방향)였다.
+# [2026-09-17] 이름 변경(동작 불변): 원본 이름 _ALL_CELLS_ZORDER 는 틀린 이름이다 — Z-order 면
+# nw -> ne -> sw -> se 인데 원본 값·현재 값 모두 시계 방향이다.
+_ALL_CELLS_CLOCKWISE_ORDER = ["root/nw", "root/ne", "root/se", "root/sw"]
 
 _MAX_SPLINE_PTS = 12
 _SPLINE_TIME_SCALE = 0.75
@@ -1410,11 +1415,14 @@ class ScanExecutorNode(Node):
 
     def _compute_scan_order(self) -> List[str]:
         if self._target_cell == "all":
-            # [FIX 2026-09-09] 종전: [c for c in _ALL_CELLS_ZORDER if c in self._targets]
-            # _ALL_CELLS_ZORDER 의 'root/nw_flat' 이 YAML 에 없어 **NW 가 조용히 빠지고
-            # 3분면만** 돌게 돼 있었다 (리포 YAML 과의 조합 결함, 수정 전 실행 로그 없음, 원 팀 실기 동작 아님 — H §11; 원안 6단계 "4개 영역 전부"에 위배). 별칭 해석 + 누락 경고.
+            # [FIX 2026-09-09] 종전 코드 = [c for c in 순서목록 if c in self._targets] — YAML 에 없는
+            # 이름을 로그 없이 버렸다. 원본 순서목록(데모용 sw 시작)의 'root/nw_flat' 은 이 리포 YAML
+            # (09-09 재구성본)에 없어서, **이 리포 YAML 과 함께 돌리면** NW 가 빠질 수 있는 결함이었다.
+            # 실기 동작이 아니다: 원 팀 기록은 nw 포함 4셀 순회 실기 검증(민1 STEP 6·민2 §7)이고, 이 리포에
+            # 3분면만 돈 런 로그는 0건이다(최종 세대 실기 YAML·로그는 이 PC 에 없어 미확인) (09-17 정정 — portfolio/H_scope_decisions.md §11).
+            # 수정: 별칭 해석(cell_traversal.CELL_ALIASES) + 자세 없는 분면은 TRAVERSAL_QUADRANT_MISSING 경고.
             scan_order, missing_quadrants = resolve_traversal_order(
-                _ALL_CELLS_ZORDER, self._targets)
+                _ALL_CELLS_CLOCKWISE_ORDER, self._targets)
             if missing_quadrants:
                 self._pub_status(
                     "TRAVERSAL_QUADRANT_MISSING %s — 해당 분면의 scan pose 가 YAML 에 없다"
