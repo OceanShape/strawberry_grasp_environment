@@ -10,7 +10,7 @@ over "World"
     def Xform "lights"
     {
         def DomeLight "dome_light" (
-            "무방향 채움광. studio.hdr 텍스처는 밝은 점 방향으로 그림자를 만들어 뺐다(파일은 textures/ 에 남김). 그림자 바닥이 너무 검으면 intensity 를 올린다"
+            "무방향 채움광. studio.hdr 텍스처는 밝은 점 방향으로 그림자를 만들어 뺐다(파일은 textures/ 에 남김). 그림자 바닥이 너무 검으면 intensity 를 올린다. [09-16] 카메라가 보는 배경색은 이 돔이 아니다 — 돔은 색과 채움 세기가 같은 값이라 배경만 못 낮춘다. 배경은 Kit 확장 strawberry.sim.setup 이 /rtx/background/source/* 로 차콜 단색을 깔고, 돔은 조명만 맡는다"
         )
         {
             color3f inputs:color = (1, 1, 1)

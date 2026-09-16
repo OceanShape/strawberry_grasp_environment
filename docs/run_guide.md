@@ -96,6 +96,7 @@ bash scripts/run_isaacsim.sh
 | 부팅 때 자동 | 내용 |
 |---|---|
 | 뷰포트 HUD 끄기 | FPS·프레임타임·GPU/프로세스 메모리·해상도 오버레이 + **좌하단 카메라 속도 상자**(단위 `m` 만 보이던 것, 09-16 추가). **녹화본에 안 찍힌다** |
+| 배경색 차콜 | 뷰포트 빈 공간을 돔 라이트의 흰색 대신 단색 차콜로 (09-16). **조명은 안 건드린다** — 렌더러가 빈 곳에 그리는 색만 바꾼다(`/rtx/background/source/*`). 색은 `extension.toml` 의 `background_color`(LINEAR 3값) |
 | Script Editor 도킹 | `Render Settings` 가 있는 탭 모음에 탭으로 붙는다. Window 메뉴로 열 필요 없다 |
 | Perspective 카메라 고정 | 씬을 **열 때마다** 녹화용 구도로 되돌린다 (세션 레이어에만 쓰므로 씬 파일은 안 더러워진다) |
 

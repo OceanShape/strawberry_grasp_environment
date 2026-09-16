@@ -4,7 +4,7 @@ strawberry_sim_setup -- startup tweaks so the sim is recording-ready on boot.
 ASCII ONLY, English only: same rule as the Script Editor scripts in
 strawberry_harvest/scripts/. Korean notes live in docs/run_guide.md.
 
-Three things, all of which had to be redone by hand every launch:
+Four things, all of which had to be redone by hand every launch:
 
 1. Viewport HUD off (FPS / frame time / device memory / process memory /
    resolution / render progress / camera speed). Those overlays must not show
@@ -15,9 +15,13 @@ Three things, all of which had to be redone by hand every launch:
    no longer has to be opened from the Window menu on every launch.
 3. Perspective camera pinned to the framing used for recording, re-applied on
    every stage open (the run loop reloads main_scene.usd between runs).
+4. Viewport background forced to a flat charcoal instead of the dome light's
+   white, so the empty space around the set reads as margin, not as an
+   unfinished room. A renderer setting only -- the lighting does not move.
 
 Nothing here touches the scene file: the camera transform is authored on the
-session layer, which is where Kit keeps /OmniverseKit_Persp anyway.
+session layer, which is where Kit keeps /OmniverseKit_Persp anyway, and the
+background is an /rtx setting that lives in the app, not in the stage.
 """
 import asyncio
 
@@ -74,6 +78,31 @@ CAMERA_RETRY_FRAMES = (10, 30, 90)
 DOCK_ATTEMPTS = 3
 DOCK_RETRY_FRAMES = 60
 
+# [2026-09-16] Background tone for the video (video review: "a light grey void
+# reads as empty, a charcoal one reads as margin").
+#
+# What paints the empty space is the dome light in
+# scenes/layers/lighting_layer.usd -- white at intensity 300. Darkening the dome
+# would darken the fill with it, because a dome light's background and its
+# ambient contribution are the same number. Render Settings > Common >
+# Background > "Background Override" changes what primary rays see when they
+# miss geometry, and nothing else: the dome keeps lighting the scene exactly as
+# the 09-16 key/fill pass left it.
+#
+#   /rtx/background/source/type   0 = dome light (default), 1 = texture, 2 = color
+#   /rtx/background/source/color  three LINEAR floats (the Render Settings color
+#                                 widgets are linear), so sRGB #2E333A charcoal
+#                                 is (0.027, 0.033, 0.042)
+#
+# Both are plain app settings, not persistent ones, so they are set on every
+# launch. Retried because the RTX extensions load after this one and write their
+# own defaults on the way up.
+BACKGROUND_TYPE_KEY = "/rtx/background/source/type"
+BACKGROUND_COLOR_KEY = "/rtx/background/source/color"
+BACKGROUND_SOURCE_COLOR = 2
+DEFAULT_BACKGROUND_COLOR = (0.027, 0.033, 0.042)
+BACKGROUND_RETRY_FRAMES = (10, 60)
+
 
 class StrawberrySimSetupExtension(omni.ext.IExt):
     def on_startup(self, ext_id: str):
@@ -83,6 +112,9 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
 
         if self._get_bool("hide_viewport_hud", True):
             self._hide_viewport_hud()
+
+        if self._get_bool("set_background", True):
+            self._spawn(self._apply_background_async())
 
         if self._get_bool("dock_script_editor", True):
             self._spawn(self._dock_script_editor_async())
@@ -152,6 +184,31 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
                 self._settings.set(f"/persistent/app/viewport/{viewport_id}/hud/{item}/visible", False)
 
         carb.log_info(f"[strawberry.sim.setup] HUD hidden for: {sorted(viewport_ids)}")
+
+    # -- 1b. viewport background -------------------------------------------
+
+    async def _apply_background_async(self):
+        app = omni.kit.app.get_app()
+        self._apply_background()
+        waited = 0
+        for target_frame in BACKGROUND_RETRY_FRAMES:
+            for _ in range(target_frame - waited):
+                await app.next_update_async()
+            waited = target_frame
+            self._apply_background()
+        carb.log_info(
+            f"[strawberry.sim.setup] background "
+            f"type={self._settings.get(BACKGROUND_TYPE_KEY)} "
+            f"color={self._settings.get(BACKGROUND_COLOR_KEY)}"
+        )
+
+    def _apply_background(self):
+        color = self._get_vec3("background_color", DEFAULT_BACKGROUND_COLOR)
+        try:
+            self._settings.set(BACKGROUND_TYPE_KEY, BACKGROUND_SOURCE_COLOR)
+            self._settings.set(BACKGROUND_COLOR_KEY, [float(c) for c in color])
+        except Exception as exc:  # noqa: BLE001 -- never break app startup
+            carb.log_warn(f"[strawberry.sim.setup] background color failed: {exc!r}")
 
     # -- 2. Script Editor docking ------------------------------------------
 
