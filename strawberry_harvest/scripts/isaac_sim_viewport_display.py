@@ -206,6 +206,11 @@ HIGHLIGHT_LOOKUP_RETRY_SEC = 2.0
 # camera's frustum. So the inset never carries detection marks (boxes, keypoints,
 # PICK#) and its title says so. What the inset shows and what fake_vision publishes
 # can differ (e.g. a neighbor quadrant's fruit in frame but not published).
+#
+# [2026-09-16] What IS drawn over the render is the quadrant guide the real vision
+# node's window also draws: a centre cross and NW/NE/SW/SE at the crossing, plus the
+# current area in the caption. It is a fixed image-space guide, not a detection --
+# see CAM_GUIDE_* below for why the centre cross is honest.
 # Only the color camera is shown: a render has no D455 minimum depth range
 # (docs/d455_min_range.md), so a depth view would look valid where it is unconfirmed.
 #
@@ -232,6 +237,39 @@ CAM_WIDTH = 400                 # image width on screen; height follows the aper
 CAM_PAD = 10
 CAM_FRAME_ID = "strawberry_harvest_wrist_cam"
 CAM_ENABLED = os.environ.get("HARVEST_WRIST_CAM", "1") != "0"
+
+# ---- quadrant guide over the inset --------------------------------------------
+# [2026-09-16] The real vision node's window draws a cross and the four quadrant
+# names in OpenCV green (0, 255, 0). The inset draws the same guide so the two
+# windows read as one structure side by side. Two facts keep it honest:
+#
+#   * It is a FIXED image-space guide. The executor's real boundary is the board's
+#     midlines in robot coordinates (quadrant_filter.BOARD_SUBCELL_*_MID_M,
+#     scan_executor._subcell_of_pose). At the overview pose those midlines project to
+#     49.3% / 49.3% of this camera's frame and stay axis-aligned
+#     (check_wrist_camera_projection.py --joints-deg 88,-94.9,129.9,175.9,-31.3,93.4),
+#     so a centre cross sits on the real split to within 1%. At a quadrant pose the
+#     same cross is that quadrant's own 2x2 sub-cell split -- the executor's depth-2
+#     rule is the parent quadrant's centre lines, so the picture stays the same rule.
+#   * Label slots follow the real window as read from the footage (user, 2026-09-16):
+#     the four names cluster at the crossing, each on the FAR side of it --
+#     NW bottom-right, NE bottom-left, SW top-right, SE top-left. Only
+#     CAM_GUIDE_SLOT encodes that; change it if the footage says otherwise.
+#
+# Colour is pure #00FF00 (captures look yellow-green only from compression) with a
+# 1 px black outline so it survives over unripe fruit. Label height is a fraction
+# of the inset height, so a bigger inset scales the guide with it. The caption gets
+# the current area (HOME / NE / SW/SE ...) from the HUD's own area value, which is
+# what matters at a quadrant pose where the crossing has left the frame.
+CAM_GUIDE_ON = os.environ.get("HARVEST_WRIST_GUIDE", "1") != "0"
+CAM_GUIDE_GREEN = _rgb(0x00FF00)
+CAM_GUIDE_OUTLINE = cl(0.0, 0.0, 0.0, 1.0)
+CAM_GUIDE_LINE_PX = 1           # green core; the black outline adds 1 px each side
+CAM_GUIDE_GAP_PX = 9            # label distance from the crossing (advice: 8-10)
+CAM_GUIDE_TEXT_FRAC = 0.05      # label height / inset height (advice: ~5%)
+CAM_GUIDE_FONT = "${fonts}/OpenSans-SemiBold.ttf"
+# name -> corner of the crossing it sits in: t/b = above/below, l/r = left/right
+CAM_GUIDE_SLOT = {"NW": "br", "NE": "bl", "SW": "tr", "SE": "tl"}
 
 
 class _BoardHighlight:
@@ -537,6 +575,7 @@ class HarvestHUD:
         self._hl = _BoardHighlight()
         self._tree = None
         self._tree_warned = False
+        self.region_listener = None          # wrist camera caption follows the area (2026-09-16)
         self._build()
         self._sub = (omni.kit.app.get_app().get_update_event_stream()
                      .create_subscription_to_pop(self._on_update, name="harvest_hud_update"))
@@ -661,7 +700,13 @@ class HarvestHUD:
             self._w["lamp_" + name].style = {
                 "background_color": C_OK if alive.get(name) else C_BAD}
 
-        self._hl.apply(highlight_key(snap["region"]["name"], snap.get("tree")))
+        area = highlight_key(snap["region"]["name"], snap.get("tree"))
+        self._hl.apply(area)
+        if self.region_listener is not None:
+            try:
+                self.region_listener(area)
+            except Exception:                                      # noqa: BLE001
+                pass                       # the caption must never take the HUD down
         self._update_tree(snap.get("tree"))
 
         tg = snap["targets"]
@@ -740,6 +785,8 @@ class _WristCamera:
     def __init__(self):
         self._frame = None
         self._widget = None
+        self._region_lbl = None
+        self._region_text = None
 
     def build(self, vp_window):
         """True when the inset is on screen."""
@@ -777,19 +824,81 @@ class _WristCamera:
                             with ui.HStack(height=0):
                                 ui.Spacer(width=CAM_PAD)
                                 _label("cam_title", EN["cam_title"], C_DIM, 15)
+                                if CAM_GUIDE_ON:
+                                    # '   AREA NE' -- the HUD's area value, set by set_region()
+                                    ui.Spacer(width=18)
+                                    _label("head_region", EN["region"], C_DIM, 15)
+                                    ui.Spacer(width=5)
+                                    self._region_lbl = ui.Label(
+                                        "", width=0, style=_text(CAM_GUIDE_GREEN, 15),
+                                        alignment=ui.Alignment.LEFT_CENTER)
                                 ui.Spacer()
                             ui.Spacer(height=6)
                             with ui.HStack(height=img_h):
                                 ui.Spacer(width=CAM_PAD)
-                                self._widget = ViewportWidget(
-                                    camera_path=str(prim.GetPath()), resolution=CAM_RES,
-                                    width=CAM_WIDTH, height=img_h)
+                                with ui.ZStack(width=CAM_WIDTH, height=img_h):
+                                    self._widget = ViewportWidget(
+                                        camera_path=str(prim.GetPath()), resolution=CAM_RES,
+                                        width=CAM_WIDTH, height=img_h)
+                                    if CAM_GUIDE_ON:
+                                        self._build_guide(CAM_WIDTH, img_h)
                                 ui.Spacer(width=CAM_PAD)
                             ui.Spacer(height=CAM_PAD)
                     ui.Spacer()
                 ui.Spacer(height=CAM_MARGIN_BOTTOM)
-        print("[wrist_cam] inset on: %dx%d render shown at %dx%d" % (CAM_RES + (CAM_WIDTH, img_h)))
+        print("[wrist_cam] inset on: %dx%d render shown at %dx%d, guide %s"
+              % (CAM_RES + (CAM_WIDTH, img_h, "on" if CAM_GUIDE_ON else "off")))
         return True
+
+    # -- quadrant guide ------------------------------------------------------------
+
+    @staticmethod
+    def _build_guide(w, h):
+        """Centre cross + NW/NE/SW/SE at the crossing, drawn on top of the render."""
+        cx, cy = w // 2, h // 2
+        core = CAM_GUIDE_LINE_PX
+        edge = core + 2                               # black outline, 1 px each side
+        size = max(12, int(round(h * CAM_GUIDE_TEXT_FRAC)))
+        box = size * 3                                # label anchor box (text-aligned inside)
+        gap = CAM_GUIDE_GAP_PX
+
+        def bar(x, y, bw, bh, color):
+            with ui.Placer(offset_x=x, offset_y=y):
+                ui.Rectangle(width=bw, height=bh, style={"background_color": color})
+
+        # lines: outline first, green core on top
+        bar(cx - edge // 2, 0, edge, h, CAM_GUIDE_OUTLINE)
+        bar(0, cy - edge // 2, w, edge, CAM_GUIDE_OUTLINE)
+        bar(cx - core // 2, 0, core, h, CAM_GUIDE_GREEN)
+        bar(0, cy - core // 2, w, core, CAM_GUIDE_GREEN)
+
+        # labels: the anchor box touches the crossing at (gap, gap); alignment inside
+        # the box pushes the text into the corner nearest the crossing.
+        anchor = {
+            "tl": (cx - gap - box, cy - gap - box, ui.Alignment.RIGHT_BOTTOM),
+            "tr": (cx + gap,       cy - gap - box, ui.Alignment.LEFT_BOTTOM),
+            "bl": (cx - gap - box, cy + gap,       ui.Alignment.RIGHT_TOP),
+            "br": (cx + gap,       cy + gap,       ui.Alignment.LEFT_TOP),
+        }
+        for name, slot in CAM_GUIDE_SLOT.items():
+            x, y, align = anchor[slot]
+            # 1 px black outline = the same text four times, offset, under the green one
+            for dx, dy, color in ((-1, 0, CAM_GUIDE_OUTLINE), (1, 0, CAM_GUIDE_OUTLINE),
+                                  (0, -1, CAM_GUIDE_OUTLINE), (0, 1, CAM_GUIDE_OUTLINE),
+                                  (0, 0, CAM_GUIDE_GREEN)):
+                with ui.Placer(offset_x=x + dx, offset_y=y + dy):
+                    ui.Label(name, width=box, height=box, alignment=align,
+                             style={"color": color, "font_size": size,
+                                    "font": CAM_GUIDE_FONT})
+
+    def set_region(self, key):
+        """Caption area text from the HUD's highlight key: 'home' -> HOME, 'sw/se' -> SW/SE."""
+        if self._region_lbl is None:
+            return
+        text = "HOME" if not key or key == "home" else str(key).upper()
+        if text != self._region_text:
+            self._region_text = text
+            self._region_lbl.text = text
 
     def destroy(self):
         # ViewportWidget does not release its render texture by itself -- destroy it first.
@@ -820,6 +929,7 @@ class ViewportDisplay:
         try:
             if cam.build(get_active_viewport_window()):
                 self.cam = cam
+                self.hud.region_listener = cam.set_region
         except Exception as exc:                                   # noqa: BLE001
             cam.destroy()
             print("[wrist_cam] inset failed, HUD continues: %r" % (exc,))
