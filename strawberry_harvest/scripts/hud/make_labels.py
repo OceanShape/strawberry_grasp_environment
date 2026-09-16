@@ -27,8 +27,9 @@ SCALE = 2          # HiDPI 대비 2배로 그려서 절반 크기로 표시한�
 
 # (이름, 글자, 크기px, 색, 볼드)  — 크기·색은 ../isaac_sim_viewport_display.py 와 같은 값
 TEXT = _rgb = lambda h: ((h >> 16) & 255, (h >> 8) & 255, h & 255, 255)
-C_TEXT, C_DIM, C_ACCENT = _rgb(0xE8EDF5), _rgb(0x7B8494), _rgb(0xFF6B81)
-C_BAD = _rgb(0xFF4D5E)   # isaac_sim_viewport_display.C_BAD — 노드 램프 빨강과 같은 값
+C_TEXT, C_DIM = _rgb(0xE8EDF5), _rgb(0x7B8494)
+C_OK = _rgb(0x5AD469)    # isaac_sim_viewport_display.C_OK — 배치 단계·완료와 같은 초록
+C_BAD = _rgb(0xFF4D5E)   # isaac_sim_viewport_display.C_BAD — 노드 램프 빨강과 같은 값 (빨강은 실패 전용)
 PHASE = {"IDLE": 0x7B8494, "SCAN_MOVE": 0x4A9EFF, "DETECT": 0x00C8C8, "PLAN": 0xA78BFA,
          "APPROACH": 0xFFB547, "ENTER": 0xFFB547, "GRASP": 0xFF7A3D,
          "DETACH": 0xFF3D5C, "RETREAT": 0x4A9EFF,
@@ -52,9 +53,11 @@ ITEMS = [
     ("node_planner", "플래너", 15, C_TEXT, False),
     ("node_controller", "제어", 15, C_TEXT, False),
     ("node_scan", "스캔", 15, C_TEXT, False),
-    ("final", "수확 완료", 30, C_ACCENT, True),
+    # [2026-09-16] 색 의미: 제목·비율은 흰색(중립), 배치는 초록, 낙하만 빨강.
+    # 종전 '수확 완료' 는 C_ACCENT(0xFF6B81) 분홍빨강이라 에러처럼 읽혔다.
+    ("final", "수확 완료", 30, C_TEXT, True),
     # [T4c 2026-09-15] 완료 둘째 줄 '배치 n · 낙하 m' (isaac_sim_viewport_display.HarvestHUD._row_final)
-    ("final_placed", "배치", 20, C_TEXT, False),
+    ("final_placed", "배치", 20, C_OK, False),
     ("final_dropped", "낙하", 20, C_BAD, False),
     # [2026-09-16] 손목 카메라 창 제목 (isaac_sim_viewport_display._WristCamera) — 인식 결과가 아니라 렌더라는 것을 창에 적는다
     ("cam_title", "손목 카메라 · D455 컬러 렌더 · 인식 없음", 15, C_DIM, False),

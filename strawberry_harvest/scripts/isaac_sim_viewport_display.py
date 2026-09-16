@@ -128,7 +128,11 @@ C_TEXT = _rgb(0xE8EDF5)
 C_DIM = _rgb(0x7B8494)
 C_OK = _rgb(0x5AD469)
 C_BAD = _rgb(0xFF4D5E)
-C_ACCENT = _rgb(0xFF6B81)
+# [2026-09-16] Color meaning, fixed for the video. RED IS FAILURE ONLY: the dead
+# node lamp and the dropped count. Counts that went right are green (C_OK, the
+# same green as the PLACE / DONE phases); headings and ratios stay white (C_TEXT).
+# The final row was drawn in C_ACCENT (0xFF6B81, pink-red) until this date, which
+# read as an error message; that was its only use, so the constant is gone.
 C_SEG_OFF = cl(1.0, 1.0, 1.0, 0.12)
 C_SEG_DONE = cl(1.0, 1.0, 1.0, 0.35)
 
@@ -621,17 +625,19 @@ class HarvestHUD:
         # whose transfer plan the planner rejected is released where it stands and falls
         # (bridge drop physics); the count comes from harvest_probe (result.dropped) so the
         # ending states the failure instead of only the placed/total ratio.
+        # [2026-09-16] Colors: heading and ratio white, 'placed' green, 'dropped' red
+        # -- see the color block at the top. Nothing here means "success" (hud/README.md).
         with ui.VStack(height=0, spacing=ROW_GAP) as block:
             self._divider()
             with ui.HStack(height=0, spacing=12):
                 ui.Spacer()
-                _label("final", EN["final"], C_ACCENT, 30)
-                self._w["final_num"] = ui.Label("", width=0, style=_text(C_ACCENT, 30))
+                _label("final", EN["final"], C_TEXT, 30)
+                self._w["final_num"] = ui.Label("", width=0, style=_text(C_TEXT, 30))
                 ui.Spacer()
             with ui.HStack(height=0, spacing=8):
                 ui.Spacer()
-                _label("final_placed", EN["final_placed"], C_TEXT, 20)
-                self._w["final_placed_num"] = ui.Label("", width=0, style=_text(C_TEXT, 20))
+                _label("final_placed", EN["final_placed"], C_OK, 20)
+                self._w["final_placed_num"] = ui.Label("", width=0, style=_text(C_OK, 20))
                 ui.Spacer(width=18)
                 _label("final_dropped", EN["final_dropped"], C_BAD, 20)
                 self._w["final_dropped_num"] = ui.Label("", width=0, style=_text(C_BAD, 20))
