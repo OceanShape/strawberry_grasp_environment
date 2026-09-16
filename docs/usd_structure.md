@@ -93,10 +93,11 @@ strawberry_harvest/
 
 - 테이블, 화이트보드는 `lab_environment.usd`에 조립되어 있으며, `main_scene.usd`에서 payload로 불러옵니다.
 - `whiteboard.usd`에는 딸기를 매다는 `attach_points` prim이 정의되어 있습니다.
-- `whiteboard.usd`의 `highlight/{nw,ne,sw,se}` 는 **분면 하이라이트 오버레이**(2026-09-10)입니다.
-  보드와 같은 격자 텍스처에 옅은 주황 tint 를 곱한 판 4장을 보드면 2mm 앞에 둔 것으로,
+- `whiteboard.usd`의 `highlight/` 는 **활성 칸 하이라이트 오버레이**입니다 — 분면 4장 + 세부 칸 16장(09-12).
+  2026-09-16 부터 **시안 발광 테두리**(그 전엔 격자 텍스처에 살구 tint 를 곱한 면 채우기): 분면 띠는 격자선과 같은 20mm 로
+  선 위에 앉고, 세부 칸은 안쪽 14mm 띠. `scripts/scene_tools/gen_board_highlight.py` 가 이 스코프를 통째로 생성합니다(손으로 고치지 말 것).
   기본은 전부 `invisible` 이고 `scripts/isaac_sim_viewport_display.py` 가 HUD 의 영역 값에 맞춰
-  세션 레이어에서 켭니다 (홈 = 4장 전부, 분면 = 그 한 장). 시각 전용 — 콜라이더 없음.
+  세션 레이어에서 켭니다 (홈 = 4장 전부, 분면 = 그 한 장, 세부 자세 = 세부 칸 한 장). 시각 전용 — 콜라이더 없음.
   종전의 분면 꼭지점 봉(`cell_markers.usd`)은 시야를 가려 같은 날 제거했습니다.
 
 ### Omniverse 임포트 (`assets/omniverse_imports/`)
