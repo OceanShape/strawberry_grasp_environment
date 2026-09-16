@@ -1,4 +1,4 @@
-# M3 런 로그 — T1~T4c (런 1~13, 2026-09-10~15)
+# M3 런 로그 — T1\~T4c (런 1\~13, 2026-09-10\~15)
 
 `SUBMISSION_PLAN.md` §4-0 의 T1~T4c 런 로그(시작은 T1 재완주). `~/.ros/log/` 는 언제든 정리될 수 있으므로
 원본을 노드별로 이름만 붙여 옮겼다 (내용 무편집). 형식은 `log/m2_5/` 와 같다.
@@ -11,7 +11,7 @@
 | **런 4** 09-10 12:02 | [`20260910T120206-06df4423/`](20260910T120206-06df4423/) | **T2 딸기 키네마틱 부착** 첫 런 (`/sim/grasp_event` + Isaac 부착·추종·해제) |
 | **런 5** 09-10 13:12 | [`20260910T131234-91dffc15/`](20260910T131234-91dffc15/) | **T4-1 배치 슬롯 진행** `0,1,3,4,6,7` + T3 덩굴 첫 화면. 슬롯 진행은 성공, **배치 간격 결함 2건 발견** |
 | **런 6** 09-10 13:42 | [`20260910T134206-369678ba/`](20260910T134206-369678ba/) | 행 건너뛰기 `0,1,6,7,12,13` + `MOVELINE_END_ERR` 계측. **접촉 해소(+12.7mm)**, 런 5 의 (C) 진단이 **반증**되고 진짜 원인이 나왔다 |
-| **런 7** 09-10 14:06 | [`20260910T140636-71389d3a/`](20260910T140636-71389d3a/) | **도착 허용오차 1.5 → 0.3deg**. 팔 오차 10~24mm → **1.9~5.3mm**. 남은 배치 편차의 정체가 드러났다 |
+| **런 7** 09-10 14:06 | [`20260910T140636-71389d3a/`](20260910T140636-71389d3a/) | **도착 허용오차 1.5 → 0.3deg**. 팔 오차 10\~24mm → **1.9\~5.3mm**. 남은 배치 편차의 정체가 드러났다 |
 | **런 8** 09-11 02:52 | [`20260911T025246-941542d8/`](20260911T025246-941542d8/) | **배치 격자 직교화** + **y 평행이동 10.8mm** + 계란판 3차(깊은 컵·yaw 0·중점 y=0). 로그 통과, **화면에서 과실이 옆 컵으로 뚫려 보임** → 4차 |
 | **런 9** 09-11 03:42 | [`20260911T034247-b358aa9c/`](20260911T034247-b358aa9c/) | 계란판 **4차**: 시뮬 전용 정사각 피치 68mm + 과실 형상 컵 + 밑변 = 상판 + **인접 시퀀스 `0,1,3,4,6,7`**. 로그 통과, 배치 오류 0, 착지 6개 컵 안 |
 | **런 10** 09-12 01:33 | [`20260912T013357-ea2ae427/`](20260912T013357-ea2ae427/) | **T4b 적응 분할** 첫 실행 + 4차 계란판 첫 화면 + **익은 8/4**. 8 분리 / 7 배치 — 이송 J3 스윙 거부 1건(실기 플래너 한계로 기록, 오프라인 재현 파일 동봉) |
@@ -160,7 +160,7 @@ Kit 로그의 `[Error]` 는 1건 — `RSD455 ... missing xformstack reset` (씬 
 
 - **`Plan FAIL ... IK_FAIL` 10건.** 파지 자세 후보 탐색 중의 거부이고, 이후 후보에서 계획이 잡혀
   진행됐다. 시퀀스는 멈추지 않았다. 런 1 과 같은 건수다.
-- **`MOVELINE_SHORT` 3건** (명령 45mm / 실제 41.5~42.0mm, 런 1 은 5건). **전부 `TOOL dz=-45.0mm`,
+- **`MOVELINE_SHORT` 3건** (명령 45mm / 실제 41.5\~42.0mm, 런 1 은 5건). **전부 `TOOL dz=-45.0mm`,
   즉 후퇴 구간**이다. 메시지 문구는 09-10 시점에 이미 방향별로 갈라져 있어 "잔차가 다음 상대
   이동에 전파된다" 로 올바르게 찍혔다.
 - **`SCAN_TRANSIT` 로그 0건 / MoveJoint 폴백으로 동작.** `plan_scan_transit` 기본값은 true 인데
@@ -173,7 +173,7 @@ Kit 로그의 `[Error]` 는 1건 — `RSD455 ... missing xformstack reset` (씬 
   09-10 에 스텝 수 상한 24 를 넣었다 (브릿지). 다음 런에서 `MoveLine ok: 120mm / 24 steps ... 실소요` 로 확인.
 - **가지치기된 분면의 셀 상태 부수 효과.** `_overview_prescan_filter` 가 `root/se=SCANNED_EMPTY`
   를 발행하는데, 시뮬 비전 모킹이 이를 분면 전이로 읽어 **0.3초간 필터가 se 로 갔다가** 곧바로
-  nw 로 바뀐다 (`fake_vision.log` 4~5행, 둘 다 1789002833). nw dwell 시작(1789002834)보다 앞이라
+  nw 로 바뀐다 (`fake_vision.log` 4\~5행, 둘 다 1789002833). nw dwell 시작(1789002834)보다 앞이라
   탐지에는 영향이 없다.
   **HUD 는 영향 없음 (2026-09-10 확인, 종전 기재 정정).** HUD 영역은 `_pub_state` 가 아니라
   `_move_to_scan_cell_and_wait`/`_process_cell_detections`/`_trigger_picks_for_cell` 래핑에서 나오는데
@@ -250,13 +250,13 @@ T2 키네마틱 부착 첫 런. **부착 6/6 성공, 완주. 부수 결함 1건 
 |---|---|---|---|
 | 1 | 부착 이벤트 | ✅ 6/6 | 브릿지 `GRASP_ATTACH 과실 (x,y,z)mm` 6건 + `GRASP_RELEASE` 6건. Kit 로그 `[bridge] ATTACH strawberry_ripe_NN` / `RELEASE … frozen at …` 6쌍 |
 | 2 | 대상 일치 | ✅ | `match 0.0 mm` ×6 — 브릿지가 지목한 좌표와 prim 위치가 정확히 같다 (같은 prim 에서 나온 좌표이므로 당연하지만, 씬 재로드 누락이면 여기서 어긋난다) |
-| 3 | 상대 오프셋 (TCP 스냅 없음) | ✅ | 그리퍼 밑동 기준 (30.5~33.8, -2.1~+1.8, 250.4~257.9)mm. 툴축 251~258mm = TCP 236 + 파지 오프셋 15 + along 잔차. x 31mm = 줄기 밑 35mm 에 매달린 과실의 툴 프레임 투영. **6개가 서로 다른 값**으로 잡혔다 — 접근 오차가 그대로 보존됐다는 뜻 |
-| 4 | 해제 위치 | ✅ | 6개 전부 계란판 (772~777, 87~105, 36~47)mm — slot 0 반복(T4 항목) 이라 한곳에 쌓인다 |
+| 3 | 상대 오프셋 (TCP 스냅 없음) | ✅ | 그리퍼 밑동 기준 (30.5\~33.8, -2.1\~+1.8, 250.4\~257.9)mm. 툴축 251\~258mm = TCP 236 + 파지 오프셋 15 + along 잔차. x 31mm = 줄기 밑 35mm 에 매달린 과실의 툴 프레임 투영. **6개가 서로 다른 값**으로 잡혔다 — 접근 오차가 그대로 보존됐다는 뜻 |
+| 4 | 해제 위치 | ✅ | 6개 전부 계란판 (772\~777, 87\~105, 36\~47)mm — slot 0 반복(T4 항목) 이라 한곳에 쌓인다 |
 | 5 | 수확 딸기 발행 제외 | ✅ | JSONL `scene_positions_received` 에 x>0.6(계란판) 좌표 **0건**. 발행 개수 6→…→0 으로 감소. 마지막 sw 재스캔 `SCANNED_EMPTY` → se 재탐지 없음 |
 | 6 | 그리퍼 자세 소스 | ✅ | `[bridge] gripper pose source: SingleRigidPrim` (Isaac 5.1 물리 뷰). USD 폴백 안 탐 |
 | 7 | 물리 경고 | ✅ | kinematic/joint/collision 전환 관련 PhysX 경고 0건 |
 | 8 | 시퀀스·카운터 | ✅ | 가지치기 동일(se 제외, `TRANSIT_VIA_OVERVIEW` 1건), `PICK COMPLETE` 6, `clamped`·`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED`·`EXEC_*` 0. `MOVELINE_SHORT` 5건 **전부 45mm 후퇴** — 120mm 하강 건은 임계값 교정으로 사라졌다 |
-| 9 | 시간 | ✅ | 전체 212.6초, pick 건당 31.0초, 부착~해제 13.3~15.2초, 120mm 하강 4.2~4.8초 |
+| 9 | 시간 | ✅ | 전체 212.6초, pick 건당 31.0초, 부착\~해제 13.3\~15.2초, 120mm 하강 4.2\~4.8초 |
 | — | 화면 | 사용자 확인 대상 | 과실이 그리퍼를 따라 이송·배치되는지, 릴리스 후 계란판에 정지하는지 |
 
 ## 발견·수정 — 익은 과실이 시야에 없으면 좌표 흐름이 끊겼다
@@ -337,14 +337,14 @@ T2 전에는 딸기가 사라지는 일이 없어 드러나지 않았다. 영향
 
 (B) 의 5.74° 로는 위 표의 y 최대 **+28.8mm** 를 설명할 수 없다. 분해해 보면:
 
-- 계획된 above 자세는 정확하다 — FK 대비 xy 오차 0.1~2.5mm, 자세 오차 0.05~0.16°
-  (자세 오차가 과실 위치에 주는 영향은 레버 251mm 를 곱해도 0.2~0.7mm).
+- 계획된 above 자세는 정확하다 — FK 대비 xy 오차 0.1\~2.5mm, 자세 오차 0.05\~0.16°
+  (자세 오차가 과실 위치에 주는 영향은 레버 251mm 를 곱해도 0.2\~0.7mm).
 - 과실은 그리퍼에 **강체로** 붙어 있으므로 그리퍼–과실 거리는 보존돼야 한다. 그런데 실측 과실 위치에서
   역산한 그리퍼 자세는 계획 자세에서 **4.3~20.9mm** 어긋나 있다. 즉 **팔이 계획한 자리에 없다.**
 - 그 구간은 배치 하강 `TAUGHT_SLOT0_RELEASE_DESCEND BASE −Z 120mm` 뿐이고, 이것은 플래너 계획이
   아니라 **브릿지 MoveLine**(스텝별 IK)이다.
-- 브릿지의 검사는 `_moved` = 시작점~끝점 **스칼라 거리** 하나뿐이다. 옆으로 밀려도 거리만 맞으면 통과한다.
-  실제로 6건 전부 "실이동 115.8~116.6mm / 명령 120mm" 로 정상 판정됐다.
+- 브릿지의 검사는 `_moved` = 시작점\~끝점 **스칼라 거리** 하나뿐이다. 옆으로 밀려도 거리만 맞으면 통과한다.
+  실제로 6건 전부 "실이동 115.8\~116.6mm / 명령 120mm" 로 정상 판정됐다.
 - 이 구간을 잡을 수 있었던 유일한 장치인 **직교 편차 검사(`row2_line_check_result`)는 `is_row2` 분기에만
   있다.** 그런데 열 2·5·8·11·14 는 IK_FAIL 이라 한 번도 실행된 적이 없다 — 켜져 있지만 죽어 있는 검사다
   (09-10 `plan_scan_transit` 과 같은 부류).
@@ -379,8 +379,8 @@ T2 전에는 딸기가 사라지는 일이 없어 드러나지 않았다. 영향
 | 1 | 시퀀스 진행 | ✅ | `TAUGHT_TRAY_SLOT_SEQUENCE: slot 0->1, 1->6, 6->7, 7->12, 12->13` 5건 + `SLOT_SEQUENCE_DONE ... next auto slot=14`(미사용) |
 | 2 | slot 12·13 배치 | ✅ | `TAUGHT_TRAY_SLOT{0,1,6,7,12,13}_ABOVE generated` 각 1건, `_PLACE_BLOCKED` **0건**. **사전 검증 5/7 이던 slot 13 도 성공** (맨 뒤 배치가 유효했다) |
 | 3 | **배치 간격** | ✅ | 과실 메시 간 **최소 +12.7mm** (slot 6↔7). 런 5 는 +0.1mm, 이상 격자 상한은 +15.3mm — **(A) 해소** |
-| 4 | `MOVELINE_END_ERR` | ✅ 30건 | 전 구간 lateral **0.1~1.5mm**, WARN(>5mm) **0건**. 배치 하강 6건은 전부 lateral **0.1mm** / along −3.6~−4.3mm |
-| 5 | 파지·완주 | ✅ 6/6 | `GRASP_JUDGE` 6건 전부 CONTACT (along +13.7~15.7mm, lateral 1.3~4.3mm), `PICK COMPLETE` 6, `clamped`·`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED`·`EXEC_*` **0건** |
+| 4 | `MOVELINE_END_ERR` | ✅ 30건 | 전 구간 lateral **0.1\~1.5mm**, WARN(>5mm) **0건**. 배치 하강 6건은 전부 lateral **0.1mm** / along −3.6\~−4.3mm |
+| 5 | 파지·완주 | ✅ 6/6 | `GRASP_JUDGE` 6건 전부 CONTACT (along +13.7\~15.7mm, lateral 1.3\~4.3mm), `PICK COMPLETE` 6, `clamped`·`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED`·`EXEC_*` **0건** |
 | 6 | 가지치기·좌표 연속성 | ✅ | `OVERVIEW_SCAN nw:2 ne:1 se:0 sw:3` → `TRAVERSAL_PRUNED skip=['root/se']`. `scene_positions_received` 598건 / 599.0초, 최대간격 1.1초 |
 
 전체 213.8초 (`TRAVERSAL_SCAN_STARTED` → `SCAN_COMPLETE`).
@@ -452,12 +452,12 @@ T2 전에는 딸기가 사라지는 일이 없어 드러나지 않았다. 영향
 | 3 | `ARM_ARRIVAL_STALLED` | ✅ **0건** | 전부 0.3deg 안으로 수렴했다 — 정체 감지가 발동할 일이 없었다 |
 | 4 | `ARM_ARRIVAL_TIMEOUT` | ✅ **0건** | |
 | 5 | 전체 시간 | ✅ | **222.5초** (런 6 213.8초, **+8.7초**). 도착 대기 합계 17.5초 (Spline 9.0 / MoveJoint 5.7 / MoveLine 2.8) |
-| 6 | **배치 산포** | ✅ | 팔 오차 **10.0~24.3mm → 1.9~5.3mm**. 계통 11.0 → **2.5mm**, 산포 11.0 → **2.1mm** |
-| 7 | 파지 정밀도 | — | `GRASP_JUDGE` lateral 2.7~5.3mm (런 6 1.3~4.3mm). **개선 없음** — 아래 참고 |
+| 6 | **배치 산포** | ✅ | 팔 오차 **10.0\~24.3mm → 1.9\~5.3mm**. 계통 11.0 → **2.5mm**, 산포 11.0 → **2.1mm** |
+| 7 | 파지 정밀도 | — | `GRASP_JUDGE` lateral 2.7\~5.3mm (런 6 1.3\~4.3mm). **개선 없음** — 아래 참고 |
 | 8 | 종전 기준 | ✅ | 시퀀스 `0->1->6->7->12->13`, `PICK COMPLETE` 6, `_PLACE_BLOCKED`·`clamped`·`JOINT_COMMAND_REJECTED`·`EXEC_*` 0건, `TRAVERSAL_PRUNED skip=['root/se']`, `scene_positions` 534건/535.1초 최대간격 1.0초 |
 
 부수 효과:
-- 배치 하강(120mm) along 오차 **−3.6~−4.3mm → −1.0~−1.5mm**, lateral 은 여전히 0.1mm.
+- 배치 하강(120mm) along 오차 **−3.6\~−4.3mm → −1.0\~−1.5mm**, lateral 은 여전히 0.1mm.
 - **`MOVELINE_SHORT` 6건 → 0건.** 런 6 의 6건은 전부 45mm 후퇴였는데, 그 부족분도 도착 잔차였다.
 
 **파지 lateral 이 안 좋아진 이유**: 파지 lateral 은 도착 잔차가 아니라 **cuRobo 가 고른 접근 자세**가 지배한다
@@ -618,9 +618,9 @@ MoveJoint 사다리꼴 페이싱, `sim_speed_scale` 1.0) ③ D1 로봇 USD J2/J3
 | 3 | 깊이 2 유도 단계 | ✅ 오프라인 예측과 일치 | `SUBCELL_POSE` 5건 — nw/sw **lab_plane** dJ_max 19.6 · nw/se lab_plane 56.9 · sw/se lab_plane 37.8 · sw/nw lab_plane 43.8 · sw/ne **parent_y** 26.2 (ee y 433.0 / 317.3); `SUBDIVIDE_REJECTED` 0 |
 | 4 | 세부 칸 시야 | ✅ | `VIEWING` 4건(lab_plane 칸만) — fake_vision `SCAN_CELL root/nw/sw (VIEWING) -> 시야 = x[-0.495,-0.223] z[0.660,0.857]` 등; parent_y 칸(sw/ne)은 분면 시야 그대로 |
 | 5 | 파지·분리 | 🔶 **7/8** | 접근 8, `GRASP_JUDGE` 7/7 CONTACT, `PICK COMPLETE` 7. **ripe_08(280, 783, 700)** 은 접근 계획 `IK_FAIL` 3회 뒤 pre-approach 도달, 45mm 직선 진입에서 브릿지 `MoveLine IK Failed at step 23/23 (best delta=inf)` → 플래너 `ABORT: 직선 진입 실패` → 스캔 자세 복귀. 런 10 에서는 같은 과실을 잡았다 → **09-14 로봇 한계(J2/J3/J5 실기 값 ±95/±135/±135) 뒤 처음 나타난 차이**. 원인(어느 관절 한계인지)은 T4d 전에 브릿지 IK 로그로 확인할 것 |
-| 6 | 배치 | 🔶 **4/7** (배정 기준 4/8 — 09-14 예상과 일치) | `TAUGHT_TRAY_SLOT{0,1,3}_PLACE_BLOCKED` 3건 전부 `Cartesian plan rejected: J6 spline jump 356.x > 270 (limit boundary crossing - normalize discontinuity)` — J6 ±225 원복의 결과(`docs/e0509_spec_audit.md` §7), J3 swing 거부 0. `PICK_SEQUENCE_CONTINUE place_status=failed: released fruit here` 3 → Kit `RELEASE … frozen at` 보드 앞 3건(y 738~744, z 407~674) + 트레이 안 4건(z≈35) |
+| 6 | 배치 | 🔶 **4/7** (배정 기준 4/8 — 09-14 예상과 일치) | `TAUGHT_TRAY_SLOT{0,1,3}_PLACE_BLOCKED` 3건 전부 `Cartesian plan rejected: J6 spline jump 356.x > 270 (limit boundary crossing - normalize discontinuity)` — J6 ±225 원복의 결과(`docs/e0509_spec_audit.md` §7), J3 swing 거부 0. `PICK_SEQUENCE_CONTINUE place_status=failed: released fruit here` 3 → Kit `RELEASE … frozen at` 보드 앞 3건(y 738\~744, z 407\~674) + 트레이 안 4건(z≈35) |
 | 7 | 방어선·도착 | ✅ | `JOINT_COMMAND_REJECTED`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`clamped`·`EXEC_TIMEOUT` 0 — J3 가 135° 한계에 닿는 트레이 자세에서도 도착 잔차 정상 |
-| 8 | D3 기록 | ✅ | `MOVEJ_OVER_DOOSAN_MOVEIT` 12건(J1 acc 145~171 · J2 144~180 · J3 154~180 > 120/120/150) — 자르지 않고 실행, 기록만 |
+| 8 | D3 기록 | ✅ | `MOVEJ_OVER_DOOSAN_MOVEIT` 12건(J1 acc 145\~171 · J2 144\~180 · J3 154\~180 > 120/120/150) — 자르지 않고 실행, 기록만 |
 | 9 | 시간 | **277초** | `OVERVIEW_SCAN_STARTED` → `READY_FOR_NEXT_START` (런 10 283.0). 분할 5칸 + `sim_speed_scale` 1.0 |
 | 10 | 화면 | ⏳ 사용자 | HUD 트리 패널(북서·남서 `(분할)` + 세부 칸 줄), 세부 칸 주황 하이라이트, 4차 계란판 — 런 10 판정표 4·6·8 을 여기서 닫는다 |
 
@@ -639,7 +639,7 @@ MoveJoint 사다리꼴 페이싱, `sim_speed_scale` 1.0) ③ D1 로봇 USD J2/J3
 | # | 관찰 | 원인 | 조치 |
 |---|---|---|---|
 | 1 | 낙하한 과실 하나가 바닥에도 없고 사라짐 | **바닥 관통(터널링)**. 자유 낙하 1.4m → 착지 5.3m/s = 60Hz 스텝당 88mm, 바닥 판 두께 20mm. 헤드리스 검사에선 위상이 맞아 걸렸을 뿐 | 바닥 두께 1m(윗면 −0.75 그대로) + `physxScene:enableCCD` + 낙하 과실에 `physxRigidBody:enableCCD`. 브릿지가 낙하 3초 뒤 `DROP_REST … on floor / caught above floor / BELOW FLOOR` 를 찍는다. 헤드리스 재검증(09-15, ripe_07·04·08 을 런 13 낙하점에서 떨어뜨림): 셋 다 바닥 위 z −0.73 정지, USD 추종 |
-| 2 | 낙하 과실 하나가 안 익은 딸기에 걸려 보드 앞에 걸쳐짐 (3~4번째) | **4번째 ripe_08**(x 281, z 661 에서 낙하) 바로 아래 unripe_05(x 223~277, z 447~510). 5번째 ripe_03(x 201) 아래에도 unripe_06(x 153~207) | 물리 그대로 둔다 — 실기에서도 떨어진 과실은 아래 과실에 걸린다. `DROP_REST` 로 기록만 |
+| 2 | 낙하 과실 하나가 안 익은 딸기에 걸려 보드 앞에 걸쳐짐 (3~4번째) | **4번째 ripe_08**(x 281, z 661 에서 낙하) 바로 아래 unripe_05(x 223\~277, z 447\~510). 5번째 ripe_03(x 201) 아래에도 unripe_06(x 153\~207) | 물리 그대로 둔다 — 실기에서도 떨어진 과실은 아래 과실에 걸린다. `DROP_REST` 로 기록만 |
 | 3 | 완료 줄 `배치 4 · 낙하 0` | **노드 무재시작** — 플래너 프로세스가 옛 프로브라 `result.dropped` 를 안 셌다(버스 파일에 키 없음). 브릿지(새 코드)는 Kit 로그에 `dropped=4` | 코드 수정 뒤에는 `run_nodes.sh --kill` → 재기동. run_guide 에 명시 |
 
 **부수 발견 — 재트리거는 트레이 슬롯 포인터를 이어 간다.** 런 12 가 슬롯 0·1·3·4 를 채우고 끝나서 런 13 은 **슬롯 6 부터** 배정됐다
@@ -661,7 +661,7 @@ MoveJoint 사다리꼴 페이싱, `sim_speed_scale` 1.0) ③ D1 로봇 USD J2/J3
 |---|---|---|---|
 | 1 | 파지·분리 | ✅ **8/8** | `GRASP_JUDGE` 8/8 CONTACT, `PICK COMPLETE` 8. 런 12 에서 진입 실패했던 **ripe_08 도 성공** — 이번엔 pre-approach 해가 달랐다(end_J `[52.2, 37.0, 0.9, 42.1, 65.1, −113.7]`, 런 12 는 `[48.5, 25.1, 19.9, 48.3, 62.2, −121.3]` 에서 마지막 스텝 IK 실패) → cuRobo 해 선택의 간헐성이지 고정 한계가 아니다(H §9 유형) |
 | 2 | 배치 | 🔶 **4/8** (09-14 예상과 일치) | PLACED ripe_01·08·03·06 (슬롯 0·1·3·4, 트레이 안 z 35~39). `_PLACE_BLOCKED` 4: slot0 ripe_07 J6 spline jump 356.6 · slot1 ripe_02 J6 356.0 · slot4 ripe_05 J6 357.2 · **slot6 ripe_04 J3 swing 201.1 > 120** (원본 가드값, 09-14 원복) |
-| 3 | 낙하 물리 | ✅ | Kit `DROPPED outside tray` 4건(ripe_07·02·05·04, 보드 앞 y 738~744) → **`DROP_REST … on floor` 4/4**(z −723~−732, 바닥 윗면 −750), `BELOW FLOOR` 0, `caught` 0(이번엔 아래 과실에 안 걸림) |
+| 3 | 낙하 물리 | ✅ | Kit `DROPPED outside tray` 4건(ripe_07·02·05·04, 보드 앞 y 738\~744) → **`DROP_REST … on floor` 4/4**(z −723\~−732, 바닥 윗면 −750), `BELOW FLOOR` 0, `caught` 0(이번엔 아래 과실에 안 걸림) |
 | 4 | 낙하 카운트 | ✅ | 플래너 버스 `result = {succeeded 4, failed 0, dropped 4}` = Kit `dropped=4` = 플래너 `PICK_SEQUENCE_CONTINUE … released fruit here` 4 → 완료 줄 `수확 완료 4 / 8 (50%)` + `배치 4 · 낙하 4` (화면은 사용자 확인) |
 | 5 | 깊이 2 | ✅ 런 12 와 동일 | `SUBCELL_POSE` lab_plane 4(nw/sw·nw/se·sw/se·sw/nw) / parent_y 1(sw/ne), `VIEWING` 4, `SUBDIVIDE_REJECTED` 0 |
 | 6 | 방어선·도착 | ✅ | `JOINT_COMMAND_REJECTED`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`clamped`·`EXEC_TIMEOUT` 0; `MOVEJ_OVER_DOOSAN_MOVEIT` 12(기록만) |
@@ -678,7 +678,7 @@ MoveJoint 사다리꼴 페이싱, `sim_speed_scale` 1.0) ③ D1 로봇 USD J2/J3
 ## 09-16 정정 — 낙하 과실의 시작점 (런 14 판정표 3행에 대한 주석)
 
 런 14 의 "`DROP_REST … on floor` 4/4" 는 사실이지만, **떨어지기 시작한 자리가 그리퍼가 아니라 보드였다.** 09-16 런 3개(14:38·16:18·16:36, Kit 로그 `kit_20260916_143429/161629/163258`)에서
-낙하 과실의 정지 위치를 원위치·릴리스 위치와 대조하니 수직 낙하한 과실(ripe_07·04)이 **보드에 매달렸던 xy 아래 0.4~5mm**, 릴리스점 아래로는 +39~+49mm 였다.
+낙하 과실의 정지 위치를 원위치·릴리스 위치와 대조하니 수직 낙하한 과실(ripe_07·04)이 **보드에 매달렸던 xy 아래 0.4\~5mm**, 릴리스점 아래로는 +39\~+49mm 였다.
 ripe_02 는 원위치에서 수직 낙하하면 바로 아래 ripe_05(x 구간 34mm 겹침)에 부딪히는 자리라 매 런 다른 방향으로 튀었다(14:38 런 x −98, 16:36 런 x −342).
 
 원인: 운반 중 과실은 kinematic — PhysX 는 kinematic 몸체 자세를 USD 에 써 주지 않으므로 루트 레이어엔 보드 위치가 그대로다. 브릿지 낙하 코드가 세션 레이어 xform 을 지우면
@@ -700,8 +700,8 @@ ripe_05 원위치 바로 아래(x −98)에 떨어져 있던 것과 혼동됐을
 | ripe_08 | 738.4 | 1090.2 (x 706, 크게 튐) | 720.7 | 28 mm (dx +21, dy −18) |
 | ripe_04 | 739.1 | 787.8 (보드) | 703.8 | 35 mm (dx +0, dy −35) |
 
-- **낙하 시작점 ✅**: 4/4 가 릴리스점 아래 28~47mm 에 정지(수정 전은 보드 쪽 +39~+49 또는 보드 뒤로 튐). ripe_02 가 더는 ripe_05 원위치로 떨어지지 않는다.
-  정지점이 전부 dy 음수(로봇 쪽 18~47mm)인 이유는 확인하지 않았다 — 착지 뒤 구름으로 보이나 측정 안 함.
+- **낙하 시작점 ✅**: 4/4 가 릴리스점 아래 28\~47mm 에 정지(수정 전은 보드 쪽 +39\~+49 또는 보드 뒤로 튐). ripe_02 가 더는 ripe_05 원위치로 떨어지지 않는다.
+  정지점이 전부 dy 음수(로봇 쪽 18\~47mm)인 이유는 확인하지 않았다 — 착지 뒤 구름으로 보이나 측정 안 함.
 - **계란판 감시 ✅**: `PLACED_FRUIT_MOVED`·`PLACED_FRUIT_GONE` 0. 6번째 ripe_05(slot 3)는 그대로. 14:38 목격은 재현되지 않았고, 혼동 원인으로 본 "ripe_05 원위치 아래 바닥의 ripe_02" 는 이제 생기지 않는다.
 - **배경 ✅**: 씬 열림(08:15:22) 뒤 재적용 `background type=2 color=[0.027, 0.033, 0.042] (asked …)` 일치, `did not stick` 0.
 - **플래너 쪽 불변(예상대로)**: ATTACH 8 / PLACED 4(ripe_01·03·05·06) / DROPPED 4(`TAUGHT_TRAY_SLOT0·1·1·6_PLACE_BLOCKED: above plan failed`), `clamped`·`JOINT_COMMAND_REJECTED`·`*_TIMEOUT` 0.

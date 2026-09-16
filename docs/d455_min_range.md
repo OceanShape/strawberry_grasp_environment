@@ -44,8 +44,8 @@ disparity 탐색 폭). MinZ 는 가로 해상도에 비례해 줄고, disparity 
 
 - **1280×720**: 깊이 1 도 MinZ(496) 아래 — 실기가 이 해상도로 분면 스캔을 했을 리 없다(또는 disparity shift 를 썼다).
 - **848×480**: 깊이 1 은 안(385 > 328), **깊이 2 는 밖**(292 < 328).
-- **640×480 이하**: 깊이 2 과실 중심이 경계 근처(297) ~ 안(248).
-- **거리를 재는 원점**: 위 표의 카메라-보드 거리는 `subcell_pose.CAMERA_OFFSET_IN_EE_M` 기준이고, 그 값은 USD 의 `rsd455` 모듈 원점이다. 09-16 에 `check_wrist_camera_projection.py` 로 대조하니 모듈 원점은 `Camera_Pseudo_Depth` 원점과 같았다 — MinZ 를 따지는 프레임으로 맞다. 컬러 카메라 광학 원점은 ee 프레임에서 11.5mm 떨어져 있지만 분면 4자세에서 보드 거리 차이는 0.3mm 이하라 위 판정은 바뀌지 않는다(분면 411.7~472.3mm, `log/m3/offline_checks/wrist_camera_projection_20260916.txt`).
+- **640×480 이하**: 깊이 2 과실 중심이 경계 근처(297) \~ 안(248).
+- **거리를 재는 원점**: 위 표의 카메라-보드 거리는 `subcell_pose.CAMERA_OFFSET_IN_EE_M` 기준이고, 그 값은 USD 의 `rsd455` 모듈 원점이다. 09-16 에 `check_wrist_camera_projection.py` 로 대조하니 모듈 원점은 `Camera_Pseudo_Depth` 원점과 같았다 — MinZ 를 따지는 프레임으로 맞다. 컬러 카메라 광학 원점은 ee 프레임에서 11.5mm 떨어져 있지만 분면 4자세에서 보드 거리 차이는 0.3mm 이하라 위 판정은 바뀌지 않는다(분면 411.7\~472.3mm, `log/m3/offline_checks/wrist_camera_projection_20260916.txt`).
 
 → 실기가 깊이 2 티칭 평면에서 실제로 인식했다면 640×480 이하이거나 disparity shift > 0 이었어야 한다. **그 설정을 적은 로그가 없으므로
 단정하지 않는다.** 실기 4개 티칭 자세가 y=433 한 평면에 있다는 사실(G §5)까지만 말한다.

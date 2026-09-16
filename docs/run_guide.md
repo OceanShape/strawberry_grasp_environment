@@ -75,7 +75,7 @@ cd ~/strawberry_grasp_environment && bash scripts/run_batch.sh 5 --tag pilot
 cd ~/strawberry_grasp_environment && python3 scripts/run_metrics.py --aggregate log/m3/random/pilot/runs.csv
 ```
 
-→ ~~본 실험 30 런~~ — **09-15 개정: 30 런은 하지 않는다.** 파일럿 5 런(서로 다른 배치 5개)이 본 데이터이고, 결과는 `log/m3/random/pilot/` + 배치별 기록표 `log/m3/random/README.md`(SUBMISSION_PLAN T4d). 자동화 실패로 끊긴 런은 같은 시드로 다시 돌린다.
+→ 파일럿 5 런(서로 다른 배치 5개)이 본 데이터이고, 결과는 `log/m3/random/pilot/` + 배치별 기록표 `log/m3/random/README.md`(SUBMISSION_PLAN T4d). 자동화 실패로 끊긴 런은 같은 시드로 다시 돌린다.
 중간에 멈추려면 `Ctrl+C` → `bash scripts/run_nodes.sh --kill` → `python3 strawberry_harvest/scripts/scene_tools/gen_random_layout.py --restore`.
 자세한 동작은 [T4d 절](#t4d--무작위-배치-n-런-자동-실행-2026-09-15).
 
@@ -354,7 +354,7 @@ bash scripts/run_batch.sh 5 --tag pilot
    (로그 4개, `kit_bridge.log`, `layout.json`, `metrics.json`) 과 `log/m3/random/<tag>/runs.csv`. 끝나면 시연 배치를 파일에 되돌린다
    (`gen_random_layout.py --restore` — Isaac 씬은 다음 재로드 때 반영).
 3. 카운트 확인: `python3 scripts/run_metrics.py --aggregate log/m3/random/pilot/runs.csv` — 출력의 Wilson 구간은 **보고에 쓰지 않는다**(09-15 개정, SUBMISSION_PLAN T4d).
-4. ~~30 런~~ 하지 않는다. 대신 런마다 `planner.log`·`scan.log`·`bridge.log` 를 읽어 `log/m3/random/README.md` 배치별 기록표를 채운다(새로 드러난 실기 노드 동작은 H §9 유형으로).
+4. 런마다 `planner.log`·`scan.log`·`bridge.log` 를 읽어 `log/m3/random/README.md` 배치별 기록표를 채운다(새로 드러난 실기 노드 동작은 H §9 유형으로).
 
 멈추고 싶으면 터미널의 `run_batch.sh` 를 Ctrl-C 한 뒤 `bash scripts/run_nodes.sh --kill`, `python3 strawberry_harvest/scripts/scene_tools/gen_random_layout.py --restore`.
 `isaac_state.json` 이 `error` 면 Isaac 콘솔의 `[batch] … failed` 줄을 본다. 시연 배치(런 12~14)는 `log/m3/random/layouts/base_layout.json` 이 원본이다.
@@ -834,7 +834,6 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | **배치 경로가 보드를 스친다** | 플래너가 궤적을 12점으로 다운샘플해 보낸다. 브릿지 `move_spline_cb` 가 그 사이를 보간하는지 확인 |
 | **이동 중 그리퍼가 보드를 통과한다** | 브릿지 기동 로그에 `MOVELINE_COLLISION_WORLD:` 가 없다. IK 솔버가 충돌 월드 없이 생성된 것 |
 | **딸기를 제대로 집었는데 빈손 판정** | `d_tcp` 와 `capture_radius` 를 대조. `pick_target_z_bias_m` 을 바꿨으면 `grasp_capture_radius_m` 도 같이 봐야 한다 |
-| ~~상태창이 픽 완료인데 "분리"로 표시~~ | 폐기된 `status_monitor_node` 의 문자열 매칭 문제였다. HUD 는 메서드 경계를 감싸므로 이 부류의 오진이 없다 |
 | 파지는 되는데 **place를 아예 안 함** | 플래너 인자에서 `-p enable_marker_place_sequence:=true` 누락 |
 | `MARKER_PLACE_BLOCKED: tray cells JSON not found` | 플래너 인자에서 `-p use_taught_slot0_place_reference:=true` 누락 (시뮬엔 ArUco 트레이 JSON이 없다) |
 | `MARKER_PLACE_PREVIEW_HOLD` — 트레이 위에서 멈춤 | 플래너 인자에서 `-p execute_marker_place_release:=true` 누락 |

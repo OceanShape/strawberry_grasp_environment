@@ -26,7 +26,7 @@
 | # | 위치 | 값 | 영향 |
 |---|---|---|---|
 | B1 | `harvest_motion_params.py:107` `DIRECT_GRASP_TARGET_X_RANGE_M` | (−0.45, 0.45) m | 범위 밖 x 는 `ABORT` 로 그 표적을 버린다 (`pick_sequence_executor.py:649`). 보드는 x −0.495~+0.595 라 **오른쪽 145mm·왼쪽 45mm 띠에 놓인 과실은 못 딴다** |
-| B2 | `grasp_candidate_policy.py:108·116` | x > 0.25 → 오른쪽 사다리(−30·0mm 먼저), x < −0.30 → 왼쪽 끝 사다리 | 실험실 배치에서 나온 위치별 분기(실기 정책). 런 1~9 는 x −250~+200mm 만 집었고, ripe_07(−380)·ripe_08(+280)은 런 10 이 첫 확인이다 |
+| B2 | `grasp_candidate_policy.py:108·116` | x > 0.25 → 오른쪽 사다리(−30·0mm 먼저), x < −0.30 → 왼쪽 끝 사다리 | 실험실 배치에서 나온 위치별 분기(실기 정책). 런 1\~9 는 x −250\~+200mm 만 집었고, ripe_07(−380)·ripe_08(+280)은 런 10 이 첫 확인이다 |
 | B3 | `harvest_motion_params.py:171` `MAX_HARVEST_JOINT_DELTA_DEG` | J1 75도 — 원본 (09-08 에 95 로 올렸다가 **09-14 원복**) | 특정 과실에서 막혀서 푼 스윙 상한. 새 위치가 다시 걸릴 수 있다 |
 | B4 | `harvest_motion_params.py:187` `MAX_TAUGHT_PLACE_TRANSFER_JOINT_DELTA_DEG` | J2 100·J3 120 — 원본 (09-08·09-10 상향분 **09-14 원복**) | 같은 성격. 위쪽 과실일수록 트레이 이송 스윙이 크다. **런 10·11 에서 실제 발생** — ripe_08 slot 4 J3 186°, ripe_04 slot 9 J3 198°. 후퇴 자세가 같아도 IK 분기가 호출마다 달라 간헐적. 무작위 배치에서는 어느 과실에서든 날 수 있다 (`PLANNER_CHANGES.md` 09-12). **09-12 사용자 결정: 실기 플래너 한계로 기록, 고치지 않음** (`portfolio/H_scope_decisions.md` §9) |
 | B5 | `harvest_motion_params.py:200` `COLLISION_ACTIVATION_DISTANCE_M` | 5mm | ripe_02·03 이 40mm 로 밀린 실측에서 정한 값 (보드에 붙은 과실 기준) |
@@ -64,7 +64,7 @@
 - A6 → 생성기가 통로 규칙(|dx|<45mm 이고 0<dz<120mm 거부)으로 거르고, 적용 뒤 `verify_vines.py` 로 실제 메시 간격을 잰다.
 - C → `run_nodes.sh` 파라미터 그대로(슬롯 8칸 = 익은 8). `subdivide_min_candidates:=3` 도 그대로 — 분할이 0~2회로 달라지는 분포 자체가 기록 대상.
 - E → 시드별 JSON 의 `expect`(분면별 익은 수·가지치기·분할 분면)가 런별 기대값. 카운트는 `scripts/run_metrics.py` 의 CSV, 정성 기록은 `log/m3/random/README.md` 배치별 표.
-- **09-15 개정**: 30 런 비율·신뢰구간은 하지 않는다 → 서로 다른 배치 3~5개 완주 + 배치별 기록(SUBMISSION_PLAN T4d). 이 문서의 A~F 조사는 그대로 유효하다.
+- **09-15 개정**: 30 런 비율·신뢰구간은 하지 않는다 → 서로 다른 배치 3\~5개 완주 + 배치별 기록(SUBMISSION_PLAN T4d). 이 문서의 A\~F 조사는 그대로 유효하다.
 - 실행 절차는 `docs/run_guide.md` "T4d — 무작위 배치 N 런 자동 실행".
 
 ## F. 확인했고 배치와 무관한 것
