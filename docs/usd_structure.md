@@ -43,7 +43,7 @@ strawberry_harvest/
 │   ├── layers/
 │   │   ├── layout_layer.usd               # 배치: 딸기 위치, 로봇 베이스, 초기 관절 포즈 (domain randomization 대상)
 │   │   ├── physics_layer.usd              # PhysicsScene, 정적 콜라이더, 딸기 줄기(stem) fixed joint
-│   │   └── lighting_layer.usd             # DomeLight(studio HDRI) + RectLight 2개
+│   │   └── lighting_layer.usd             # 무텍스처 DomeLight(채움) + 상단 RectLight 1개(주광)
 │   └── textures/studio.hdr
 ├── configs/
 │   ├── calibration_eye_in_hand.npz        # eye-in-hand 캘리브레이션 원본 데이터
@@ -109,7 +109,7 @@ strawberry_harvest/
 | 레이어 | 역할 |
 |---|---|
 | `physics_layer.usd` | PhysicsScene, gravity, solver, 전역 충돌 그룹, 딸기 줄기 joint |
-| `lighting_layer.usd` | DomeLight(studio.hdr) + RectLight 2개 |
+| `lighting_layer.usd` | 무텍스처 DomeLight(채움 300) + RectLight `key_top`(로봇·보드 사이 위 1.9 m, 보드 쪽 20° 기울임). 뷰포트 Lights 는 **Stage Lights** 로 둘 것 — Default Light Rig 를 고르면 이 레이어의 조명이 세션 레이어에서 invisible 처리되고 리그의 DistantLight(햇빛)가 대신 켜진다 |
 | `layout_layer.usd` | 딸기 위치, 로봇 베이스 위치, 초기 관절 포즈 — 반복 실험 대상 |
 
 sublayer 순서(strength ordering)에 유의하세요. USD의 `subLayers`는 **strongest-first** —
@@ -168,4 +168,4 @@ sublayer 순서(strength ordering)에 유의하세요. USD의 `subLayers`는 **s
 
 - `OmniPBR.mdl` / `OmniGlass.mdl` 미해석 경고는 정상입니다. Isaac Sim 내장 MDL 검색 경로로 해석됩니다.
 - `robot_base.usd` 내부의 `visuals/world` 미해석 참조 경고는 URDF Importer가 남긴 기존 이슈로, 무해합니다.
-- 조명은 기존 딸기 애셋에 딸려 있던 studio.hdr DomeLight + RectLight 2개를 씬 레이어로 옮긴 것이라 렌더 결과가 미세하게 다를 수 있습니다.
+- 조명은 09-16 에 촬영용으로 다시 짰다(주광 1 + 채움 1). 원래 딸기 애셋에 딸려 있던 studio.hdr 은 `textures/` 에 남아 있지만 참조하지 않는다.
