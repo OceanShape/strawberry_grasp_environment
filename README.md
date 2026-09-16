@@ -6,8 +6,8 @@ Isaac Sim 5.1.0 기반 딸기 수확 전체 시뮬레이션 스택. 두산 e0509
 
 **현재 상태 (2026-09-15)** — 스캔 → 탐지 → 계획 → 접근 → 파지 → 분리 → 이송 → **배치(release)** → 복귀의 수확 핵심 경로가
 09-10 부터 매 런 끝까지 돕니다 (`log/m3/` 런 1~14, 익은 딸기 8개 씬). 09-14 에 시뮬이 실기보다 관대했던 설정을 원본으로 되돌렸고,
-그 뒤 트레이 배치는 8개 중 4개입니다 — 나머지는 실기 플래너의 이송 계획 거부이며 한계로 기록했습니다.
-과실 배치를 바꾼 런 5개도 끝까지 돌았습니다(T4d). 남은 작업은 **녹화(T5) → 수치 갱신·푸시(T6)** 입니다. 현황 브리핑은 [`PROGRESS_REPORT.md`](PROGRESS_REPORT.md).
+그 뒤 트레이 배치는 8개 중 4~6개입니다(런마다 이송 거부 수가 다릅니다) — 나머지는 실기 플래너의 이송 계획 거부이며 한계로 기록했습니다.
+과실 배치를 바꾼 런 5개도 끝까지 돌았습니다(T4d). 남은 작업은 **화면 확인(Isaac 재기동·씬 재로드) → 녹화(T5) → 수치 갱신·푸시(T6)** 입니다(09-16 영상 준비 커밋 완료). 현황 브리핑은 [`PROGRESS_REPORT.md`](PROGRESS_REPORT.md).
 제출 범위·작업 순서는 [`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md), 착수 금지 목록과 그 근거는 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) 가 기준입니다.
 
 ---
@@ -90,7 +90,7 @@ strawberry_grasp_environment/
 | **[`SUBMISSION_PLAN.md`](SUBMISSION_PLAN.md)** | **제출 범위·작업 순서 (최우선)** | 산출물 A(영상)까지로 범위 확정, sim2real 게이트, 작업 순서는 §4-0 표(T1~T6, T4b·T4c·T4d 포함). 착수 금지 목록은 [`portfolio/H_scope_decisions.md`](portfolio/H_scope_decisions.md) §2 로 옮겼다. 다른 문서와 충돌하면 이 문서가 이긴다 |
 | **[`docs/parameters.md`](docs/parameters.md)** + `check_params.py` | **모든 수치** | 보드 위치·툴 오프셋·그리퍼 개도·속도·관절 가드. **숫자가 헷갈리면 여기만 본다.** 보드를 옮길 때 같이 고칠 6개 파일 목록 포함. `python3 check_params.py` 로 정합 자동 검사 |
 | **[`docs/run_guide.md`](docs/run_guide.md)** | **실행 절차** | 터미널 3개 실행 절차, 노드별 파라미터 참고사항, 기동 시 대조할 로그, 증상별 대처표 |
-| **[`PROGRESS_REPORT.md`](PROGRESS_REPORT.md)** | **현황 브리핑 · 수치·근거 1차 출처** | 09-15 현재 위치, 런 기록, 해결한 문제 목록, 표현 가이드. 지원서·취업 전략 채팅에 붙여 넣는 문서 |
+| **[`PROGRESS_REPORT.md`](PROGRESS_REPORT.md)** | **현황 브리핑 · 수치·근거 1차 출처** | 09-17 현재 위치, 런 기록, 해결한 문제 목록, 표현 가이드. 지원서·취업 전략 채팅에 붙여 넣는 문서 |
 | **[`PORTFOLIO_SPRINT.md`](PORTFOLIO_SPRINT.md)** | 마일스톤 이력 (**M 은 09-14 동결, 현행은 SUBMISSION_PLAN §4-0 의 T**) | M1~M4 판정 기준·결과, 씬 구성 메모, 진행 기록 |
 | **[`PLANNER_POLICY_v2.md`](PLANNER_POLICY_v2.md)** | **플래너 수정 원칙·표현 규칙** | **§0-1 (09-14 최우선): 실기 노드 수정은 설계 불일치일 때만, 가드 완화 금지** · 금지 표현 + 09-10 델타(§5.4) |
 
@@ -113,7 +113,7 @@ strawberry_grasp_environment/
 | [`docs/urdf_setup.md`](docs/urdf_setup.md) | URDF | 빌드 방법, 로봇 모델 구성 |
 | [`docs/usd_structure.md`](docs/usd_structure.md) | USD | 레이어 구조 원칙, 작업 규칙 |
 | [`docs/concepts.md`](docs/concepts.md) | 개념 노트 | ROS 2·파이썬 환경·Isaac Sim 확장 Q&A |
-| [`portfolio/README.md`](portfolio/README.md) | 제출물 | 다이어그램, Before/After, 정량 지표, **영상 클립 4종 체크리스트·카메라 2대 녹화 절차** |
+| [`portfolio/README.md`](portfolio/README.md) | 제출물 | 다이어그램, Before/After, 정량 지표, **영상 클립 5종(A-1~A-5) 체크리스트·카메라 2대·런 3회 녹화 절차** |
 
 ---
 

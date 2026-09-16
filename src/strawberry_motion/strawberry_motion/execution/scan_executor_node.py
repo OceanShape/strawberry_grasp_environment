@@ -167,8 +167,11 @@ _MOVE_TARGET_WRAP_EQUIVALENT_JOINT_IDX = {3, 5}  # keep J1 branch explicit in ta
 # 그 자리에서 시작한 다음 계획은 첫 점이 로봇 위치에서 정확히 360° 떨어진 값이 되고
 # 브릿지가 플랜지를 한 바퀴 돌렸다 (런 14·09-16 런 픽당 2회, 3.3~3.9 s). 실행기가 플래너의
 # 운용 한계 밖에 관절을 세우는 설계 불일치라 J6 창을 플래너와 같은 ±225 로 맞춘다.
-# J4 는 플래너 창이 ±360 이라 그대로. 실기 원본 순서(sw→ne→se, NW 누락)에서는 이 조합이
-# 나오지 않아 실기에서 안 보였다 — portfolio/H_scope_decisions.md §11.
+# J4 는 플래너 창이 ±360 이라 그대로. 원 팀 데모 순서(sw→nw_flat→ne→se)는 J6 가 셀 자세까지 ±225
+# 창 안이고(티칭값 계산, 끝 overview 복귀 −266.6 뒤엔 픽 없음) 최종 시연은 sw 한 곳만 수확해(PROJECT_GOAL §1-2 관찰) 이 조합이
+# 나오지 않았다. 순서를 원 팀 기록(민1 STEP 6)대로 nw 시작으로 되돌리고 가지치기·분할을
+# 얹은 시뮬 시퀀스가 드러냈다. [09-17 정정] 종전 주석의 'sw→ne→se, NW 누락'은 리포 YAML 과의
+# 별칭 결함(_compute_scan_order 09-09 수정)을 실기 동작으로 잘못 적은 것 — portfolio/H_scope_decisions.md §11.
 _MOVE_TARGET_WRAP_WINDOW_DEG = {
     3: (float(np.rad2deg(_JOINT_LIMITS_RAD[3][0])), float(np.rad2deg(_JOINT_LIMITS_RAD[3][1]))),
     5: (-225.0, 225.0),
@@ -1409,7 +1412,7 @@ class ScanExecutorNode(Node):
         if self._target_cell == "all":
             # [FIX 2026-09-09] 종전: [c for c in _ALL_CELLS_ZORDER if c in self._targets]
             # _ALL_CELLS_ZORDER 의 'root/nw_flat' 이 YAML 에 없어 **NW 가 조용히 빠지고
-            # 3분면만** 돌았다 (원안 6단계 "4개 영역 전부"에 위배). 별칭 해석 + 누락 경고.
+            # 3분면만** 돌게 돼 있었다 (리포 YAML 과의 조합 결함, 수정 전 실행 로그 없음, 원 팀 실기 동작 아님 — H §11; 원안 6단계 "4개 영역 전부"에 위배). 별칭 해석 + 누락 경고.
             scan_order, missing_quadrants = resolve_traversal_order(
                 _ALL_CELLS_ZORDER, self._targets)
             if missing_quadrants:

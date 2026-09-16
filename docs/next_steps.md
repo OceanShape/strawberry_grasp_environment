@@ -32,7 +32,7 @@
 | 씬 딸기 개수 | 2개 → **12개** (익은 6 / 안 익은 6), 보드 4등분 서브셀 배치 |
 | 스캔 재실행 | ✅ 가능 (`_started` 래치 해제) |
 | 상태 표시 창 | ✅ 신규 `status_monitor_node` (읽기 전용) |
-| 포트폴리오 산출물 | 🔶 B·C·D·E 완료 (`portfolio/`), **A(시연 영상)만 남음** — 명세는 [`../SUBMISSION_PLAN.md`](../SUBMISSION_PLAN.md) §3 (클립 4종, 카메라 2대) |
+| 포트폴리오 산출물 | 🔶 B·C·D·E 완료 (`portfolio/`), **A(시연 영상)만 남음** — 명세는 [`../SUBMISSION_PLAN.md`](../SUBMISSION_PLAN.md) §3 (클립 5종 A-1~A-5, 카메라 2대, 런 3회) |
 | 플래너 작업 원칙 | v1(무수정) → **v2(수정 허용 + 한 줄 로그)** 로 전환 (`PLANNER_POLICY_v2.md`) |
 
 ---
