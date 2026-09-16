@@ -1,0 +1,15 @@
+[INFO] [1789543050.450846577] [fake_vision_node]: Fake Vision Node initialized. (Mocking strawberry_fusion_node) quadrant_filter=True subcell_view=True
+[harvest_probe] 계측 부착: role=vision -> /tmp/harvest_hud_vision.json
+[WARN] [1789543051.416574103] [fake_vision_node]: BERRY_GEOMETRY: n=8  y=782.8~782.8mm  (기대 782.8mm, 편차 0.0mm)
+[INFO] [1789543094.652359364] [fake_vision_node]: SCAN_CELL root/se (SCANNED_EMPTY) -> 시야 = x[0.050,0.595] z[0.265,0.660]
+[INFO] [1789543094.653005541] [fake_vision_node]: SCAN_CELL root/nw (SCANNING) -> 시야 = x[-0.495,0.050] z[0.660,1.055]
+[INFO] [1789543101.291063056] [fake_vision_node]: SCAN_CELL root/nw/sw (VIEWING) -> 시야 = x[-0.495,-0.223] z[0.660,0.857]
+[INFO] [1789543164.654303948] [fake_vision_node]: SCAN_CELL root/nw/sw (PICK_ATTEMPTED) -> 시야 = x[-0.495,0.050] z[0.660,1.055]
+[INFO] [1789543166.459153221] [fake_vision_node]: SCAN_CELL root/nw/se (VIEWING) -> 시야 = x[-0.223,0.050] z[0.660,0.857]
+[INFO] [1789543194.972227784] [fake_vision_node]: SCAN_CELL root/nw/se (PICK_ATTEMPTED) -> 시야 = x[-0.495,0.050] z[0.660,1.055]
+[INFO] [1789543199.383974765] [fake_vision_node]: SCAN_CELL root/ne (SCANNING) -> 시야 = x[0.050,0.595] z[0.660,1.055]
+[INFO] [1789543265.004665632] [fake_vision_node]: SCAN_CELL root/sw (SCANNING) -> 시야 = x[-0.495,0.050] z[0.265,0.660]
+[INFO] [1789543273.726428031] [fake_vision_node]: SCAN_CELL root/sw/se (VIEWING) -> 시야 = x[-0.223,0.050] z[0.265,0.463]
+[INFO] [1789543308.215193110] [fake_vision_node]: SCAN_CELL root/sw/se (PICK_ATTEMPTED) -> 시야 = x[-0.495,0.050] z[0.265,0.660]
+[INFO] [1789543309.785841152] [fake_vision_node]: SCAN_CELL root/sw/nw (VIEWING) -> 시야 = x[-0.495,-0.223] z[0.463,0.660]
+[INFO] [1789543345.491232329] [fake_vision_node]: SCAN_CELL root/sw/nw (PICK_ATTEMPTED) -> 시야 = x[-0.495,0.050] z[0.265,0.660]

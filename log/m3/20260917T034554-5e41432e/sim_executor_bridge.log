@@ -1,0 +1,398 @@
+[INFO] [1789584350.773370123] [sim_executor_bridge_node]: Sim Executor Bridge Node initializing...
+[WARN] [1789584351.161459091] [sim_executor_bridge_node]: MOVELINE_COLLISION_WORLD: ['whiteboard'] loaded from /home/oceanshape/strawberry_grasp_environment/install/e0509_gripper_description/share/e0509_gripper_description/config/environment.yaml
+[INFO] [1789584351.591153001] [sim_executor_bridge_node]: cuRobo IK Solver successfully initialized for MoveLine.
+[WARN] [1789584351.591419391] [sim_executor_bridge_node]: GRASP_JUDGE_MODEL: tool_tcp_offset=236mm capture_radius=38mm enabled=True sim_speed_scale=1.0 gripper_close=1.080rad arm_arrival_tol=0.30deg — planner 의 ee_to_tcp_offset_m 과 반드시 같아야 한다 (다르면 전 타겟 GRASP_EMPTY)
+[WARN] [1789584351.591625100] [sim_executor_bridge_node]: DOOSAN_MOVEIT_REF: vel=[120, 120, 150, 225, 225, 225] acc=[120, 120, 150, 225, 225, 225] deg/s,deg/s^2 (dsr_moveit_config_e0509/config/joint_limits.yaml) — 초과해도 자르지 않고 기록만 (D3)
+[INFO] [1789584351.591780632] [sim_executor_bridge_node]: Sim Executor Bridge Node Ready! (Listening to Doosan & Gripper services)
+[harvest_probe] 계측 부착: role=controller -> /tmp/harvest_hud_controller.json
+[INFO] [1789584365.324185297] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584368.742415106] [sim_executor_bridge_node]: MoveJoint called to [144.1, 22.9, -1.0, 121.5, -75.3, 108.7] (vel=120 acc=180 time=0.00)
+[WARN] [1789584368.742882292] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 162>120  J3 acc 180>150 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584370.501341292] [sim_executor_bridge_node]: MoveJoint profile: span 130.9deg / 1.76s (352 steps)
+[INFO] [1789584370.771972322] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.27deg (손끝 0.6mm) / 대기 0.26s
+[INFO] [1789584374.629163999] [sim_executor_bridge_node]: MoveJoint called to [144.6, 31.8, 10.9, 114.4, -65.7, 128.3] (vel=120 acc=180 time=0.00)
+[INFO] [1789584375.290117517] [sim_executor_bridge_node]: MoveJoint profile: span 19.6deg / 0.66s (133 steps)
+[INFO] [1789584375.539606260] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.29deg (손끝 1.0mm) / 대기 0.24s
+[INFO] [1789584378.639928527] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584382.491424183] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584383.305931905] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.27deg (손끝 1.0mm) / 대기 0.22s
+[INFO] [1789584383.306219998] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[139.9 30.1 24.3 111.7 -55.0 140.1]deg
+[INFO] [1789584383.643726101] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 40.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584387.523793068] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.24deg (손끝 2.0mm) / 대기 0.00s
+[INFO] [1789584387.527080572] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-2.5mm lateral=3.1mm |err|=4.0mm (명령 40mm, TOOL)
+[INFO] [1789584387.527260454] [sim_executor_bridge_node]: MoveLine 실이동 37.6mm / 명령 40mm
+[INFO] [1789584387.527430824] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.67s 실소요 3.88s (worst step joint delta 3.8deg)
+[INFO] [1789584387.551333271] [sim_executor_bridge_node]: MoveLine called (pos=[  0.           0.         -28.25754239   0.           0.
+   0.        ], ref=0, mode=1)
+[INFO] [1789584390.373182794] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.22deg (손끝 1.6mm) / 대기 0.14s
+[INFO] [1789584390.373657629] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+1.1mm lateral=1.2mm |err|=1.6mm (명령 28mm, BASE)
+[INFO] [1789584390.373828905] [sim_executor_bridge_node]: MoveLine 실이동 29.4mm / 명령 28mm
+[INFO] [1789584390.373991944] [sim_executor_bridge_node]: MoveLine ok: 28mm / 15 steps / 계획 0.71s 실소요 2.82s (worst step joint delta 6.8deg)
+[INFO] [1789584390.406453020] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584390.407715023] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+20.8mm(조우 -6~27) lateral=5.8mm(허용20) | 과실기준 d_tcp=34.9mm -> CONTACT
+[INFO] [1789584390.408000630] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (-380, 783, 720)mm -> /sim/grasp_event
+[INFO] [1789584390.808011635] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584394.362342974] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 1.1mm) / 대기 0.10s
+[INFO] [1789584394.363337227] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.5mm lateral=1.0mm |err|=1.1mm (명령 40mm, BASE)
+[INFO] [1789584394.363713496] [sim_executor_bridge_node]: MoveLine 실이동 40.5mm / 명령 40mm
+[INFO] [1789584394.364075811] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.55s (worst step joint delta 0.9deg)
+[INFO] [1789584394.416082158] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584397.721916480] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 2.3mm) / 대기 0.08s
+[INFO] [1789584397.724298063] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.9mm lateral=1.4mm |err|=2.3mm (명령 40mm, TOOL)
+[INFO] [1789584397.724463976] [sim_executor_bridge_node]: MoveLine 실이동 38.1mm / 명령 40mm
+[INFO] [1789584397.724643015] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.50s 실소요 3.31s (worst step joint delta 0.5deg)
+[INFO] [1789584399.835295048] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584399.835528703] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584405.682503570] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584406.700012926] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.28deg (손끝 2.5mm) / 대기 0.42s
+[INFO] [1789584406.700429036] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[144.6 31.9 10.9 114.4 -65.7 128.3]deg
+[INFO] [1789584406.734286485] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584407.840007685] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584411.437029470] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584412.331441696] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 3.0mm) / 대기 0.30s
+[INFO] [1789584412.331650667] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[128.5 19.3 28.9 130.0 -54.3 125.6]deg
+[INFO] [1789584412.640754850] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584416.809078441] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 1.9mm) / 대기 0.24s
+[INFO] [1789584416.811496079] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.9mm lateral=1.7mm |err|=1.9mm (명령 45mm, TOOL)
+[INFO] [1789584416.811680941] [sim_executor_bridge_node]: MoveLine 실이동 45.9mm / 명령 45mm
+[INFO] [1789584416.811841950] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.75s 실소요 4.17s (worst step joint delta 1.5deg)
+[INFO] [1789584416.850029529] [sim_executor_bridge_node]: MoveLine called (pos=[  0.        0.      -30.00054   0.        0.        0.     ], ref=0, mode=1)
+[INFO] [1789584419.739137421] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 1.5mm) / 대기 0.14s
+[INFO] [1789584419.740214578] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.8mm lateral=1.3mm |err|=1.5mm (명령 30mm, BASE)
+[INFO] [1789584419.740623285] [sim_executor_bridge_node]: MoveLine 실이동 30.8mm / 명령 30mm
+[INFO] [1789584419.741017958] [sim_executor_bridge_node]: MoveLine ok: 30mm / 16 steps / 계획 0.75s 실소요 2.89s (worst step joint delta 2.3deg)
+[INFO] [1789584419.756148509] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584419.758812713] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+12.1mm(조우 -6~27) lateral=5.8mm(허용20) | 과실기준 d_tcp=32.3mm -> CONTACT
+[INFO] [1789584419.759080960] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (-250, 783, 740)mm -> /sim/grasp_event
+[INFO] [1789584420.158026153] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584424.104587859] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 1.0mm) / 대기 0.10s
+[INFO] [1789584424.106047643] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.4mm lateral=1.0mm |err|=1.1mm (명령 40mm, BASE)
+[INFO] [1789584424.106439710] [sim_executor_bridge_node]: MoveLine 실이동 40.5mm / 명령 40mm
+[INFO] [1789584424.106819261] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.94s (worst step joint delta 0.9deg)
+[INFO] [1789584424.115440667] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -45.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584427.580702660] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 2.4mm) / 대기 0.08s
+[INFO] [1789584427.581439490] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.9mm lateral=1.2mm |err|=2.2mm (명령 45mm, TOOL)
+[INFO] [1789584427.581626310] [sim_executor_bridge_node]: MoveLine 실이동 43.2mm / 명령 45mm
+[INFO] [1789584427.581790188] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.56s 실소요 3.46s (worst step joint delta 0.4deg)
+[INFO] [1789584429.404763048] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584430.943671148] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.28deg (손끝 2.1mm) / 대기 0.48s
+[INFO] [1789584430.944088275] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.03s -> end=[11.7 31.5 122.8 183.6 64.0 91.2]deg
+[INFO] [1789584430.958546079] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1789584430.961241123] [sim_executor_bridge_node]: MoveLine 120mm: 60 -> 24 steps (5.0mm/step, 자유공간 이송)
+[INFO] [1789584436.053197206] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.27deg (손끝 1.5mm) / 대기 0.10s
+[INFO] [1789584436.053804739] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.5mm lateral=0.1mm |err|=1.5mm (명령 120mm, BASE)
+[INFO] [1789584436.053982133] [sim_executor_bridge_node]: MoveLine 실이동 118.5mm / 명령 120mm
+[INFO] [1789584436.054141623] [sim_executor_bridge_node]: MoveLine ok: 120mm / 24 steps / 계획 2.00s 실소요 5.09s (worst step joint delta 0.9deg)
+[INFO] [1789584436.066465303] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584436.066918527] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584437.229207900] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584438.121522053] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.30deg (손끝 1.8mm) / 대기 0.30s
+[INFO] [1789584438.121718193] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[11.7 31.5 122.8 183.6 64.0 91.2]deg
+[INFO] [1789584439.975781774] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584441.860700153] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 3.9mm) / 대기 0.42s
+[INFO] [1789584441.861119261] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.44s -> end=[144.6 32.0 10.9 114.4 -65.7 128.3]deg
+[INFO] [1789584441.879021966] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584443.157425073] [sim_executor_bridge_node]: MoveJoint called to [109.8, 54.1, -57.9, 158.6, -90.9, 88.7] (vel=120 acc=180 time=0.00)
+[WARN] [1789584443.157654045] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J3 acc 180>150 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584444.395777612] [sim_executor_bridge_node]: MoveJoint profile: span 68.9deg / 1.24s (248 steps)
+[INFO] [1789584444.703741640] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.26deg (손끝 1.0mm) / 대기 0.30s
+[INFO] [1789584447.769276737] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584453.180099695] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584454.095690981] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.27deg (손끝 0.7mm) / 대기 0.32s
+[INFO] [1789584454.095949383] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[110.9 47.4 -37.8 158.8 -81.1 94.1]deg
+[INFO] [1789584454.433301009] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584458.393431684] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.29deg (손끝 0.7mm) / 대기 0.10s
+[INFO] [1789584458.394465948] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.3mm lateral=0.6mm |err|=0.7mm (명령 45mm, TOOL)
+[INFO] [1789584458.394635147] [sim_executor_bridge_node]: MoveLine 실이동 44.7mm / 명령 45mm
+[INFO] [1789584458.394788113] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.75s 실소요 3.96s (worst step joint delta 0.7deg)
+[INFO] [1789584458.442629286] [sim_executor_bridge_node]: MoveLine called (pos=[  0.        0.      -30.00054   0.        0.        0.     ], ref=0, mode=1)
+[INFO] [1789584461.405662648] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.24deg (손끝 0.5mm) / 대기 0.12s
+[INFO] [1789584461.406216403] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.2mm lateral=0.4mm |err|=0.5mm (명령 30mm, BASE)
+[INFO] [1789584461.406386248] [sim_executor_bridge_node]: MoveLine 실이동 29.8mm / 명령 30mm
+[INFO] [1789584461.406573373] [sim_executor_bridge_node]: MoveLine ok: 30mm / 16 steps / 계획 0.75s 실소요 2.96s (worst step joint delta 1.1deg)
+[INFO] [1789584461.447939513] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584461.449684146] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+14.3mm(조우 -6~27) lateral=1.6mm(허용20) | 과실기준 d_tcp=36.4mm -> CONTACT
+[INFO] [1789584461.450211993] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (-120, 783, 760)mm -> /sim/grasp_event
+[INFO] [1789584461.849781980] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584465.355530378] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 0.7mm) / 대기 0.10s
+[INFO] [1789584465.355965049] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.7mm lateral=0.3mm |err|=0.7mm (명령 40mm, BASE)
+[INFO] [1789584465.356126481] [sim_executor_bridge_node]: MoveLine 실이동 39.3mm / 명령 40mm
+[INFO] [1789584465.356273962] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.50s (worst step joint delta 0.8deg)
+[INFO] [1789584465.408244444] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -45.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584468.782022908] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 1.9mm) / 대기 0.06s
+[INFO] [1789584468.783489615] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.6mm lateral=0.1mm |err|=1.6mm (명령 45mm, TOOL)
+[INFO] [1789584468.783720681] [sim_executor_bridge_node]: MoveLine 실이동 43.4mm / 명령 45mm
+[INFO] [1789584468.783880734] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.56s 실소요 3.37s (worst step joint delta 0.4deg)
+[INFO] [1789584470.562029002] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584470.562254823] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584472.202719019] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584472.976001659] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 3.1mm) / 대기 0.18s
+[INFO] [1789584472.977086426] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[109.8 54.1 -57.9 158.6 -90.9 88.7]deg
+[INFO] [1789584473.003689383] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584474.058838876] [sim_executor_bridge_node]: MoveJoint called to [144.1, 22.9, -1.0, 121.5, -75.3, 108.7] (vel=120 acc=180 time=0.00)
+[WARN] [1789584474.059295030] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J3 acc 180>150 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584475.184504932] [sim_executor_bridge_node]: MoveJoint profile: span 56.9deg / 1.12s (225 steps)
+[INFO] [1789584475.446838222] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.26deg (손끝 1.5mm) / 대기 0.26s
+[INFO] [1789584478.468597706] [sim_executor_bridge_node]: MoveJoint called to [18.9, 26.0, 1.0, 74.6, 78.2, -115.6] (vel=120 acc=180 time=0.00)
+[INFO] [1789584481.005314368] [sim_executor_bridge_node]: MoveJoint profile: span 224.3deg / 2.54s (508 steps)
+[INFO] [1789584481.293433761] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.26deg (손끝 0.8mm) / 대기 0.28s
+[INFO] [1789584484.383943461] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584487.896353747] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584488.834332002] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.27deg (손끝 2.2mm) / 대기 0.34s
+[INFO] [1789584488.834741925] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[48.5 25.1 19.9 48.3 62.2 -121.3]deg
+[INFO] [1789584489.149917478] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584493.126324859] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 1.3mm) / 대기 0.00s
+[INFO] [1789584493.126749751] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-3.0mm lateral=4.8mm |err|=5.6mm (명령 45mm, TOOL)
+[INFO] [1789584493.126910495] [sim_executor_bridge_node]: MoveLine 실이동 42.3mm / 명령 45mm
+[INFO] [1789584493.127054436] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.75s 실소요 3.97s (worst step joint delta 3.0deg)
+[INFO] [1789584493.157035739] [sim_executor_bridge_node]: MoveLine called (pos=[  0.           0.         -31.30792321   0.           0.
+   0.        ], ref=0, mode=1)
+[INFO] [1789584496.199931195] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.23deg (손끝 1.5mm) / 대기 0.12s
+[INFO] [1789584496.200604108] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.9mm lateral=1.2mm |err|=1.5mm (명령 31mm, BASE)
+[INFO] [1789584496.200771919] [sim_executor_bridge_node]: MoveLine 실이동 32.2mm / 명령 31mm
+[INFO] [1789584496.200923304] [sim_executor_bridge_node]: MoveLine ok: 31mm / 16 steps / 계획 0.78s 실소요 3.04s (worst step joint delta 7.1deg)
+[INFO] [1789584496.212653544] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584496.218961230] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+15.7mm(조우 -6~27) lateral=8.6mm(허용20) | 과실기준 d_tcp=32.5mm -> CONTACT
+[INFO] [1789584496.219251014] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (280, 783, 700)mm -> /sim/grasp_event
+[INFO] [1789584496.614994304] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584500.336685723] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.25deg (손끝 1.0mm) / 대기 0.10s
+[INFO] [1789584500.337692795] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.3mm lateral=0.9mm |err|=1.0mm (명령 40mm, BASE)
+[INFO] [1789584500.338000482] [sim_executor_bridge_node]: MoveLine 실이동 40.3mm / 명령 40mm
+[INFO] [1789584500.338171563] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.72s (worst step joint delta 0.9deg)
+[INFO] [1789584500.372414111] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -45.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584503.824261707] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.30deg (손끝 2.6mm) / 대기 0.06s
+[INFO] [1789584503.826790942] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-2.1mm lateral=1.1mm |err|=2.4mm (명령 45mm, TOOL)
+[INFO] [1789584503.826968854] [sim_executor_bridge_node]: MoveLine 실이동 42.9mm / 명령 45mm
+[INFO] [1789584503.827118533] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.56s 실소요 3.45s (worst step joint delta 0.4deg)
+[INFO] [1789584505.673053383] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584507.208088770] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.26deg (손끝 1.2mm) / 대기 0.50s
+[INFO] [1789584507.208470521] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.01s -> end=[14.4 26.5 134.1 6.4 -70.3 -89.3]deg
+[INFO] [1789584507.227489467] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1789584507.230229115] [sim_executor_bridge_node]: MoveLine 120mm: 60 -> 24 steps (5.0mm/step, 자유공간 이송)
+[INFO] [1789584512.333700760] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 1.2mm) / 대기 0.10s
+[INFO] [1789584512.334262377] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.2mm lateral=0.1mm |err|=1.2mm (명령 120mm, BASE)
+[INFO] [1789584512.334436118] [sim_executor_bridge_node]: MoveLine 실이동 118.8mm / 명령 120mm
+[INFO] [1789584512.334582532] [sim_executor_bridge_node]: MoveLine ok: 120mm / 24 steps / 계획 2.00s 실소요 5.10s (worst step joint delta 1.0deg)
+[INFO] [1789584512.337070046] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584512.337480777] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584513.431912133] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584514.430560227] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.28deg (손끝 1.7mm) / 대기 0.28s
+[INFO] [1789584514.430937784] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.70s -> end=[14.4 26.5 134.1 6.4 -70.3 -89.3]deg
+[INFO] [1789584516.065400611] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584517.778476644] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.28deg (손끝 2.3mm) / 대기 0.44s
+[INFO] [1789584517.778681877] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.24s -> end=[18.9 26.0 1.0 74.6 78.2 -115.6]deg
+[INFO] [1789584517.819457619] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584518.925289111] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584524.229119104] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584525.207319327] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.26deg (손끝 2.1mm) / 대기 0.38s
+[INFO] [1789584525.207578516] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[57.5 13.1 37.4 45.0 49.4 -122.4]deg
+[INFO] [1789584525.532288965] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584529.253207698] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.25deg (손끝 1.6mm) / 대기 0.14s
+[INFO] [1789584529.253812535] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.5mm lateral=1.5mm |err|=1.6mm (명령 45mm, TOOL)
+[INFO] [1789584529.253973319] [sim_executor_bridge_node]: MoveLine 실이동 45.6mm / 명령 45mm
+[INFO] [1789584529.254127395] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.75s 실소요 3.72s (worst step joint delta 0.7deg)
+[INFO] [1789584529.290300981] [sim_executor_bridge_node]: MoveLine called (pos=[  0.        0.      -30.00054   0.        0.        0.     ], ref=0, mode=1)
+[INFO] [1789584532.158072555] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.29deg (손끝 1.2mm) / 대기 0.10s
+[INFO] [1789584532.160535538] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=+0.5mm lateral=1.1mm |err|=1.2mm (명령 30mm, BASE)
+[INFO] [1789584532.160913423] [sim_executor_bridge_node]: MoveLine 실이동 30.5mm / 명령 30mm
+[INFO] [1789584532.161282597] [sim_executor_bridge_node]: MoveLine ok: 30mm / 16 steps / 계획 0.75s 실소요 2.87s (worst step joint delta 1.1deg)
+[INFO] [1789584532.195329930] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584532.198167180] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+12.5mm(조우 -6~27) lateral=5.3mm(허용20) | 과실기준 d_tcp=32.8mm -> CONTACT
+[INFO] [1789584532.198434602] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (200, 783, 740)mm -> /sim/grasp_event
+[INFO] [1789584532.597943053] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584535.975254362] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 0.9mm) / 대기 0.06s
+[INFO] [1789584535.975784467] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.0mm lateral=0.9mm |err|=0.9mm (명령 40mm, BASE)
+[INFO] [1789584535.975954386] [sim_executor_bridge_node]: MoveLine 실이동 40.0mm / 명령 40mm
+[INFO] [1789584535.976102589] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.38s (worst step joint delta 0.7deg)
+[INFO] [1789584536.004315762] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -45.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584539.683245579] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.27deg (손끝 2.3mm) / 대기 0.08s
+[INFO] [1789584539.686044715] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-2.0mm lateral=1.0mm |err|=2.3mm (명령 45mm, TOOL)
+[INFO] [1789584539.686414573] [sim_executor_bridge_node]: MoveLine 실이동 43.0mm / 명령 45mm
+[INFO] [1789584539.686754258] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.56s 실소요 3.68s (worst step joint delta 0.4deg)
+[INFO] [1789584541.488410839] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584542.854973776] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 1.2mm) / 대기 0.46s
+[INFO] [1789584542.855167420] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.88s -> end=[0.7 30.9 124.1 -8.5 -64.9 -83.6]deg
+[INFO] [1789584542.891633704] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1789584542.893744353] [sim_executor_bridge_node]: MoveLine 120mm: 60 -> 24 steps (5.0mm/step, 자유공간 이송)
+[INFO] [1789584547.927354052] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 1.5mm) / 대기 0.08s
+[INFO] [1789584547.927878538] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.5mm lateral=0.1mm |err|=1.5mm (명령 120mm, BASE)
+[INFO] [1789584547.928037460] [sim_executor_bridge_node]: MoveLine 실이동 118.5mm / 명령 120mm
+[INFO] [1789584547.928182786] [sim_executor_bridge_node]: MoveLine ok: 120mm / 24 steps / 계획 2.00s 실소요 5.03s (worst step joint delta 0.9deg)
+[INFO] [1789584547.950537640] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584547.950757878] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584549.060407492] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584549.951591496] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 1.7mm) / 대기 0.30s
+[INFO] [1789584549.951962432] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[0.7 30.9 124.1 -8.5 -64.9 -83.6]deg
+[INFO] [1789584551.661021502] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584553.324478517] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 2.6mm) / 대기 0.44s
+[INFO] [1789584553.324735592] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.20s -> end=[18.9 26.1 1.0 74.6 78.2 -115.6]deg
+[INFO] [1789584553.363253653] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584554.416762157] [sim_executor_bridge_node]: MoveJoint called to [18.9, 26.0, 1.0, 74.6, 78.2, -115.6] (vel=120 acc=180 time=0.00)
+[WARN] [1789584554.417428654] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 180>120 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584554.479827953] [sim_executor_bridge_node]: MoveJoint profile: span 0.2deg / 0.06s (13 steps)
+[INFO] [1789584554.480675900] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.17deg (손끝 2.8mm) / 대기 0.00s
+[INFO] [1789584557.524452468] [sim_executor_bridge_node]: MoveJoint called to [88.0, -94.9, 129.9, 175.9, -31.3, 93.4] (vel=120 acc=180 time=0.00)
+[INFO] [1789584559.934126948] [sim_executor_bridge_node]: MoveJoint profile: span 209.0deg / 2.41s (482 steps)
+[INFO] [1789584560.200508814] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.28deg (손끝 1.2mm) / 대기 0.26s
+[INFO] [1789584560.229025733] [sim_executor_bridge_node]: MoveJoint called to [150.3, -11.9, 109.1, 262.2, 63.3, 10.5] (vel=120 acc=180 time=0.00)
+[WARN] [1789584560.229238306] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 158>120 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584561.685427405] [sim_executor_bridge_node]: MoveJoint profile: span 94.6deg / 1.45s (291 steps)
+[INFO] [1789584561.951734354] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.30deg (손끝 2.0mm) / 대기 0.26s
+[INFO] [1789584565.133495535] [sim_executor_bridge_node]: MoveJoint called to [114.4, -8.5, 122.1, 227.1, 37.6, 48.3] (vel=120 acc=180 time=0.00)
+[WARN] [1789584565.133715140] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J1 acc 171>120 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584566.050988473] [sim_executor_bridge_node]: MoveJoint profile: span 37.8deg / 0.92s (184 steps)
+[INFO] [1789584566.313737742] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.26deg (손끝 1.3mm) / 대기 0.26s
+[INFO] [1789584569.395001562] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584572.153929651] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584573.312286681] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.26deg (손끝 1.1mm) / 대기 0.46s
+[INFO] [1789584573.312692307] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.68s -> end=[107.3 -5.6 93.9 304.4 20.8 -32.4]deg
+[INFO] [1789584573.657044777] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584577.474538748] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.29deg (손끝 2.0mm) / 대기 0.02s
+[INFO] [1789584577.477013661] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.6mm lateral=0.4mm |err|=1.6mm (명령 45mm, TOOL)
+[INFO] [1789584577.477262059] [sim_executor_bridge_node]: MoveLine 실이동 43.4mm / 명령 45mm
+[INFO] [1789584577.477481058] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.75s 실소요 3.82s (worst step joint delta 0.3deg)
+[INFO] [1789584577.516745201] [sim_executor_bridge_node]: MoveLine called (pos=[  0.           0.         -32.60535644   0.           0.
+   0.        ], ref=0, mode=1)
+[INFO] [1789584580.580211933] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.29deg (손끝 0.3mm) / 대기 0.14s
+[INFO] [1789584580.583873420] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.1mm lateral=0.2mm |err|=0.2mm (명령 33mm, BASE)
+[INFO] [1789584580.584118504] [sim_executor_bridge_node]: MoveLine 실이동 32.5mm / 명령 33mm
+[INFO] [1789584580.584281309] [sim_executor_bridge_node]: MoveLine ok: 33mm / 17 steps / 계획 0.82s 실소요 3.07s (worst step joint delta 1.0deg)
+[INFO] [1789584580.622068423] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584580.629122104] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+15.1mm(조우 -6~27) lateral=4.0mm(허용20) | 과실기준 d_tcp=37.1mm -> CONTACT
+[INFO] [1789584580.629340045] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (-100, 783, 440)mm -> /sim/grasp_event
+[INFO] [1789584581.023503361] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584584.365676908] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 0.2mm) / 대기 0.18s
+[INFO] [1789584584.366508508] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.1mm lateral=0.2mm |err|=0.2mm (명령 40mm, BASE)
+[INFO] [1789584584.366863836] [sim_executor_bridge_node]: MoveLine 실이동 39.9mm / 명령 40mm
+[INFO] [1789584584.367204525] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.34s (worst step joint delta 1.2deg)
+[INFO] [1789584584.381726750] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -45.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584587.872004364] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.30deg (손끝 2.0mm) / 대기 0.06s
+[INFO] [1789584587.874013671] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.7mm lateral=0.3mm |err|=1.7mm (명령 45mm, TOOL)
+[INFO] [1789584587.874191296] [sim_executor_bridge_node]: MoveLine 실이동 43.3mm / 명령 45mm
+[INFO] [1789584587.874334706] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.56s 실소요 3.49s (worst step joint delta 0.3deg)
+[INFO] [1789584589.554683815] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584590.951023506] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.27deg (손끝 1.5mm) / 대기 0.48s
+[INFO] [1789584590.952029611] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.89s -> end=[0.8 26.2 135.0 172.0 71.2 95.4]deg
+[INFO] [1789584590.958830604] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1789584590.961159368] [sim_executor_bridge_node]: MoveLine 120mm: 60 -> 24 steps (5.0mm/step, 자유공간 이송)
+[INFO] [1789584596.132459028] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 1.3mm) / 대기 0.10s
+[INFO] [1789584596.133398707] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.3mm lateral=0.1mm |err|=1.3mm (명령 120mm, BASE)
+[INFO] [1789584596.133760772] [sim_executor_bridge_node]: MoveLine 실이동 118.7mm / 명령 120mm
+[INFO] [1789584596.134122396] [sim_executor_bridge_node]: MoveLine ok: 120mm / 24 steps / 계획 2.00s 실소요 5.17s (worst step joint delta 1.0deg)
+[INFO] [1789584596.167770347] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584596.168210887] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584597.251981523] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584598.334797122] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.26deg (손끝 1.6mm) / 대기 0.30s
+[INFO] [1789584598.335186771] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.77s -> end=[0.9 26.1 135.0 172.0 71.0 95.4]deg
+[INFO] [1789584599.945253360] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584601.397652530] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.26deg (손끝 2.1mm) / 대기 0.48s
+[INFO] [1789584601.398042482] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.95s -> end=[114.4 -8.5 122.1 227.1 37.7 48.3]deg
+[INFO] [1789584601.447609371] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584602.676833395] [sim_executor_bridge_node]: MoveJoint called to [146.3, 15.8, 65.3, 271.2, 58.3, -7.7] (vel=120 acc=180 time=0.00)
+[WARN] [1789584602.677236539] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J3 acc 180>150 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584603.802575181] [sim_executor_bridge_node]: MoveJoint profile: span 56.9deg / 1.12s (225 steps)
+[INFO] [1789584604.069524966] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.28deg (손끝 1.8mm) / 대기 0.26s
+[INFO] [1789584607.138302991] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584609.792268844] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584610.687340974] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 1.8mm) / 대기 0.30s
+[INFO] [1789584610.687847298] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[127.9 6.3 72.7 297.8 43.1 -27.5]deg
+[INFO] [1789584610.994828269] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584614.566744730] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.29deg (손끝 1.9mm) / 대기 0.00s
+[INFO] [1789584614.567355759] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.8mm lateral=0.6mm |err|=1.9mm (명령 45mm, TOOL)
+[INFO] [1789584614.567552073] [sim_executor_bridge_node]: MoveLine 실이동 43.2mm / 명령 45mm
+[INFO] [1789584614.568093952] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.75s 실소요 3.57s (worst step joint delta 0.2deg)
+[INFO] [1789584614.601952458] [sim_executor_bridge_node]: MoveLine called (pos=[  0.           0.         -32.60535644   0.           0.
+   0.        ], ref=0, mode=1)
+[INFO] [1789584617.725205811] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.30deg (손끝 0.8mm) / 대기 0.04s
+[INFO] [1789584617.730064626] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.7mm lateral=0.3mm |err|=0.8mm (명령 33mm, BASE)
+[INFO] [1789584617.730225624] [sim_executor_bridge_node]: MoveLine 실이동 31.9mm / 명령 33mm
+[INFO] [1789584617.730368839] [sim_executor_bridge_node]: MoveLine ok: 33mm / 17 steps / 계획 0.82s 실소요 3.13s (worst step joint delta 0.4deg)
+[INFO] [1789584617.757582873] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584617.759706015] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+15.1mm(조우 -6~27) lateral=3.9mm(허용20) | 과실기준 d_tcp=37.3mm -> CONTACT
+[INFO] [1789584617.759954123] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (-250, 783, 500)mm -> /sim/grasp_event
+[INFO] [1789584618.159465932] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584621.445260411] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 0.6mm) / 대기 0.10s
+[INFO] [1789584621.447697553] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.5mm lateral=0.3mm |err|=0.6mm (명령 40mm, BASE)
+[INFO] [1789584621.447868635] [sim_executor_bridge_node]: MoveLine 실이동 39.5mm / 명령 40mm
+[INFO] [1789584621.448008245] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.29s (worst step joint delta 0.5deg)
+[INFO] [1789584621.465663719] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -45.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584624.957548222] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 2.4mm) / 대기 0.04s
+[INFO] [1789584624.960563891] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-2.0mm lateral=0.4mm |err|=2.1mm (명령 45mm, TOOL)
+[INFO] [1789584624.960758720] [sim_executor_bridge_node]: MoveLine 실이동 43.0mm / 명령 45mm
+[INFO] [1789584624.960917486] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.56s 실소요 3.49s (worst step joint delta 0.2deg)
+[INFO] [1789584626.846915694] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584628.487550365] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.22deg (손끝 1.9mm) / 대기 0.46s
+[INFO] [1789584628.487837538] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.15s -> end=[-10.3 31.3 123.1 339.3 -65.5 -78.4]deg
+[INFO] [1789584628.499638724] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1789584628.501763857] [sim_executor_bridge_node]: MoveLine 120mm: 60 -> 24 steps (5.0mm/step, 자유공간 이송)
+[INFO] [1789584633.564395226] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 1.5mm) / 대기 0.08s
+[INFO] [1789584633.565278564] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.5mm lateral=0.1mm |err|=1.5mm (명령 120mm, BASE)
+[INFO] [1789584633.565665418] [sim_executor_bridge_node]: MoveLine 실이동 118.5mm / 명령 120mm
+[INFO] [1789584633.566045983] [sim_executor_bridge_node]: MoveLine ok: 120mm / 24 steps / 계획 2.00s 실소요 5.06s (worst step joint delta 0.9deg)
+[INFO] [1789584633.608597223] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584633.609050872] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584634.879446394] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584636.116758393] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 1.0mm) / 대기 0.32s
+[INFO] [1789584636.117184465] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.90s -> end=[-10.3 31.3 123.1 339.3 -65.5 -78.4]deg
+[INFO] [1789584638.141310809] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584640.046402728] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.27deg (손끝 2.5mm) / 대기 0.54s
+[INFO] [1789584640.046829102] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.33s -> end=[146.3 15.8 65.3 271.2 58.3 -7.7]deg
+[INFO] [1789584640.094434521] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584641.531662518] [sim_executor_bridge_node]: MoveJoint called to [129.1, -28.0, 104.4, 279.8, 42.0, -15.8] (vel=120 acc=180 time=0.00)
+[WARN] [1789584641.531910556] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 180>120  J3 acc 160>150 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584642.520401327] [sim_executor_bridge_node]: MoveJoint profile: span 43.9deg / 0.99s (198 steps)
+[INFO] [1789584642.824773699] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.26deg (손끝 1.7mm) / 대기 0.30s
+[INFO] [1789584645.895181726] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584649.081585731] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584650.101770149] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.27deg (손끝 1.0mm) / 대기 0.42s
+[INFO] [1789584650.101964400] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.58s -> end=[124.4 6.2 63.2 308.9 45.6 -41.6]deg
+[INFO] [1789584650.434228867] [sim_executor_bridge_node]: MoveLine called (pos=[ 0.  0. 45.  0.  0.  0.], ref=1, mode=1)
+[INFO] [1789584654.190759029] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.27deg (손끝 1.5mm) / 대기 0.02s
+[INFO] [1789584654.193372949] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.3mm lateral=0.7mm |err|=1.5mm (명령 45mm, TOOL)
+[INFO] [1789584654.193586478] [sim_executor_bridge_node]: MoveLine 실이동 43.7mm / 명령 45mm
+[INFO] [1789584654.193743135] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.75s 실소요 3.76s (worst step joint delta 0.3deg)
+[INFO] [1789584654.241796903] [sim_executor_bridge_node]: MoveLine called (pos=[  0.           0.         -32.60535644   0.           0.
+   0.        ], ref=0, mode=1)
+[INFO] [1789584657.224740906] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.28deg (손끝 0.8mm) / 대기 0.04s
+[INFO] [1789584657.229415186] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.7mm lateral=0.5mm |err|=0.8mm (명령 33mm, BASE)
+[INFO] [1789584657.229572539] [sim_executor_bridge_node]: MoveLine 실이동 32.0mm / 명령 33mm
+[INFO] [1789584657.229710367] [sim_executor_bridge_node]: MoveLine ok: 33mm / 17 steps / 계획 0.82s 실소요 2.98s (worst step joint delta 0.5deg)
+[INFO] [1789584657.246535100] [sim_executor_bridge_node]: SetPosition called to 700
+[INFO] [1789584657.251492202] [sim_executor_bridge_node]: GRASP_JUDGE 줄기기준 along=+14.3mm(조우 -6~27) lateral=4.2mm(허용20) | 과실기준 d_tcp=36.6mm -> CONTACT
+[INFO] [1789584657.251743313] [sim_executor_bridge_node]: GRASP_ATTACH 과실 (-220, 783, 560)mm -> /sim/grasp_event
+[INFO] [1789584657.648087605] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -40.   0.   0.   0.], ref=0, mode=1)
+[INFO] [1789584660.959438633] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.29deg (손끝 0.8mm) / 대기 0.08s
+[INFO] [1789584660.962342659] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-0.5mm lateral=0.4mm |err|=0.6mm (명령 40mm, BASE)
+[INFO] [1789584660.962581194] [sim_executor_bridge_node]: MoveLine 실이동 39.5mm / 명령 40mm
+[INFO] [1789584660.962738684] [sim_executor_bridge_node]: MoveLine ok: 40mm / 20 steps / 계획 0.80s 실소요 3.31s (worst step joint delta 0.5deg)
+[INFO] [1789584661.003886393] [sim_executor_bridge_node]: MoveLine called (pos=[  0.   0. -45.   0.   0.   0.], ref=1, mode=1)
+[INFO] [1789584664.501653526] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 2.2mm) / 대기 0.06s
+[INFO] [1789584664.504618415] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.9mm lateral=0.5mm |err|=1.9mm (명령 45mm, TOOL)
+[INFO] [1789584664.504862038] [sim_executor_bridge_node]: MoveLine 실이동 43.1mm / 명령 45mm
+[INFO] [1789584664.505020589] [sim_executor_bridge_node]: MoveLine ok: 45mm / 23 steps / 계획 0.56s 실소요 3.50s (worst step joint delta 0.3deg)
+[INFO] [1789584666.315121247] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584667.950158774] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 2.0mm) / 대기 0.46s
+[INFO] [1789584667.950353510] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.14s -> end=[-12.8 26.3 134.4 337.6 -71.8 -80.0]deg
+[INFO] [1789584667.969917778] [sim_executor_bridge_node]: MoveLine called (pos=[   0.    0. -120.    0.    0.    0.], ref=0, mode=1)
+[INFO] [1789584667.971405014] [sim_executor_bridge_node]: MoveLine 120mm: 60 -> 24 steps (5.0mm/step, 자유공간 이송)
+[INFO] [1789584673.198934525] [sim_executor_bridge_node]: ARM_ARRIVAL MoveLine: 잔차 0.26deg (손끝 1.3mm) / 대기 0.12s
+[INFO] [1789584673.201525990] [sim_executor_bridge_node]: MOVELINE_END_ERR: along=-1.3mm lateral=0.1mm |err|=1.3mm (명령 120mm, BASE)
+[INFO] [1789584673.201851759] [sim_executor_bridge_node]: MoveLine 실이동 118.7mm / 명령 120mm
+[INFO] [1789584673.202174994] [sim_executor_bridge_node]: MoveLine ok: 120mm / 24 steps / 계획 2.00s 실소요 5.23s (worst step joint delta 1.0deg)
+[INFO] [1789584673.229703809] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584673.230125979] [sim_executor_bridge_node]: GRASP_RELEASE -> /sim/grasp_event
+[INFO] [1789584674.289609086] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584675.449169948] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.26deg (손끝 1.3mm) / 대기 0.32s
+[INFO] [1789584675.449371422] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 0.83s -> end=[-12.8 26.3 134.4 337.6 -71.8 -80.0]deg
+[INFO] [1789584677.200925058] [sim_executor_bridge_node]: MoveSplineJoint called with 12 points
+[INFO] [1789584678.858212674] [sim_executor_bridge_node]: ARM_ARRIVAL MoveSpline: 잔차 0.29deg (손끝 1.8mm) / 대기 0.44s
+[INFO] [1789584678.858426570] [sim_executor_bridge_node]: MoveSpline ok: 12 pts / 1.18s -> end=[129.1 -28.0 104.4 279.8 42.0 -15.8]deg
+[INFO] [1789584678.903218627] [sim_executor_bridge_node]: SetPosition called to 600
+[INFO] [1789584679.957174570] [sim_executor_bridge_node]: MoveJoint called to [150.3, -11.9, 109.1, 262.2, 63.3, 10.5] (vel=120 acc=180 time=0.00)
+[WARN] [1789584679.957450546] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J1 acc 145>120 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584680.721895268] [sim_executor_bridge_node]: MoveJoint profile: span 26.2deg / 0.76s (153 steps)
+[INFO] [1789584680.990176143] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.30deg (손끝 1.8mm) / 대기 0.26s
+[INFO] [1789584684.015393823] [sim_executor_bridge_node]: MoveJoint called to [88.0, -94.9, 129.9, 175.9, -31.3, 93.4] (vel=120 acc=180 time=0.00)
+[WARN] [1789584684.015827965] [sim_executor_bridge_node]: MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 158>120 — 두산 공식 MoveIt 설정 초과, 자르지 않고 실행
+[INFO] [1789584685.472120550] [sim_executor_bridge_node]: MoveJoint profile: span 94.7deg / 1.46s (292 steps)
+[INFO] [1789584685.761205366] [sim_executor_bridge_node]: ARM_ARRIVAL MoveJoint: 잔차 0.27deg (손끝 1.4mm) / 대기 0.28s
