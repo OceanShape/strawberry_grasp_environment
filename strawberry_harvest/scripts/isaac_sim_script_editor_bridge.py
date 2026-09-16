@@ -361,8 +361,8 @@ def start_bridge():
         """[T4c] Drop the session-layer translate/orient opinions written by _follow_attached.
         PhysX writes simulated poses back to the ROOT layer; a stronger session opinion
         would mask that write-back and the falling fruit would still look frozen in the
-        viewport (headless check 2026-09-15; the check scripts were not kept, results in SUBMISSION_PLAN T4c: variant B —
-        copying the PhysX pose into USD each step — made omni.physx teleport the body every
+        viewport (headless check 2026-09-15; the check scripts were not kept, results in SUBMISSION_PLAN T4c: variant B --
+        copying the PhysX pose into USD each step -- made omni.physx teleport the body every
         step and reset its velocity; removing the opinions instead shows the fall with no
         jump, because PhysX kept writing the carried pose to the root layer meanwhile)."""
         spec = stage.GetSessionLayer().GetPrimAtPath(path)
@@ -478,7 +478,7 @@ def start_bridge():
                   % (name, pos[0] * 1000, pos[1] * 1000, pos[2] * 1000, len(node.harvested)))
             return
         # [T4c] outside the tray: let it fall. The count is printed so the Kit log agrees
-        # with the HUD's '낙하' number (harvest_probe counts the planner side).
+        # with the HUD's dropped count (harvest_probe counts the planner side).
         if prim and prim.IsValid():
             _set_dropped_physics(stage, prim)
             _remove_session_xform_opinions(stage, path)

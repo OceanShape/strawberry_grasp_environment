@@ -7,8 +7,8 @@ strawberry_harvest/scripts/. Korean notes live in docs/run_guide.md.
 Three things, all of which had to be redone by hand every launch:
 
 1. Viewport HUD off (FPS / frame time / device memory / process memory /
-   resolution / render progress). Those overlays must not show up in the
-   portfolio video. Same switches as the viewport toolbar
+   resolution / render progress / camera speed). Those overlays must not show
+   up in the portfolio video. Same switches as the viewport toolbar
    "Display -> Heads Up Display" checkboxes, so toggling them by hand still
    works during a session; this only sets the boot state.
 2. Script Editor docked into the tab group that holds Render Settings, so it
@@ -33,8 +33,24 @@ from pxr import Gf, Usd
 SETTING_ROOT = "/exts/strawberry.sim.setup"
 PERSP_PATH = "/OmniverseKit_Persp"
 
-# The HUD entries drawn over the viewport. Keys match
-# omni.kit.viewport.window (persistent per-viewport settings).
+# The HUD entries drawn over the viewport. Keys match omni.kit.viewport.window
+# (persistent per-viewport settings). What an install actually has is listed in
+# user.config.json under /persistent/app/viewport/<window>/<viewport>/hud/.
+#
+# [2026-09-16] cameraSpeed added -- it is the box in the BOTTOM-LEFT corner of
+# the viewport (camera move velocity plus the stage unit, which reads as a lone
+# "m" at the default 0.05 speed). It sat on top of the wrist camera inset while
+# the T5 framing was being checked. In omni.kit.viewport.window 107.2.0
+# (stats/__init__.py) the left-aligned stats group holds ViewportSpeed
+# (cameraSpeed) and ViewportMessage (toastMessage); the right one holds the six
+# readouts below it.
+#
+# Two HUD entries are left alone by this extension (they stay at whatever the
+# Display -> Heads Up Display menu last set), because both only appear when
+# something is wrong and this repo does not hide failures:
+#   toastMessage        -- Kit's own transient warnings (same bottom-left corner;
+#                          turn it off by hand for a take if one lands in frame)
+#   metrics/assembler   -- the USD unit / up-axis mismatch warning
 HUD_ITEMS = (
     "renderFPS",
     "renderResolution",
@@ -42,6 +58,7 @@ HUD_ITEMS = (
     "deviceMemory",
     "hostMemory",
     "processMemory",
+    "cameraSpeed",
 )
 
 # Fallbacks if the [settings] block in extension.toml is missing.
