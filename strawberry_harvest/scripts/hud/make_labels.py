@@ -26,6 +26,8 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "labels")
 SCALE = 2          # HiDPI 대비 2배로 그려서 절반 크기로 표시한다
 
 # (이름, 글자, 크기px, 색, 볼드)  — 크기·색은 ../isaac_sim_viewport_display.py 와 같은 값
+# [2026-09-16 S5] 1080p 녹화 가독성: 본문 24px(노드), 머리 22px, 핵심 수치(배치·낙하) 32px, 단계 40px,
+#   완료 제목 34px, 카메라 캡션 20px(폭 480 안에 '영역 NE' 까지 들어가야 해서 24 는 넘친다).
 TEXT = _rgb = lambda h: ((h >> 16) & 255, (h >> 8) & 255, h & 255, 255)
 C_TEXT, C_DIM = _rgb(0xE8EDF5), _rgb(0x7B8494)
 C_OK = _rgb(0x5AD469)    # isaac_sim_viewport_display.C_OK — 배치 단계·완료와 같은 초록
@@ -43,25 +45,25 @@ REGION_KO = {"home": "HOME", "nw": "북서 NW", "ne": "북동 NE",
              "sw": "남서 SW", "se": "남동 SE"}
 
 ITEMS = [
-    ("head_nodes", "노드", 15, C_DIM, False),
-    ("head_region", "영역", 15, C_DIM, False),
-    ("head_targets", "타겟", 15, C_DIM, False),
-    ("head_placed", "배치", 15, C_DIM, False),
-    ("head_phase", "단계", 15, C_DIM, False),
-    ("head_tree", "트리", 15, C_DIM, False),
-    ("node_vision", "인식", 15, C_TEXT, False),
-    ("node_planner", "플래너", 15, C_TEXT, False),
-    ("node_controller", "제어", 15, C_TEXT, False),
-    ("node_scan", "스캔", 15, C_TEXT, False),
+    ("head_nodes", "노드", 22, C_DIM, False),
+    ("head_region", "영역", 20, C_DIM, False),
+    ("head_targets", "타겟", 22, C_DIM, False),
+    ("head_placed", "배치", 22, C_DIM, False),
+    ("head_phase", "단계", 22, C_DIM, False),
+    ("head_tree", "트리", 22, C_DIM, False),
+    ("node_vision", "인식", 24, C_TEXT, False),
+    ("node_planner", "플래너", 24, C_TEXT, False),
+    ("node_controller", "제어", 24, C_TEXT, False),
+    ("node_scan", "스캔", 24, C_TEXT, False),
     # [2026-09-16] 색 의미: 제목·비율은 흰색(중립), 배치는 초록, 낙하만 빨강.
     # 종전 '수확 완료' 는 C_ACCENT(0xFF6B81) 분홍빨강이라 에러처럼 읽혔다.
-    ("final", "수확 완료", 30, C_TEXT, True),
+    ("final", "수확 완료", 34, C_TEXT, True),
     # [T4c 2026-09-15] 완료 둘째 줄 '배치 n · 낙하 m' (isaac_sim_viewport_display.HarvestHUD._row_final)
-    ("final_placed", "배치", 20, C_OK, False),
-    ("final_dropped", "낙하", 20, C_BAD, False),
+    ("final_placed", "배치", 32, C_OK, False),
+    ("final_dropped", "낙하", 32, C_BAD, False),
     # [2026-09-16] 손목 카메라 창 제목 (isaac_sim_viewport_display._WristCamera) — 인식 결과가 아니라 렌더라는 것을 창에 적는다
-    ("cam_title", "손목 카메라 · D455 컬러 렌더 · 인식 없음", 15, C_DIM, False),
-] + [("state_" + k, v, 34, _rgb(PHASE[k]), True) for k, v in STATE_KO.items()] \
+    ("cam_title", "손목 카메라 · D455 컬러 렌더 · 인식 없음", 20, C_DIM, False),
+] + [("state_" + k, v, 40, _rgb(PHASE[k]), True) for k, v in STATE_KO.items()] \
   + [("region_" + k, v, 24, C_TEXT, False) for k, v in REGION_KO.items()]
 
 
@@ -98,6 +100,8 @@ for name, text, size, color, bold in ITEMS:
     manifest[name] = {"w": img.width / SCALE, "h": img.height / SCALE, "text": text}
 for key in tree_model.TAG_KEYS:
     parts = tree_model.tag_parts(key)
+    if not parts:                # 잎(dir_*): 둘째 줄 없음 -> PNG 도 없음 (HUD 는 그 키를 숨긴다)
+        continue
     img = render_parts(parts, tree_model.TAG_SIZE)
     img.save(os.path.join(OUT, "tree_" + key + ".png"))
     manifest["tree_" + key] = {"w": img.width / SCALE, "h": img.height / SCALE,

@@ -98,14 +98,19 @@ import tree_model
 #  fixed on purpose so the panel does not drift when the viewport is resized.)
 POS_X = 16
 POS_Y = 32
-PANEL_WIDTH = 440
+PANEL_WIDTH = 440                     # 23% of 1920 -- the price of 24 px text in a 4-column tree
 
 FRAME_ID = "strawberry_harvest_hud"   # fixed, so reloads do not stack frames
 REFRESH_HZ = 10.0
 PAD = 16                              # inner padding
-ROW_GAP = 10                          # gap between rows
-HEAD_W = 56                           # width of the row heads (NODES/AREA/TARGET/PHASE)
-LAMP_R = 6
+ROW_GAP = 12                          # gap between rows
+HEAD_W = 60                           # width of the row heads (NODES/TREE/PHASE)
+LAMP_R = 8
+# [2026-09-16 S5] Text sizes for a 1080p recording played at ~60% width on a slide:
+# body 24, row heads 22, key numbers (placed / dropped) 32, phase 40, done title 34,
+# tree 24 / 20 / tags 18, camera caption 20. make_labels.py renders the Korean PNGs at
+# the same sizes -- change both. The panel stays 440 wide; the tree's four columns
+# are what set the floor.
 
 LABEL_DIR = os.path.join(HUD_DIR, "labels")
 try:
@@ -233,7 +238,7 @@ CAM_LOG_FOV_DEG = (79.41, 63.89)
 CAM_FOV_TOL_DEG = 0.2
 CAM_POS_X = 16                  # pixels from the viewport's left edge
 CAM_MARGIN_BOTTOM = 16          # pixels from the viewport's bottom edge
-CAM_WIDTH = 400                 # image width on screen; height follows the aperture ratio
+CAM_WIDTH = 480                 # image width on screen (25% of 1920); height follows the aperture ratio (480x360)
 CAM_PAD = 10
 CAM_FRAME_ID = "strawberry_harvest_wrist_cam"
 CAM_ENABLED = os.environ.get("HARVEST_WRIST_CAM", "1") != "0"
@@ -389,9 +394,10 @@ def _label(name, en_text, color, size, width=None):
 
 
 class _Swappable:
-    """A label whose image (or text) changes with a key -- for the phase and area slots.
+    """A label whose image (or text) changes with a key -- for the phase and tree-tag slots.
 
-    Korean: swaps the source_url to `<prefix>_<key>.png` and matches the width.
+    Korean: swaps the source_url to `<prefix>_<key>.png` and matches the width. A key
+    with no PNG hides the image (the tree's leaf tag has no second line since S5).
     English: just sets .text. Callers do not distinguish the two.
     """
 
@@ -401,14 +407,16 @@ class _Swappable:
         self._size = size
         self._img = None
         self._lbl = None
-        if LANG == "ko" and (prefix + "_" + key) in LABEL_IMG:
-            height = max(v["h"] for k, v in LABEL_IMG.items() if k.startswith(prefix + "_"))
-            self._img = ui.Image(self._url(key), width=LABEL_IMG[prefix + "_" + key]["w"],
-                                 height=height,
+        mine = {k: v for k, v in LABEL_IMG.items() if k.startswith(prefix + "_")}
+        if LANG == "ko" and mine:
+            first = next(iter(mine))
+            self._img = ui.Image(self._url(first[len(prefix) + 1:]), width=mine[first]["w"],
+                                 height=max(v["h"] for v in mine.values()),
                                  fill_policy=ui.FillPolicy.PRESERVE_ASPECT_FIT,
                                  alignment=ui.Alignment.CENTER)
         else:
             self._lbl = ui.Label(self._en.get(key, key), width=0, style=_text(color, size))
+        self.set(key, color)
 
     def _url(self, key):
         return os.path.join(LABEL_DIR, "%s_%s.png" % (self._prefix, key))
@@ -417,7 +425,9 @@ class _Swappable:
         if self._img is not None:
             meta = LABEL_IMG.get("%s_%s" % (self._prefix, key))
             if meta is None:
+                self._img.visible = False
                 return
+            self._img.visible = True
             self._img.source_url = self._url(key)
             self._img.width = ui.Pixel(meta["w"])
         else:
@@ -475,11 +485,11 @@ class _TreeView:
                     lines[key] = ui.Rectangle(
                         width=w, height=h, style={"background_color": _c(tree_model.EDGE)})
                 elif kind == "root":
-                    nodes["root"] = self._node(w, h, "ROOT", 13, center=True)
+                    nodes["root"] = self._node(w, h, "ROOT", 20, center=True)
                 elif kind == "l1":
-                    nodes[key] = self._node(w, h, key.upper(), 15, tag_key="dir_" + key)
+                    nodes[key] = self._node(w, h, key.upper(), 24, tag_key="dir_" + key)
                 else:
-                    nodes[key] = self._node(w, h, key, 13)
+                    nodes[key] = self._node(w, h, key, 20)
                 cursor = it["x"] + w
             ui.Spacer()
 
@@ -499,11 +509,11 @@ class _TreeView:
                 out["name"] = ui.Label(name, alignment=ui.Alignment.CENTER,
                                        style=_text(_c(st["name"]), size))
             else:
-                pad = 9 if tag_key else 7
+                pad = 6
                 with ui.VStack():
                     if tag_key:
-                        ui.Spacer(height=5)
-                    with ui.HStack(height=20 if tag_key else h):
+                        ui.Spacer(height=4)
+                    with ui.HStack(height=30 if tag_key else h):
                         ui.Spacer(width=pad)
                         out["name"] = ui.Label(name, width=0, alignment=ui.Alignment.LEFT_CENTER,
                                                style=_text(_c(st["name"]), size))
@@ -512,7 +522,7 @@ class _TreeView:
                                                 style=_text(_c(st["count"]), size))
                         ui.Spacer(width=pad)
                     if tag_key:
-                        with ui.HStack(height=16):
+                        with ui.HStack(height=22):
                             ui.Spacer(width=pad)
                             out["tag"] = _Swappable("tree", tag_key, tree_model.TAG_EN,
                                                     C_DIM, tree_model.TAG_SIZE)
@@ -618,20 +628,20 @@ class HarvestHUD:
         ui.Rectangle(height=1, style={"background_color": C_LINE})
 
     def _head(self, key):
-        _label("head_" + key, EN[key], C_DIM, 15, width=HEAD_W)
+        _label("head_" + key, EN[key], C_DIM, 22, width=HEAD_W)
 
     def _row_nodes(self):
         with ui.HStack(height=0):
             self._head("nodes")
-            with ui.HStack(height=0, spacing=18):
+            with ui.HStack(height=0, spacing=10):
                 for name in NODE_ORDER:
-                    with ui.HStack(width=0, height=0, spacing=6):
+                    with ui.HStack(width=0, height=0, spacing=5):
                         self._w["lamp_" + name] = ui.Circle(
                             radius=LAMP_R, width=LAMP_R * 2 + 2, height=LAMP_R * 2 + 2,
                             size_policy=ui.CircleSizePolicy.FIXED,
                             alignment=ui.Alignment.CENTER,
                             style={"background_color": C_BAD})
-                        _label("node_" + name, EN["node"][name], C_TEXT, 15)
+                        _label("node_" + name, EN["node"][name], C_TEXT, 24)
 
     def _row_tree(self):
         # Replaces the AREA / TARGET / PLACED rows (2026-09-11): the lit node shows the
@@ -647,7 +657,7 @@ class HarvestHUD:
         with ui.HStack(height=0):
             self._head("phase")
             ui.Spacer()
-            self._w["state"] = _Swappable("state", "IDLE", EN["state"], C_DIM, 34)
+            self._w["state"] = _Swappable("state", "IDLE", EN["state"], C_DIM, 40)
             ui.Spacer()
 
     def _row_bar(self):
@@ -656,7 +666,7 @@ class HarvestHUD:
             with ui.HStack(height=0, spacing=3):
                 for _ in BAR_STATES:
                     self._seg.append(ui.Rectangle(
-                        height=8, style={"background_color": C_SEG_OFF, "border_radius": 2}))
+                        height=10, style={"background_color": C_SEG_OFF, "border_radius": 2}))
 
     def _row_final(self):
         # Hidden together with its divider -- a lone line before the run ends looks odd.
@@ -670,16 +680,16 @@ class HarvestHUD:
             self._divider()
             with ui.HStack(height=0, spacing=12):
                 ui.Spacer()
-                _label("final", EN["final"], C_TEXT, 30)
-                self._w["final_num"] = ui.Label("", width=0, style=_text(C_TEXT, 30))
+                _label("final", EN["final"], C_TEXT, 34)
+                self._w["final_num"] = ui.Label("", width=0, style=_text(C_TEXT, 34))
                 ui.Spacer()
             with ui.HStack(height=0, spacing=8):
                 ui.Spacer()
-                _label("final_placed", EN["final_placed"], C_OK, 20)
-                self._w["final_placed_num"] = ui.Label("", width=0, style=_text(C_OK, 20))
-                ui.Spacer(width=18)
-                _label("final_dropped", EN["final_dropped"], C_BAD, 20)
-                self._w["final_dropped_num"] = ui.Label("", width=0, style=_text(C_BAD, 20))
+                _label("final_placed", EN["final_placed"], C_OK, 32)
+                self._w["final_placed_num"] = ui.Label("", width=0, style=_text(C_OK, 32))
+                ui.Spacer(width=24)
+                _label("final_dropped", EN["final_dropped"], C_BAD, 32)
+                self._w["final_dropped_num"] = ui.Label("", width=0, style=_text(C_BAD, 32))
                 ui.Spacer()
         self._w["final"] = block
         block.visible = False
@@ -823,14 +833,14 @@ class _WristCamera:
                             ui.Spacer(height=CAM_PAD)
                             with ui.HStack(height=0):
                                 ui.Spacer(width=CAM_PAD)
-                                _label("cam_title", EN["cam_title"], C_DIM, 15)
+                                _label("cam_title", EN["cam_title"], C_DIM, 20)
                                 if CAM_GUIDE_ON:
                                     # '   AREA NE' -- the HUD's area value, set by set_region()
                                     ui.Spacer(width=18)
-                                    _label("head_region", EN["region"], C_DIM, 15)
-                                    ui.Spacer(width=5)
+                                    _label("head_region", EN["region"], C_DIM, 20)
+                                    ui.Spacer(width=6)
                                     self._region_lbl = ui.Label(
-                                        "", width=0, style=_text(CAM_GUIDE_GREEN, 15),
+                                        "", width=0, style=_text(CAM_GUIDE_GREEN, 20),
                                         alignment=ui.Alignment.LEFT_CENTER)
                                 ui.Spacer()
                             ui.Spacer(height=6)

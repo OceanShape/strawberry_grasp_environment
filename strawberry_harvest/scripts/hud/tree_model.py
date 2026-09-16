@@ -29,26 +29,27 @@ NODE_STATES = ("pending", "active", "parent", "done", "pruned")
 ROOT_STATES = ("pending", "active", "base", "done")
 
 # ---- 문구 (1단 노드 둘째 줄. 2단 노드는 문구 없음) ------------------------------------
-#: 잎 = 방향, 분할 = 방향(분할), 1차 스캔 가지치기 = 방향(제외) (사용자 지정 2026-09-12).
-DIR_KO = {"nw": "북서", "ne": "북동", "se": "남동", "sw": "남서"}
+#: [2026-09-16 S5] 방위 글자(북서·남동 …)는 뺐다. 방위는 손목 카메라 창의 십자·NW/NE/SW/SE 가이드가
+#: 보여 주고 노드 첫 줄이 이미 NW 다. 둘째 줄은 **상태만**: 잎 = 없음, 분할 = '분할', 1차 스캔
+#: 가지치기 = '제외'. (09-12 지정 '방향(분할)' 꼴은 글자를 24px 로 키우면 4열 패널에 안 들어간다.)
+STATUS_KO = {"split": "분할", "pruned": "제외"}
 TAG_KEYS = tuple(["dir_" + q for q in QUADS] + ["split_" + q for q in QUADS]
                  + ["pruned_" + q for q in QUADS])
-TAG_SIZE = 11
-TAG_COLOR = {"dir": (150, 158, 172, 255), "split": (167, 139, 250, 255),
-             "pruned": (123, 132, 148, 255)}
-#: labels/ 가 없을 때(영문 폴백) 쓰는 글자. 방향은 첫 줄 NW 와 겹치므로 비운다.
-TAG_EN = dict([("dir_" + q, "") for q in QUADS] + [("split_" + q, "(split)") for q in QUADS]
-              + [("pruned_" + q, "(skipped)") for q in QUADS])
+TAG_SIZE = 18
+TAG_COLOR = {"split": (167, 139, 250, 255), "pruned": (123, 132, 148, 255)}
+#: labels/ 가 없을 때(영문 폴백) 쓰는 글자. 잎(dir_*)은 둘째 줄이 없다.
+TAG_EN = dict([("dir_" + q, "") for q in QUADS] + [("split_" + q, "split") for q in QUADS]
+              + [("pruned_" + q, "skipped") for q in QUADS])
 
 
 def tag_parts(key: str):
-    """라벨 키 -> [(글자, RGBA)]. make_labels.py 가 이걸로 PNG 를 그린다."""
-    kind, q = key.split("_", 1)
-    if kind == "pruned":        # 노드 전체가 흐려지는 상태라 글자도 한 색으로 흐리게
-        return [(DIR_KO[q] + "(제외)", TAG_COLOR["pruned"])]
+    """라벨 키 -> [(글자, RGBA)]. make_labels.py 가 이걸로 PNG 를 그린다. 빈 리스트 = 둘째 줄 없음."""
+    kind, _q = key.split("_", 1)
+    if kind == "pruned":        # 노드 전체가 흐려지는 상태라 글자도 흐리게
+        return [(STATUS_KO["pruned"], TAG_COLOR["pruned"])]
     if kind == "split":
-        return [(DIR_KO[q], TAG_COLOR["dir"]), ("(분할)", TAG_COLOR["split"])]
-    return [(DIR_KO[q], TAG_COLOR["dir"])]
+        return [(STATUS_KO["split"], TAG_COLOR["split"])]
+    return []
 
 
 # ---- 색 (0-255 RGBA) ----------------------------------------------------------------
@@ -253,12 +254,13 @@ class TreeModel:
 
 
 # ---- 2. 배치 (Kit 논리 픽셀) ---------------------------------------------------------
+# [2026-09-16 S5] 1080p 녹화 가독성으로 키움 — 노드 글자 24px(1단)·20px(2단·ROOT)·태그 18px 기준.
 LINE = 2.0
-ROOT_W, ROOT_H = 64.0, 24.0
+ROOT_W, ROOT_H = 80.0, 30.0
 STEM1, DROP1 = 9.0, 7.0
-L1_GAP, L1_H = 10.0, 44.0
+L1_GAP, L1_H = 8.0, 58.0
 STEM2, DROP2 = 8.0, 6.0
-L2_GAP, L2_H, L2_W_MAX = 6.0, 36.0, 62.0
+L2_GAP, L2_H, L2_W_MAX = 6.0, 38.0, 70.0
 
 
 def _hline(points, key_fmt):
