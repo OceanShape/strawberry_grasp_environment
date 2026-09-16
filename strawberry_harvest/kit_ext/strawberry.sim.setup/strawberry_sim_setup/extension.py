@@ -32,7 +32,7 @@ import omni.kit.app
 import omni.kit.commands
 import omni.ui as ui
 import omni.usd
-from pxr import Gf, Usd
+from pxr import Gf, Usd, UsdGeom
 
 SETTING_ROOT = "/exts/strawberry.sim.setup"
 PERSP_PATH = "/OmniverseKit_Persp"
@@ -68,6 +68,15 @@ HUD_ITEMS = (
 # Fallbacks if the [settings] block in extension.toml is missing.
 DEFAULT_TRANSLATE = (-1.86373, -1.15613, 2.08606)
 DEFAULT_ROTATE_XYZ = (58.1076, 0.0, -46.70705)
+# [2026-09-16 S7] Lens is pinned too. Kit's default perspective camera is wide
+# (focalLength 18.147 on a 20.955 aperture = 60 deg hfov, a 31 mm-equivalent), which
+# makes the set look small and stretches the perspective. Only the ratio
+# aperture / focalLength sets the field of view, so both are written: the aperture
+# stays at Kit's 20.955 and the focal length carries the choice.
+#   hfov = 2 * atan(20.955 / (2 * F));  "35 mm-equivalent" = F 20.4,  "50 mm" = F 29.1
+# The framing numbers behind the defaults are in docs/run_guide.md (camera section).
+DEFAULT_FOCAL_LENGTH = 18.147
+DEFAULT_HORIZONTAL_APERTURE = 20.955
 
 # The camera is re-applied a few times after a stage opens: Kit resets
 # /OmniverseKit_Persp while the stage is still loading, and the last write
@@ -144,6 +153,13 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
     def _get_str(self, name: str, default: str) -> str:
         value = self._settings.get(f"{SETTING_ROOT}/{name}")
         return default if not value else str(value)
+
+    def _get_float(self, name: str, default: float) -> float:
+        value = self._settings.get(f"{SETTING_ROOT}/{name}")
+        try:
+            return default if value is None else float(value)
+        except (TypeError, ValueError):
+            return default
 
     def _get_vec3(self, name: str, default) -> tuple:
         value = self._settings.get(f"{SETTING_ROOT}/{name}")
@@ -291,6 +307,8 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
 
         translate = self._get_vec3("persp_translate", DEFAULT_TRANSLATE)
         rotate = self._get_vec3("persp_rotate_xyz", DEFAULT_ROTATE_XYZ)
+        focal = self._get_float("persp_focal_length", DEFAULT_FOCAL_LENGTH)
+        aperture = self._get_float("persp_horizontal_aperture", DEFAULT_HORIZONTAL_APERTURE)
 
         try:
             # Kit defines /OmniverseKit_Persp on the session layer. Authoring
@@ -305,6 +323,9 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
                     new_rotation_order=Gf.Vec3i(0, 1, 2),  # XYZ, same as the property panel
                     new_scale=Gf.Vec3d(1.0, 1.0, 1.0),
                 )
+                cam = UsdGeom.Camera(prim)
+                cam.GetFocalLengthAttr().Set(float(focal))
+                cam.GetHorizontalApertureAttr().Set(float(aperture))
         except Exception as exc:  # noqa: BLE001 -- never break app startup
             carb.log_warn(f"[strawberry.sim.setup] pinning {PERSP_PATH} failed: {exc!r}")
             return False

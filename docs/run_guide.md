@@ -98,7 +98,7 @@ bash scripts/run_isaacsim.sh
 | 뷰포트 HUD 끄기 | FPS·프레임타임·GPU/프로세스 메모리·해상도 오버레이 + **좌하단 카메라 속도 상자**(단위 `m` 만 보이던 것, 09-16 추가). **녹화본에 안 찍힌다** |
 | 배경색 차콜 | 뷰포트 빈 공간을 돔 라이트의 흰색 대신 단색 차콜로 (09-16). **조명은 안 건드린다** — 렌더러가 빈 곳에 그리는 색만 바꾼다(`/rtx/background/source/*`). 색은 `extension.toml` 의 `background_color`(LINEAR 3값) |
 | Script Editor 도킹 | `Render Settings` 가 있는 탭 모음에 탭으로 붙는다. Window 메뉴로 열 필요 없다 |
-| Perspective 카메라 고정 | 씬을 **열 때마다** 녹화용 구도로 되돌린다 (세션 레이어에만 쓰므로 씬 파일은 안 더러워진다) |
+| Perspective 카메라 고정 | 씬을 **열 때마다** 녹화용 구도로 되돌린다 — 위치·회전에 더해 **초점 거리**(09-16, Kit 기본 광각 18.147 → 24; 조리개 20.955 고정이라 hfov 60° → 47°)까지 (세션 레이어에만 쓰므로 씬 파일은 안 더러워진다) |
 
 값(카메라 위치·도킹 대상)은 `strawberry_harvest/kit_ext/strawberry.sim.setup/config/extension.toml`
 의 `[settings]` 에 있고, 한 번만 다르게 띄우려면 인자로 덮어쓴다:
@@ -108,8 +108,19 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
 ```
 
 카메라 구도를 바꾸고 싶으면 GUI 에서 원하는 각도로 맞춘 뒤 Stage 에서
-`/OmniverseKit_Persp` 를 선택하고 Property 패널의 Translate / Rotate 값을
-`persp_translate` / `persp_rotate_xyz` 에 옮겨 적으면 된다 (Rotate 는 XYZ 순서).
+`/OmniverseKit_Persp` 를 선택하고 Property 패널의 Translate / Rotate / Focal Length 값을
+`persp_translate` / `persp_rotate_xyz` / `persp_focal_length` 에 옮겨 적으면 된다 (Rotate 는 XYZ 순서).
+**고정이 켜져 있으면 GUI 에서 옮긴 카메라는 다음 씬 로드 때 되돌아간다** — 손으로 맞추는 동안은
+`--/exts/strawberry.sim.setup/pin_persp_camera=false` 로 띄우거나, 값을 옮겨 적은 뒤 재기동한다.
+
+**롱샷 구도 (2026-09-16 S7, 영상 조언 3번).** 보드 정면 기준 **왼쪽 30°, 위에서 30°, 보드 중심에서 3.4 m, 초점 거리 24**
+(35mm 환산 41mm, hfov 47°). 왼쪽 후방이라 팔이 화면을 가로질러 오른쪽 트레이로 가는 동선이 보이고, 파지 때 손목이 팔
+몸통과 안 겹친다(오른쪽 후방은 트레이가 카메라 앞에 와서 팔을 가린다). 종전 09-10 구도는 왼쪽 44°/27.5°/3.09 m 에 Kit 기본
+렌즈(18.147 = hfov 60°, 31mm 환산)라 보드가 화면 폭 **24%** 였고 원근이 과장됐다. 지금 값은 보드 **34%**, 트레이 x 75~85%.
+조언은 40% 였지만, 좌상단 HUD 패널(x<24%, y<43%)과 좌하단 손목 카메라 창(x<27%, y>60%)을 피해 피사체를 x≥28% 에 두면
+34% 가 상한이다 — 더 당기면 보드 NW 가 HUD 밑으로 들어간다. 후보 비교·재계산은
+`python3 strawberry_harvest/scripts/scene_tools/check_camera_framing.py` (numpy 만; 보드·트레이·로봇 지점의 화면 위치와 UI 겹침을 표로 낸다).
+구도는 녹화하면서 계속 바꿀 수 있다 — 값은 `extension.toml` 한 곳이다.
 
 **맨손으로 `isaacsim` 을 띄워도 확장은 붙는다** (2026-09-10 등록). 두 군데가 걸려 있다:
 

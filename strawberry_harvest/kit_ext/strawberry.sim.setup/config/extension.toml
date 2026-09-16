@@ -29,5 +29,13 @@ exts."strawberry.sim.setup".set_background = true
 # 더 밝게 = 올린다 (#3A4049 -> 0.042, 0.051, 0.067). 돔 라이트는 그대로다.
 exts."strawberry.sim.setup".background_color = [0.027, 0.033, 0.042]
 exts."strawberry.sim.setup".pin_persp_camera = true
-exts."strawberry.sim.setup".persp_translate = [-1.86373, -1.15613, 2.08606]
-exts."strawberry.sim.setup".persp_rotate_xyz = [58.1076, 0.0, -46.70705]
+# [2026-09-16 S7] 롱샷 구도 — 보드 정면 기준 왼쪽 30°, 위에서 30°, 보드 중심에서 3.4 m, 초점 거리 24
+# (조리개 20.955 기준 hfov 47°, 35mm 환산 41mm). 종전(09-10)은 왼쪽 44°/27.5°/3.09 m 에 Kit 기본 렌즈
+# (18.147 = hfov 60°) 라 보드가 화면 폭 24% 였다. 지금 값은 보드 34%, 트레이 오른쪽 아래(x 75~85%),
+# HUD 패널(좌상 x<24%, y<43%)·손목 카메라 창(좌하 x<27%, y>60%) 과 안 겹친다.
+# 근거·재계산: python3 strawberry_harvest/scripts/scene_tools/check_camera_framing.py
+# 바꾸는 법: GUI 에서 맞춘 뒤 /OmniverseKit_Persp 의 Translate/Rotate(XYZ)/Focal Length 를 여기에 옮겨 적는다.
+exts."strawberry.sim.setup".persp_translate = [-1.422, -1.740, 2.360]
+exts."strawberry.sim.setup".persp_rotate_xyz = [55.24, 0.0, -30.24]
+exts."strawberry.sim.setup".persp_focal_length = 24.0
+exts."strawberry.sim.setup".persp_horizontal_aperture = 20.955
