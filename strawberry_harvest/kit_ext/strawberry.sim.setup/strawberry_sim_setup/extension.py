@@ -103,14 +103,18 @@ DOCK_RETRY_FRAMES = 60
 #                                 widgets are linear), so sRGB #2E333A charcoal
 #                                 is (0.027, 0.033, 0.042)
 #
-# Both are plain app settings, not persistent ones, so they are set on every
-# launch. Retried because the RTX extensions load after this one and write their
-# own defaults on the way up.
+# Both are plain app settings, not persistent ones, so they are set on every launch.
+# [2026-09-16] They are also re-applied on every STAGE OPEN, the same as the camera.
+# On the first run the boot-time write held (the log read back the charcoal), and the
+# viewport still turned black after the scene loaded 23 s later: opening a stage puts
+# the renderer's own background back, and with type still "color" the default colour
+# is (0, 0, 0). Setting it once at startup is therefore not enough. The retry frames
+# cover the reset that lands while the stage is still loading.
 BACKGROUND_TYPE_KEY = "/rtx/background/source/type"
 BACKGROUND_COLOR_KEY = "/rtx/background/source/color"
 BACKGROUND_SOURCE_COLOR = 2
 DEFAULT_BACKGROUND_COLOR = (0.027, 0.033, 0.042)
-BACKGROUND_RETRY_FRAMES = (10, 60)
+BACKGROUND_RETRY_FRAMES = CAMERA_RETRY_FRAMES
 
 
 class StrawberrySimSetupExtension(omni.ext.IExt):
@@ -118,24 +122,35 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
         self._settings = carb.settings.get_settings()
         self._tasks = []
         self._stage_sub = None
+        self._background_on = False
+        self._pin_camera_on = False
+        self._background_warned = False
 
         if self._get_bool("hide_viewport_hud", True):
             self._hide_viewport_hud()
 
-        if self._get_bool("set_background", True):
+        self._background_on = self._get_bool("set_background", True)
+        self._pin_camera_on = self._get_bool("pin_persp_camera", True)
+
+        if self._background_on:
             self._spawn(self._apply_background_async())
 
         if self._get_bool("dock_script_editor", True):
             self._spawn(self._dock_script_editor_async())
 
-        if self._get_bool("pin_persp_camera", True):
+        if self._pin_camera_on:
+            # Also covers the stage that is already open (extension reload).
+            self._spawn(self._pin_camera_async())
+
+        if self._pin_camera_on or self._background_on:
+            # Opening a stage resets both the viewport camera and the renderer's
+            # background, so both are re-applied on every stage open.
             self._stage_sub = (
                 omni.usd.get_context()
                 .get_stage_event_stream()
-                .create_subscription_to_pop(self._on_stage_event, name="strawberry_sim_setup_camera")
+                .create_subscription_to_pop(self._on_stage_event,
+                                            name="strawberry_sim_setup_stage")
             )
-            # Also covers the stage that is already open (extension reload).
-            self._spawn(self._pin_camera_async())
 
     def on_shutdown(self):
         for task in self._tasks:
@@ -212,11 +227,22 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
                 await app.next_update_async()
             waited = target_frame
             self._apply_background()
-        carb.log_info(
-            f"[strawberry.sim.setup] background "
-            f"type={self._settings.get(BACKGROUND_TYPE_KEY)} "
-            f"color={self._settings.get(BACKGROUND_COLOR_KEY)}"
-        )
+        self._check_background()
+
+    def _check_background(self):
+        """Read back what the renderer actually holds -- a black viewport means the
+        colour was reset to (0, 0, 0) while the type stayed at "color"."""
+        asked = self._get_vec3("background_color", DEFAULT_BACKGROUND_COLOR)
+        got = self._settings.get(BACKGROUND_COLOR_KEY) or ()
+        kind = self._settings.get(BACKGROUND_TYPE_KEY)
+        line = f"background type={kind} color={list(got)} (asked {list(asked)})"
+        drifted = (len(got) < 3
+                   or any(abs(float(a) - float(b)) > 1e-3 for a, b in zip(asked, got[:3])))
+        if drifted and not self._background_warned:
+            self._background_warned = True
+            carb.log_warn(f"[strawberry.sim.setup] {line} -- did not stick")
+        else:
+            carb.log_info(f"[strawberry.sim.setup] {line}")
 
     def _apply_background(self):
         color = self._get_vec3("background_color", DEFAULT_BACKGROUND_COLOR)
@@ -285,8 +311,12 @@ class StrawberrySimSetupExtension(omni.ext.IExt):
     # -- 3. perspective camera ---------------------------------------------
 
     def _on_stage_event(self, event):
-        if event.type == int(omni.usd.StageEventType.OPENED):
+        if event.type != int(omni.usd.StageEventType.OPENED):
+            return
+        if self._pin_camera_on:
             self._spawn(self._pin_camera_async())
+        if self._background_on:
+            self._spawn(self._apply_background_async())
 
     async def _pin_camera_async(self):
         app = omni.kit.app.get_app()

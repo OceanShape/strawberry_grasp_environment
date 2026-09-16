@@ -30,9 +30,16 @@ def Xform "lab_environment"
 
     # [T4c 2026-09-15] 바닥 — 시뮬 전용 소품. 트레이 밖에서 릴리스된 과실이 떨어져 닿는 면.
     # 보드 앞 릴리스 지점(y≈0.74m)은 테이블 상판(y≤0.30m) 밖이라 이 면이 없으면 과실이
-    # 끝없이 떨어진다. 실기 바닥 높이 자료는 없다: 작업대 높이 0.75m 가정(상판 z=0 기준).
-    # 콜라이더는 layers/physics_layer.usd 의 over 로 붙는다 (table 과 같은 규칙).
-    # 두께 1m (윗면 -0.75, 아랫면 -1.75): 런 13(09-15)에서 1.4m 자유 낙하(착지 5.3m/s = 스텝당 88mm)한
+    # 끝없이 떨어진다. 콜라이더는 layers/physics_layer.usd 의 over 로 붙는다 (table 과 같은 규칙).
+    #
+    # 높이 (2026-09-16 변경, 윗면 -0.75 -> -0.45): **녹화 프레임에 맞춘 값이다.**
+    #   종전 -0.75 는 "작업대 높이 0.75m" 가정이었는데(실기 바닥 높이 자료는 없다), 떨어진 과실이
+    #   롱샷 카메라 화면의 y 87~100% 에 놓여 아래 가장자리에서 잘렸다 — 낙하가 실패의 증거인데
+    #   화면에서 사라지면 증거가 안 된다. -0.45 에서 화면 y 77~90% 로 들어온다
+    #   (scene_tools/check_camera_framing.py 의 투영과 같은 계산). 이제 이 높이는 실기 작업대
+    #   높이의 추정이 아니라 **시뮬 촬영용으로 고른 값**이다. 낙하 거리 1.40m -> 1.10m.
+    #   isaac_sim_script_editor_bridge.FLOOR_TOP_M 이 같은 값이어야 DROP_REST 로그가 맞는다.
+    # 두께 1m (윗면 -0.45, 아랫면 -1.45): 런 13(09-15)에서 1.4m 자유 낙하(착지 5.3m/s = 스텝당 88mm)한
     # 과실 하나가 20mm 판을 관통해 사라졌다. 스텝 이동량보다 훨씬 두꺼워야 관통해도 위로 밀려난다.
     # (physics_layer.usd 의 physxScene:enableCCD 와 낙하 과실의 CCD 플래그가 2중 방어.)
     def Cube "floor"
@@ -40,7 +47,7 @@ def Xform "lab_environment"
         double size = 1
         color3f[] primvars:displayColor = [(0.20, 0.21, 0.23)]
         double3 xformOp:scale = (6, 6, 1.0)
-        double3 xformOp:translate = (0.4, 0.3, -1.25)
+        double3 xformOp:translate = (0.4, 0.3, -0.95)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
     }
 }

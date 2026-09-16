@@ -96,7 +96,7 @@ bash scripts/run_isaacsim.sh
 | 부팅 때 자동 | 내용 |
 |---|---|
 | 뷰포트 HUD 끄기 | FPS·프레임타임·GPU/프로세스 메모리·해상도 오버레이 + **좌하단 카메라 속도 상자**(단위 `m` 만 보이던 것, 09-16 추가). **녹화본에 안 찍힌다** |
-| 배경색 차콜 | 뷰포트 빈 공간을 돔 라이트의 흰색 대신 단색 차콜로 (09-16). **조명은 안 건드린다** — 렌더러가 빈 곳에 그리는 색만 바꾼다(`/rtx/background/source/*`). 색은 `extension.toml` 의 `background_color`(LINEAR 3값) |
+| 배경색 차콜 | 뷰포트 빈 공간을 돔 라이트의 흰색 대신 단색 차콜로 (09-16). **조명은 안 건드린다** — 렌더러가 빈 곳에 그리는 색만 바꾼다(`/rtx/background/source/*`). 색은 `extension.toml` 의 `background_color`(LINEAR 3값). **씬을 열 때마다 다시 적용한다** — 스테이지가 열리면 렌더러가 자기 배경을 되돌려 놓는데, 타입은 `color` 로 남아 기본색 (0,0,0) = 검정이 된다 |
 | Script Editor 도킹 | `Render Settings` 가 있는 탭 모음에 탭으로 붙는다. Window 메뉴로 열 필요 없다 |
 | Perspective 카메라 고정 | 씬을 **열 때마다** 녹화용 구도로 되돌린다 — 위치·회전에 더해 **초점 거리**(09-16, Kit 기본 광각 18.147 → 24; 조리개 20.955 고정이라 hfov 60° → 47°)까지 (세션 레이어에만 쓰므로 씬 파일은 안 더러워진다) |
 
@@ -188,7 +188,7 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
 - **완료 줄의 수는 "성공" 이 아니다.** 딸기를 그리퍼에 붙이는 attach 가 없어(파지는 기하 판정뿐)
   *파지 판정 통과 + 트레이 슬롯 릴리스 완료* 까지만 센다.
 - **낙하 (2026-09-15, T4c)**: 둘째 줄 `낙하 m` 은 이송·배치 계획이 거부돼 그 자리에서 놓은 과실 수(플래너 `PICK_SEQUENCE_CONTINUE … released fruit here` 와 같은 수).
-  브릿지는 그 과실을 **떨어뜨린다** — 트레이 밖 릴리스면 kinematic 을 풀고 콜라이더를 켜서 중력에 맡기고, 바닥(`lab_environment.usd` `floor`, 상판 아래 0.75m, **씬 재로드 필요**)에
+  브릿지는 그 과실을 **떨어뜨린다** — 트레이 밖 릴리스면 kinematic 을 풀고 콜라이더를 켜서 중력에 맡기고, 바닥(`lab_environment.usd` `floor`, 상판 아래 **0.45m** — 09-16 에 0.75m 에서 올렸다, 떨어진 과실이 롱샷 화면 아래로 잘려서. **씬 재로드 필요**)에
   닿아 멈춘다. Kit 로그 `RELEASE … DROPPED outside tray at … -> falls  dropped=n`, 3초 뒤 `DROP_REST … -> on floor | caught above floor (N mm up) | BELOW FLOOR (tunnelled)`.
   `BELOW FLOOR` 가 나오면 안 된다(런 13 에서 20mm 바닥을 관통해 1m 로 두껍게 하고 CCD 를 켰다). `caught` 는 아래 과실에 걸린 것 — 물리 그대로, 기록만.
   트레이 안 릴리스는 종전대로 동결(`RELEASE … PLACED in tray, frozen at`).
@@ -818,6 +818,7 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | **`GRASP_POSE_REACHED offset=+0.040m variant=-5.0°`** | 높은 딸기에서 −5° 변형의 15~25mm 가 도달 한계 밖이라 40mm 로 밀린 것. 사다리가 `[15,20,25]` 면 −5° 가 전부 실패해 0° 로 넘어가 15mm 가 된다. 40mm 가 보이면 사다리가 옛 값으로 돌아간 것 |
 | **분리 후 바로 배치로 넘어간다 (역순 후퇴 없음)** | 설계 5단계 누락. `planner.log` 에 `DETACH_PULL_DOWN` 다음 `RETREAT` 줄이 있어야 한다. 없으면 `-p enable_straight_reverse_retreat:=true` 누락 — 실기 코드는 `measured_tcp` 프로파일에만 걸려 있어 legacy 는 기본적으로 생략된다 |
 | **분리까지 성공했는데 배치 안 하고 놔버린다** | `TAUGHT_TRAY_SLOT0_PLACE_BLOCKED: above plan failed` 확인. J2 가드 100°가 nw 딸기(114°, 113°)를 막았다. 2026-09-10 에 **130°** 로 |
+| **뷰포트 배경이 검정이다** | 배경 타입은 `color` 로 남았는데 색이 기본값 (0,0,0) 으로 되돌아간 것이다. Kit 로그의 `[strawberry.sim.setup] background type=… color=…` 줄을 본다 — `did not stick` WARN 이면 그 뒤에 누가 덮어썼다는 뜻. 09-16 에 **씬 열 때마다 재적용**하도록 고쳤으니 다음 기동부터는 자동이고, 이번 세션에서는 Script Editor 새 탭에 아래를 붙여 Run 하면 즉시 돌아온다(ASCII 만 — Script Editor 는 한글을 `?` 로 찍는다):<br>`import carb.settings`<br>`s = carb.settings.get_settings()`<br>`s.set("/rtx/background/source/type", 2)`<br>`s.set("/rtx/background/source/color", [0.027, 0.033, 0.042])` |
 | **보드 위 하늘색 테두리(분면 표시)가 안 뜬다 / 안 바뀐다** | HUD 스크립트가 켜고 끈다 — Isaac 콘솔에 `[hud] 보드 하이라이트 prim 을 못 찾았다` 가 있으면 씬을 다시 로드하지 않은 것(`whiteboard.usd` 의 `highlight` 가 2026-09-10 추가). 영역 값 자체가 안 바뀌면 HUD 패널의 "영역" 도 같이 멈춰 있을 것 — scan_executor 계측 문제 |
 | **동작이 너무 느리다 / 빠르다** | 브릿지 `-p sim_speed_scale:=1.0`(기본, 09-14 부터 — 실기 요청 시간 그대로. 2.0 은 검증용으로 쓰지 않는다). 3.0 이면 더 빠르고 1.0 이면 2026-09-09 이전 속도다. 스캔 이동은 scan_executor `-p scan_movej_vel_deg_s:=120`(기본, 실기는 60) |
 | **HUD `타겟` 총수가 한 번에 6 이 되지 않는다** | **정상이다.** 2026-09-09 분면 필터 이후 이 값은 **지금 스캔 중인 분면**의 개수다. `Isaac→fake` 쪽이 전체(6)다 |

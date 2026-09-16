@@ -283,7 +283,9 @@ def start_bridge():
     TRAY_XY_MARGIN_M = 0.03           # a release hanging over the carton rim still counts as "in tray"
     TRAY_Z_ABOVE_M = 0.30             # ... and no higher than this above the carton top
     DROP_REST_AFTER_S = 3.0           # log where a dropped fruit ended up this long after the release
-    FLOOR_TOP_M = -0.75               # lab_environment.usd floor top; used only to label the rest pose
+    # lab_environment.usd floor top; used only to label the rest pose. Raised from
+    # -0.75 on 2026-09-16 so a dropped fruit stays inside the recorded frame.
+    FLOOR_TOP_M = -0.45
 
     def _stage():
         return omni.usd.get_context().get_stage()
