@@ -4,7 +4,7 @@
 #   bash scripts/run_batch.sh <런 수> [--seed-start S] [--tag pilot]
 #
 # 전제: Isaac Sim 이 떠 있고 Script Editor 에서 strawberry_harvest/scripts/isaac_batch_orchestrator.py 를 한 번 Run 한 상태.
-# 런마다:  gen_random_layout.py --seed s --apply  →  request.json(reload)  →  [Isaac: Stop·재로드·브릿지·HUD·Play]  →
+# 런마다:  gen_random_layout.py --seed s --apply  →  request.json(reload)  →  [Isaac: Stop·재로드·브릿지·뷰포트 표시·Play]  →
 #          run_nodes.sh(새 프로세스)  →  "전부 정합" 대기  →  트리거  →  READY_FOR_NEXT_START 대기  →  --kill  →
 #          로그·Kit 브릿지 줄·배치 JSON 을 log/m3/random/<tag>/run_<i>_seed_<s>/ 로  →  run_metrics.py (CSV 누적)
 # 끝나면 base 배치를 파일에 되돌린다(씬은 다음 재로드 때 반영). 지표 요약은 run_metrics.py --aggregate.

@@ -14,7 +14,7 @@
 bash scripts/run_isaacsim.sh
 ```
 
-→ 뜬 뒤 GUI 에서: 씬 로드 → `isaac_sim_script_editor_bridge.py` Run → `isaac_sim_hud.py` Run → **Play**
+→ 뜬 뒤 GUI 에서: 씬 로드 → `isaac_sim_script_editor_bridge.py` Run → `isaac_sim_viewport_display.py` Run → **Play**
 ([터미널 1 절](#터미널-1--isaac-sim-venv-사용))
 
 **터미널 2 — 노드 4개**
@@ -130,10 +130,10 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
 2. **`strawberry_harvest/scenes/main_scene.usd` 로드**
    ⚠️ 씬 파일을 수정했다면 **반드시 재로드**해야 반영된다 (노드 재시작만으론 안 됨)
 3. **Script Editor**에서 `strawberry_harvest/scripts/isaac_sim_script_editor_bridge.py` 실행
-4. **Script Editor**에서 `strawberry_harvest/scripts/isaac_sim_hud.py` 실행 — **상태 HUD**
+4. **Script Editor**에서 `strawberry_harvest/scripts/isaac_sim_viewport_display.py` 실행 — **상태 HUD + 손목 카메라 창** (09-16 까지 이름 `isaac_sim_hud.py`)
 5. **Play** 클릭
 
-**4번 상태 HUD** — 뷰포트 좌상단에 반투명 패널이 뜬다. 별도 상태창 프로그램은 폐기했고
+**4번 뷰포트 표시** — 뷰포트 좌상단에 반투명 상태 HUD 패널, 좌하단에 손목 카메라 창이 뜬다. 별도 상태창 프로그램은 폐기했고
 이것이 유일한 상태 표시다. Isaac Sim 창 하나만 녹화하면 로봇 동작과 상태가 같이 찍힌다.
 
 ```
@@ -155,7 +155,14 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
   로봇이 있는 노드·경로는 주황, 끝난 노드는 초록 테두리, 세부 자세가 거부돼 부모 자세에서 딴 세부 칸은 호박색 테두리.
   순회가 끝나면 세부 칸 줄은 접힌다. 보드 위 주황 하이라이트도 세부 칸에서 일할 때는 그 칸 하나만 켠다(`whiteboard.usd` 세부 칸 16장,
   **씬 재로드 필요** — 옛 애셋이면 부모 분면을 켠다). 실행기 코드는 안 바뀐다(프로브가 메서드 경계에서 받는다). 규칙·색·문구는 `hud/tree_model.py`, 설명은 `hud/README.md`.
-- **패널 위치**는 `isaac_sim_hud.py` 의 `POS_X` / `POS_Y` (뷰포트 좌상단 기준 픽셀, 기본 24/24).
+- **패널 위치**는 `isaac_sim_viewport_display.py` 의 `POS_X` / `POS_Y` (뷰포트 좌상단 기준 픽셀, 기본 16/32).
+- **손목 카메라 창** (2026-09-16) — 뷰포트 좌하단에 로봇 손목 D455 컬러 카메라 렌더가 작게 뜬다(640×480 렌더를 400×300 으로 표시).
+  실기 비전 노드의 카메라 창에 대응하는 화면이지만 **렌더일 뿐 인식 결과가 아니다** — 창 제목이 `손목 카메라 · D455 컬러 렌더 · 인식 없음` 이다.
+  `fake_vision` 은 이 이미지를 보지 않고 씬 정답 좌표를 보드 사각형(분면·세부 칸)으로 잘라 발행하므로, 창에 보이는 과실과 발행되는 과실이 다를 수 있다.
+  시야각은 스크립트가 쓰지 않는다 — `robot_assembly.usd` 오버라이드(초점 거리 2.346 / 수평 조리개 3.896 / 수직 조리개 2.922 → 79.41°×63.83°)가 단일 출처이고,
+  Run 하면 Kit 콘솔에 `[wrist_cam] ... fov 79.41 x 63.83 deg` 가 찍힌다(실기 로그 `docs/lab_data/realsense_d455_enumerate.txt` Color 640×480: 79.41°×63.89°). 어긋나면 WARNING.
+  위치·크기는 `CAM_POS_X` / `CAM_MARGIN_BOTTOM` / `CAM_WIDTH`. 끄려면 Isaac 기동 전 `export HARVEST_WRIST_CAM=0`(렌더 한 번 절약).
+  **씬을 로드한 뒤 Run** 해야 카메라 prim 을 찾는다 — 못 찾으면 창 없이 HUD 만 뜨고 콘솔에 안내가 찍힌다.
 - 노드 4개가 `/tmp/harvest_hud_<role>.json` 에 상태를 쓰고 HUD 는 읽기만 하므로
   **터미널 2 보다 먼저 켜도, 나중에 켜도, 도중에 다시 Run 해도** 된다. 몇 번 Run 해도 하나만 남는다.
 - **직전 런의 잔상** (2026-09-10 수정): HUD 는 자기가 Run 된 시각보다 먼저 멈춘 스냅샷 파일을 무시하고,
@@ -772,7 +779,9 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | 딸기가 예전 위치에 있다 | Isaac Sim에서 `main_scene.usd`를 재로드하지 않았다 |
 | 명령이 두 번 실행되는 듯 / 토픽이 겹친다 | 이전 실행의 노드가 살아 있다. "전체 종료 / 재실행 전 초기화" 1~2단계 수행 |
 | `Ctrl+C` 했는데 노드가 남아 있다 | 손으로 띄운 경우다 (`&`로 보낸 노드에는 `Ctrl+C`가 안 닿는다). `bash scripts/run_nodes.sh --kill` 로 정리 |
-| HUD 가 안 보인다 | 터미널 1 의 4번 `isaac_sim_hud.py` 를 Run 안 했거나 활성 뷰포트가 없다. Run 하면 에디터에 오류가 그대로 찍힌다 |
+| HUD 가 안 보인다 | 터미널 1 의 4번 `isaac_sim_viewport_display.py` 를 Run 안 했거나 활성 뷰포트가 없다. Run 하면 에디터에 오류가 그대로 찍힌다 |
+| 손목 카메라 창이 안 뜬다 | Kit 콘솔의 `[wrist_cam]` 줄을 본다. `camera prim not found` = 씬 로드 전에 Run 했다(로드 후 다시 Run). `inset failed` = 위젯 생성 오류(HUD 는 계속 뜬다). `HARVEST_WRIST_CAM=0` 으로 기동했으면 `inset skipped` |
+| 손목 카메라 창 시야각이 이상하다 | 콘솔 `[wrist_cam] ... fov` 값이 79.41 x 63.83 이 아니면 WARNING 이 같이 찍힌다. 고칠 곳은 `robot_assembly.usd` 의 `Camera_OmniVision_OV9782_Color` 초점 거리·조리개(스크립트 아님) |
 | HUD 한글이 `?` 로 나온다 | `hud/labels/` PNG 없음. `python3 strawberry_harvest/scripts/hud/make_labels.py` |
 | HUD 램프가 전부 빨강 | `ls -l /tmp/harvest_hud_*.json` — 파일이 없으면 그 노드에 계측이 안 붙었다. `colcon build` 후 재기동 |
 | **그리퍼가 아예 안 움직인다** | Isaac Script Editor 브릿지를 다시 Run 안 했다. 콘솔에 `[bridge] DOF map:` 이 찍히는지 확인 |

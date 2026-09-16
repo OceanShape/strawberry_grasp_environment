@@ -2,7 +2,7 @@
 
 ROS 쪽 scripts/run_batch.sh 가 /tmp/harvest_batch/request.json 에 런 요청을 쓰면, 이 스크립트가
 사용자가 손으로 하던 순서를 그대로 한다:
-    Stop → 씬 재로드(main_scene.usd) → 로드 완료 대기 → 브릿지 스크립트 실행 → HUD 스크립트 실행 → Play
+    Stop → 씬 재로드(main_scene.usd) → 로드 완료 대기 → 브릿지 스크립트 실행 → 뷰포트 표시 스크립트(HUD·손목 카메라) 실행 → Play
 그리고 /tmp/harvest_batch/isaac_state.json 에 {"run": n, "state": "ready", "kit_log": ..., "kit_offset": ...} 를 쓴다.
 run_batch.sh 는 그 뒤 노드를 띄우고 트리거하며, Kit 로그를 kit_offset 부터 잘라 PLACED/DROPPED/DROP_REST 를 읽는다.
 
@@ -28,11 +28,11 @@ import omni.kit.app
 import omni.timeline
 import omni.usd
 
-# No usable __file__ in the Script Editor (it resolved the repo to "/"). Pin the path like the bridge and HUD do.
+# No usable __file__ in the Script Editor (it resolved the repo to "/"). Pin the path like the bridge and display scripts do.
 REPO = os.path.expanduser(os.environ.get("HARVEST_REPO", "~/strawberry_grasp_environment"))
 SCENE = os.path.join(REPO, "strawberry_harvest/scenes/main_scene.usd")
 BRIDGE = os.path.join(REPO, "strawberry_harvest/scripts/isaac_sim_script_editor_bridge.py")
-HUD = os.path.join(REPO, "strawberry_harvest/scripts/isaac_sim_hud.py")
+DISPLAY = os.path.join(REPO, "strawberry_harvest/scripts/isaac_sim_viewport_display.py")   # HUD panel + wrist camera (was isaac_sim_hud.py)
 BATCH_DIR = os.environ.get("HARVEST_BATCH_DIR", "/tmp/harvest_batch")
 REQUEST = os.path.join(BATCH_DIR, "request.json")
 STATE = os.path.join(BATCH_DIR, "isaac_state.json")
@@ -81,7 +81,7 @@ class _Orchestrator:
         self.t_poll = 0.0
         self.t_beat = 0.0
         os.makedirs(BATCH_DIR, exist_ok=True)
-        missing = [p for p in (SCENE, BRIDGE, HUD) if not os.path.exists(p)]
+        missing = [p for p in (SCENE, BRIDGE, DISPLAY) if not os.path.exists(p)]
         if missing:
             msg = "files not found (set HARVEST_REPO?): %s" % missing
             print("[batch] ERROR: " + msg)
@@ -171,12 +171,12 @@ class _Orchestrator:
     def _run_scripts(self):
         print("[batch] exec bridge: %s" % BRIDGE)
         _exec_script(BRIDGE)
-        if os.path.exists(HUD):
-            print("[batch] exec hud: %s" % HUD)
+        if os.path.exists(DISPLAY):
+            print("[batch] exec display: %s" % DISPLAY)
             try:
-                _exec_script(HUD)
+                _exec_script(DISPLAY)
             except Exception as exc:
-                print("[batch] HUD exec failed (run continues without HUD): %r" % exc)
+                print("[batch] display exec failed (run continues without HUD): %r" % exc)
         self.phase = "play"
         self.t_phase = time.time()
 

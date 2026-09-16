@@ -98,7 +98,7 @@ def Xform "whiteboard"
     #
     # board 와 같은 단위 정사각형을 4분면으로 나눈 얇은 판 4장. 보드면에서 로컬 -Z
     # 2mm(로봇 쪽) 앞에 두고, 같은 격자 텍스처에 옅은 주황 tint 를 곱한 머티리얼을
-    # 입혔다. 기본은 전부 invisible — isaac_sim_hud.py 가 HUD 의 영역 값에 맞춰
+    # 입혔다. 기본은 전부 invisible — isaac_sim_viewport_display.py 가 HUD 의 영역 값에 맞춰
     # 세션 레이어에서 visibility 를 켠다 (홈 = 4장 전부, 분면 = 그 한 장).
     #
     # 분면 이름은 로봇(world -Y 쪽)에서 보드를 본 방향이다:
@@ -191,7 +191,7 @@ def Xform "whiteboard"
         # [2026-09-12] 깊이 2 (세부 칸) 하이라이트 16장 — 분면 4장을 각각 2×2 로 나눈 것.
         # 이름 = <분면>_<세부 칸> (root/sw/se -> sw_se). 세부 칸 판정은 scan_executor 의
         # _subcell_of_pose (부모 분면 중심선) 과 같은 사분 규칙이다. 로봇이 세부 자세에서
-        # 일할 때 HUD 가 이 칸 하나만 켠다 (isaac_sim_hud.py _BoardHighlight).
+        # 일할 때 HUD 가 이 칸 하나만 켠다 (isaac_sim_viewport_display.py _BoardHighlight).
 
         def Mesh "nw_nw" (
             prepend apiSchemas = ["MaterialBindingAPI"]

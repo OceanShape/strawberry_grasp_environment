@@ -8,7 +8,7 @@ tree_model.py — HUD 쿼드트리 패널의 상태·배치·표시 규칙. 순�
   2. tree_layout : 트리 영역 폭에 대한 노드·연결선 배치 (Kit 논리 픽셀).
   3. view        : 트리 스냅샷 + 배치 -> 노드별 스타일·숫자·라벨 키, 연결선별 색.
 
-HUD(isaac_sim_hud.py)는 2·3 을 받아 칠하기만 한다. 라벨 생성기(make_labels.py)도 여기 문구를 쓴다.
+HUD(../isaac_sim_viewport_display.py)는 2·3 을 받아 칠하기만 한다. 라벨 생성기(make_labels.py)도 여기 문구를 쓴다.
 트리는 실행기의 결정을 **그린다**. 판정은 scan_executor 가 한 것이고 여기서 다시 계산하지 않는다.
 
 노드 상태

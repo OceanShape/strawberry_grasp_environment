@@ -1,5 +1,16 @@
 """
-isaac_sim_hud.py -- harvest status HUD drawn over the Isaac Sim viewport.
+isaac_sim_viewport_display.py -- everything the harvest run shows on the Isaac Sim viewport.
+
+[2026-09-16] Renamed from isaac_sim_hud.py when the wrist camera inset was added.
+A HUD is status drawn over the main view; a camera inset is a second rendered view,
+and the board highlight toggles scene prims. The file now holds all three, so it is
+named for the viewport; "HUD" stays the name of the status panel inside it. The
+hud/ package, HARVEST_HUD_DIR and /tmp/harvest_hud_*.json keep their names: the
+probe hooks in the nodes pin that path, and renaming it would edit node code.
+
+  1. status HUD panel (top-left)      -- HarvestHUD, data from the hud/ bus
+  2. board area highlight (in scene)  -- _BoardHighlight, driven by the HUD's area value
+  3. wrist camera inset (bottom-left) -- _WristCamera, live render, no data
 
 ASCII ONLY. Kit's Script Editor renders every non-ASCII character as '?',
 so this file (comments, strings, prints) is kept in plain English on purpose.
@@ -8,9 +19,10 @@ never from this source. Project-wide notes stay in Korean elsewhere
 (hud/README.md, docs/).
 
 Usage -- same as isaac_sim_script_editor_bridge.py:
-  Isaac Sim GUI -> Script Editor -> open this file -> Run.
+  Isaac Sim GUI -> Script Editor -> open this file -> Run (after the scene is loaded,
+  so the wrist camera prim exists).
   Run the bridge script too; order does not matter.
-  Running this several times leaves exactly one HUD.
+  Running this several times leaves exactly one display.
 
 Data: the four nodes (fake_vision / sim_executor_bridge / curobo_planner /
 scan_executor) write a snapshot to /tmp/harvest_hud_<role>.json every 0.1 s.
@@ -53,6 +65,7 @@ make_labels.py and re-run it -- not this file.
 import builtins
 import importlib
 import json
+import math
 import os
 import sys
 import time
@@ -143,6 +156,7 @@ EN = {
               "RETREAT": "RETREAT", "PLACE": "PLACE",
               "RETURN": "RETURN", "DONE": "DONE"},
     "area": {"home": "HOME", "nw": "NW", "ne": "NE", "se": "SE", "sw": "SW"},
+    "cam_title": "WRIST CAM  D455 color render - no detection",
 }
 
 NODE_ORDER = ["vision", "planner", "controller", "scan"]
@@ -178,6 +192,42 @@ def highlight_key(region, tree):
     return cur if cur in HIGHLIGHT_ON and "/" in cur else region
 HIGHLIGHT_PATH = "/World/lab_environment/whiteboard/highlight"   # fixed path; search if missing
 HIGHLIGHT_LOOKUP_RETRY_SEC = 2.0
+
+# ---- wrist camera inset ----------------------------------------------------------
+# [2026-09-16] A small live render from the wrist D455 color camera, bottom-left of the
+# viewport -- the sim counterpart of the camera window the real vision node shows.
+#
+# RENDER ONLY. Nothing is detected from this image: fake_vision publishes the scene's
+# ground-truth fruit poses cut by board rectangles (quadrant / sub-cell), not by this
+# camera's frustum. So the inset never carries detection marks (boxes, keypoints,
+# PICK#) and its title says so. What the inset shows and what fake_vision publishes
+# can differ (e.g. a neighbor quadrant's fruit in frame but not published).
+# Only the color camera is shown: a render has no D455 minimum depth range
+# (docs/d455_min_range.md), so a depth view would look valid where it is unconfirmed.
+#
+# FOV IS NOT WRITTEN HERE. A USD camera has no FOV attribute; the angle follows from
+# focalLength and the apertures: fov = 2 * atan(aperture / (2 * focalLength)).
+# robot_assembly.usd already overrides them for this prim (horizontalAperture 3.896 is
+# the asset's own value, focalLength 2.34596, verticalAperture 2.922 = 3.896 * 480/640),
+# giving 79.41 x 63.83 deg. Target = the real camera's log
+# (docs/lab_data/realsense_d455_enumerate.txt, "Color" / 640x480: 79.41 x 63.89 deg;
+# the 0.06 deg vertical gap is the log's fx != fy). This file reads the attributes and
+# prints the FOV so a drifted scene shows in the console; writing them here would be a
+# second source of truth. The log's principal point offset and lens distortion are
+# not modeled.
+#
+# Set HARVEST_WRIST_CAM=0 before launching Isaac Sim to skip the inset (one less render).
+CAM_PATH = "/World/robot_assembly/rh_p12_rn_base/rsd455/RSD455/Camera_OmniVision_OV9782_Color"
+CAM_SUFFIX = "/rsd455/RSD455/Camera_OmniVision_OV9782_Color"   # fallback search
+CAM_RES = (640, 480)            # render texture = the D455 color stream the FOV was fitted to
+CAM_LOG_FOV_DEG = (79.41, 63.89)
+CAM_FOV_TOL_DEG = 0.2
+CAM_POS_X = 16                  # pixels from the viewport's left edge
+CAM_MARGIN_BOTTOM = 16          # pixels from the viewport's bottom edge
+CAM_WIDTH = 400                 # image width on screen; height follows the aperture ratio
+CAM_PAD = 10
+CAM_FRAME_ID = "strawberry_harvest_wrist_cam"
+CAM_ENABLED = os.environ.get("HARVEST_WRIST_CAM", "1") != "0"
 
 
 class _BoardHighlight:
@@ -567,7 +617,7 @@ class HarvestHUD:
 
     def _row_final(self):
         # Hidden together with its divider -- a lone line before the run ends looks odd.
-        # [T4c 2026-09-15] Second line: '배치 n · 낙하 m'. A fruit that was detached but
+        # [T4c 2026-09-15] Second line: 'placed n / dropped m' (Korean PNG labels). A fruit that was detached but
         # whose transfer plan the planner rejected is released where it stands and falls
         # (bridge drop physics); the count comes from harvest_probe (result.dropped) so the
         # ending states the failure instead of only the placed/total ratio.
@@ -655,28 +705,153 @@ class HarvestHUD:
         self._tree = None
 
 
-def install():
-    """Any number of Runs from the Script Editor leaves one HUD (bridge-style builtins)."""
-    old = getattr(builtins, "harvest_hud", None)
-    if old is not None:
+def find_wrist_camera(stage):
+    prim = stage.GetPrimAtPath(CAM_PATH)
+    if prim and prim.IsValid() and prim.IsA(UsdGeom.Camera):
+        return prim
+    for cand in stage.Traverse():
+        if str(cand.GetPath()).endswith(CAM_SUFFIX) and cand.IsA(UsdGeom.Camera):
+            return cand
+    return None
+
+
+def camera_fov_deg(cam):
+    """(hfov, vfov, horizontal aperture, vertical aperture) of a UsdGeom.Camera."""
+    ha = float(cam.GetHorizontalApertureAttr().Get())
+    va = float(cam.GetVerticalApertureAttr().Get())
+    f = float(cam.GetFocalLengthAttr().Get())
+    return (math.degrees(2.0 * math.atan(ha / (2.0 * f))),
+            math.degrees(2.0 * math.atan(va / (2.0 * f))), ha, va)
+
+
+class _WristCamera:
+    """Bottom-left inset: a ViewportWidget rendering the wrist camera into the viewport's frame.
+
+    It sits in the main viewport's own frame (like the HUD panel), so it moves and gets
+    recorded with the viewport, with no extra window title bar or viewport menus.
+    """
+
+    def __init__(self):
+        self._frame = None
+        self._widget = None
+
+    def build(self, vp_window):
+        """True when the inset is on screen."""
+        stage = omni.usd.get_context().get_stage()
+        prim = find_wrist_camera(stage) if stage is not None else None
+        if prim is None:
+            print("[wrist_cam] camera prim not found (%s) -- load the scene, then Run this "
+                  "script again. Continuing without the inset." % CAM_PATH)
+            return False
+        hfov, vfov, ha, va = camera_fov_deg(UsdGeom.Camera(prim))
+        print("[wrist_cam] %s  fov %.2f x %.2f deg, aperture ratio %.4f  "
+              "(D455 color 640x480 log: %.2f x %.2f deg, 640/480 = %.4f)"
+              % (prim.GetPath(), hfov, vfov, ha / va, CAM_LOG_FOV_DEG[0], CAM_LOG_FOV_DEG[1],
+                 CAM_RES[0] / float(CAM_RES[1])))
+        if (abs(hfov - CAM_LOG_FOV_DEG[0]) > CAM_FOV_TOL_DEG
+                or abs(vfov - CAM_LOG_FOV_DEG[1]) > CAM_FOV_TOL_DEG
+                or abs(ha / va - CAM_RES[0] / float(CAM_RES[1])) > 0.005):
+            print("[wrist_cam] WARNING: camera FOV/aspect differs from the D455 log. The inset "
+                  "still shows; fix robot_assembly.usd (focalLength / apertures), not this file.")
+
+        from omni.kit.widget.viewport import ViewportWidget
+
+        img_h = int(round(CAM_WIDTH * va / ha))
+        self._frame = vp_window.get_frame(CAM_FRAME_ID)
+        self._frame.clear()
+        with self._frame:
+            with ui.VStack():
+                ui.Spacer()
+                with ui.HStack(height=0):
+                    ui.Spacer(width=CAM_POS_X)
+                    with ui.ZStack(width=CAM_WIDTH + 2 * CAM_PAD):
+                        ui.Rectangle(style={"background_color": C_BG, "border_radius": 10})
+                        with ui.VStack(height=0):
+                            ui.Spacer(height=CAM_PAD)
+                            with ui.HStack(height=0):
+                                ui.Spacer(width=CAM_PAD)
+                                _label("cam_title", EN["cam_title"], C_DIM, 15)
+                                ui.Spacer()
+                            ui.Spacer(height=6)
+                            with ui.HStack(height=img_h):
+                                ui.Spacer(width=CAM_PAD)
+                                self._widget = ViewportWidget(
+                                    camera_path=str(prim.GetPath()), resolution=CAM_RES,
+                                    width=CAM_WIDTH, height=img_h)
+                                ui.Spacer(width=CAM_PAD)
+                            ui.Spacer(height=CAM_PAD)
+                    ui.Spacer()
+                ui.Spacer(height=CAM_MARGIN_BOTTOM)
+        print("[wrist_cam] inset on: %dx%d render shown at %dx%d" % (CAM_RES + (CAM_WIDTH, img_h)))
+        return True
+
+    def destroy(self):
+        # ViewportWidget does not release its render texture by itself -- destroy it first.
+        if self._widget is not None:
+            try:
+                self._widget.destroy()
+            except Exception:                                      # noqa: BLE001
+                pass
+            self._widget = None
+        if self._frame is not None:
+            self._frame.clear()
+            self._frame = None
+
+
+class ViewportDisplay:
+    """HUD panel (+ the board highlight it drives) and the wrist camera inset.
+
+    The inset must never take the HUD down -- same rule as the highlight and the tree.
+    """
+
+    def __init__(self):
+        self.hud = HarvestHUD()
+        self.cam = None
+        if not CAM_ENABLED:
+            print("[wrist_cam] HARVEST_WRIST_CAM=0 -- inset skipped")
+            return
+        cam = _WristCamera()
         try:
-            old.destroy()
-        except Exception:
-            pass
-    # [FIX 2026-09-10] 이 Run 이전에 마지막으로 쓰인 스냅샷(직전 런의 엔딩)은 무시한다.
-    # 다시 Run 하면 그 시점이 새 기준이 된다 — 도중에 다시 Run 해도 살아 있는 노드 파일은
-    # 0.1초 안에 다시 쓰이므로 곧바로 보인다.
-    bus_merge.EPOCH = time.time()
-    builtins.harvest_hud = HarvestHUD()
-    print("Harvest HUD started (lang=%s, labels=%d)" % (LANG, len(LABEL_IMG)))
-    return builtins.harvest_hud
+            if cam.build(get_active_viewport_window()):
+                self.cam = cam
+        except Exception as exc:                                   # noqa: BLE001
+            cam.destroy()
+            print("[wrist_cam] inset failed, HUD continues: %r" % (exc,))
+
+    def destroy(self):
+        if self.cam is not None:
+            self.cam.destroy()
+            self.cam = None
+        self.hud.destroy()
+
+
+# builtins names this file has used. harvest_hud: isaac_sim_hud.py before the 2026-09-16
+# rename, so a Kit session that ran the old file still ends up with one display.
+_BUILTIN_NAMES = ("harvest_display", "harvest_hud")
 
 
 def uninstall():
-    old = getattr(builtins, "harvest_hud", None)
-    if old is not None:
-        old.destroy()
-        builtins.harvest_hud = None
+    for name in _BUILTIN_NAMES:
+        old = getattr(builtins, name, None)
+        if old is not None:
+            try:
+                old.destroy()
+            except Exception:                                      # noqa: BLE001
+                pass
+            setattr(builtins, name, None)
+
+
+def install():
+    """Any number of Runs from the Script Editor leaves one display (bridge-style builtins)."""
+    uninstall()
+    # [FIX 2026-09-10] Ignore snapshots written before this Run (the previous run's ending).
+    # This Run becomes the new baseline; live node files are rewritten within 0.1 s, so a
+    # Run in the middle of a pipeline shows up right away.
+    bus_merge.EPOCH = time.time()
+    builtins.harvest_display = ViewportDisplay()
+    print("Viewport display started (HUD lang=%s, labels=%d, wrist camera=%s)"
+          % (LANG, len(LABEL_IMG), "on" if builtins.harvest_display.cam else "off"))
+    return builtins.harvest_display
 
 
 install()

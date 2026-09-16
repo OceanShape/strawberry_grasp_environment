@@ -51,7 +51,7 @@ strawberry_harvest/
 └── scripts/                               # Isaac Sim Script Editor에서 실행하는 스크립트
     ├── isaac_sim_script_editor_bridge.py  # 딸기 좌표 발행 + /joint_command 수신 → 로봇 구동
     │                                       #   ⚠️ ASCII 전용 (Kit 이 한글을 '?' 로 찍는다)
-    ├── isaac_sim_hud.py                    # 뷰포트 상태 HUD + 보드 분면 하이라이트 (ASCII 전용)
+    ├── isaac_sim_viewport_display.py       # 뷰포트 표시: 상태 HUD + 보드 분면 하이라이트 + 손목 카메라 창 (ASCII 전용)
     └── self_collision_logger_script.py    # 자기 충돌 감지 → log/collision_*.log 기록
 ```
 
@@ -95,7 +95,7 @@ strawberry_harvest/
 - `whiteboard.usd`에는 딸기를 매다는 `attach_points` prim이 정의되어 있습니다.
 - `whiteboard.usd`의 `highlight/{nw,ne,sw,se}` 는 **분면 하이라이트 오버레이**(2026-09-10)입니다.
   보드와 같은 격자 텍스처에 옅은 주황 tint 를 곱한 판 4장을 보드면 2mm 앞에 둔 것으로,
-  기본은 전부 `invisible` 이고 `scripts/isaac_sim_hud.py` 가 HUD 의 영역 값에 맞춰
+  기본은 전부 `invisible` 이고 `scripts/isaac_sim_viewport_display.py` 가 HUD 의 영역 값에 맞춰
   세션 레이어에서 켭니다 (홈 = 4장 전부, 분면 = 그 한 장). 시각 전용 — 콜라이더 없음.
   종전의 분면 꼭지점 봉(`cell_markers.usd`)은 시야를 가려 같은 날 제거했습니다.
 

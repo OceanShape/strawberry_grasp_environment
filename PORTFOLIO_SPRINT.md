@@ -490,7 +490,7 @@
 
 **셀 경계 표시** — 2026-09-10 부터 `assets/props/whiteboard.usd` 의 `highlight/{nw,ne,sw,se}`.
 보드와 같은 격자 텍스처에 옅은 주황 tint 를 곱한 판 4장을 보드면 2mm 앞에 두고,
-`isaac_sim_hud.py` 가 HUD 영역 값에 맞춰 켠다 (홈 = 보드 전체, 분면 = 그 칸만).
+`isaac_sim_viewport_display.py`(당시 `isaac_sim_hud.py`)가 HUD 영역 값에 맞춰 켠다 (홈 = 보드 전체, 분면 = 그 칸만).
 보드 텍스처도 이날 흰 종이 2×2 격자로 복귀 — 격자선이 곧 분면 경계다.
 **시각 전용** — 콜라이더 없음, 이름에 strawberry가 없어 탐지도 안 됨, 플래너 입출력 무관.
 (종전 `cell_markers.usd` — 분면 꼭지점 9곳에서 −Y 로 300mm 뻗은 봉 — 는 시야를 가려 제거.)

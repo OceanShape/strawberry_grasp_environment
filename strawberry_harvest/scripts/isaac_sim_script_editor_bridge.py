@@ -4,7 +4,7 @@ isaac_sim_script_editor_bridge.py -- ROS 2 bridge run inside Isaac Sim.
 ASCII ONLY. Kit's Script Editor renders every non-ASCII character as '?', so
 this file (comments, strings, prints) is kept in plain English on purpose.
 Project-wide notes stay in Korean elsewhere (docs/, PLANNER_CHANGES.md).
-Same rule as isaac_sim_hud.py.
+Same rule as isaac_sim_viewport_display.py.
 
 Usage:
   Isaac Sim GUI -> Script Editor -> open this file -> Run, then press Play.

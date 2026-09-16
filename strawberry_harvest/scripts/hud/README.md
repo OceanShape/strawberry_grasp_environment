@@ -1,5 +1,11 @@
 # 인-뷰포트 상태 HUD
 
+> **파일 이름 (2026-09-16)**: 그리는 쪽 스크립트는 `isaac_sim_hud.py` → [`../isaac_sim_viewport_display.py`](../isaac_sim_viewport_display.py) 로 바뀌었다.
+> 손목 카메라 창을 넣으면서 한 파일이 **상태 HUD 패널 + 보드 작업 영역 하이라이트 + 손목 카메라 창** 셋을 그리게 됐기 때문이다.
+> HUD 는 주 화면 위에 겹쳐 그린 상태 정보이고, 카메라 창은 정보가 아니라 다른 시점의 렌더라서 HUD 로 부르지 않는다.
+> HUD 는 그 안의 상태 패널 이름으로 남는다. 이 디렉터리(`hud/`)·`HARVEST_HUD_DIR`·`/tmp/harvest_hud_*.json` 은 이름을 유지한다 —
+> 노드 네 개의 계측 4줄이 이 경로를 박아 두어서, 바꾸면 실기 노드 코드를 고치게 된다.
+
 Isaac Sim 뷰포트 위에 얹히는 반투명 상태 HUD. Isaac Sim 창 하나만 화면 녹화하면
 로봇 동작과 시스템 상태가 한 프레임에 같이 찍힌다. 사양은 `HUD_SPEC.md`.
 
@@ -9,9 +15,9 @@ Isaac Sim 뷰포트 위에 얹히는 반투명 상태 HUD. Isaac Sim 창 하나�
 
 ## 띄우는 법
 
-Isaac Sim GUI → **Script Editor** → [`../isaac_sim_hud.py`](../isaac_sim_hud.py) 를 열고 Run.
+Isaac Sim GUI → **Script Editor** → **씬을 로드한 뒤** [`../isaac_sim_viewport_display.py`](../isaac_sim_viewport_display.py) 를 열고 Run.
 브릿지 스크립트(`isaac_sim_script_editor_bridge.py`)와 같은 방식이고, 둘 다 실행해야 한다.
-순서는 상관없고, 몇 번을 Run 해도 HUD 는 하나만 남는다. 내리려면 에디터에서 `uninstall()`.
+순서는 상관없고, 몇 번을 Run 해도 HUD·카메라 창은 하나씩만 남는다. 내리려면 에디터에서 `uninstall()`.
 
 **노드보다 먼저 켜도 되고 나중에 켜도 된다.** HUD 는 파일을 읽을 뿐이라
 실행 순서와 무관하고, 파이프라인 도중에 껐다 켜도 즉시 다시 붙는다.
@@ -20,7 +26,7 @@ Isaac Sim GUI → **Script Editor** → [`../isaac_sim_hud.py`](../isaac_sim_hud
 
 Isaac Sim 5.1 의 텍스트 렌더러는 한글을 `?` 로 찍는다. 스크립트 에디터에 한글 소스를
 열어도 `?` 로 보이고, style 의 `"font"` 에 Noto CJK 를 넘겨도 마찬가지였다(실제로 시도).
-(같은 이유로 **스크립트 에디터에서 Run 하는 두 파일은 ASCII 전용**이다 — `isaac_sim_hud.py`
+(같은 이유로 **스크립트 에디터에서 Run 하는 두 파일은 ASCII 전용**이다 — `isaac_sim_viewport_display.py`
 와 `isaac_sim_script_editor_bridge.py`. 2026-09-10 부터 주석·문자열·print 를 전부 영문으로
 두어 에디터에서 `?` 가 한 글자도 안 뜬다. 한글 설명은 이 README 와 docs/ 에 둔다.
 디버깅 이력 주석은 버리지 않고 영문으로 옮겼다.)
@@ -48,7 +54,7 @@ python3 ~/strawberry_grasp_environment/strawberry_harvest/scripts/hud/make_label
 ```
  fake_vision_node ──► /tmp/harvest_hud_vision.json     ─┐
  sim_executor_bridge ► /tmp/harvest_hud_controller.json ─┤
- curobo_planner ─────► /tmp/harvest_hud_planner.json    ─┼─► isaac_sim_hud.py ─► 뷰포트
+ curobo_planner ─────► /tmp/harvest_hud_planner.json    ─┼─► isaac_sim_viewport_display.py ─► 뷰포트
  scan_executor ──────► /tmp/harvest_hud_scan.json       ─┘
 ```
 
@@ -60,13 +66,13 @@ python3 ~/strawberry_grasp_environment/strawberry_harvest/scripts/hud/make_label
 
 | 파일 | 역할 | 프로세스 |
 |---|---|---|
-| `../isaac_sim_hud.py` | 뷰포트 오버레이. 스크립트 에디터에서 Run. 받아서 그리기만 한다 | Isaac Sim |
+| `../isaac_sim_viewport_display.py` | 뷰포트 표시(HUD 패널·보드 하이라이트·손목 카메라 창). 스크립트 에디터에서 Run. 받아서 그리기만 한다 | Isaac Sim |
 | `status_bus.py` | 상태의 단일 진실 원천. 순수 파이썬 (omni·rclpy 모름) | 전부 |
 | `bus_sink.py` | 자기 상태를 JSON 으로 내보내는 쓰기 측 미러 | 노드 4개 |
 | `bus_merge.py` | 네 파일을 소유권 규칙대로 합치는 읽기 측 | Isaac Sim |
 | `harvest_probe.py` | 노드 메서드를 밖에서 감싸는 계측 모듈 | 노드 4개 |
 | `tree_model.py` | 쿼드트리 패널의 상태 전이·배치·표시 규칙·문구. 순수 파이썬 | scan 노드 · Isaac Sim |
-| `make_labels.py` → `labels/` | 한글 라벨 PNG 37장 + manifest.json 생성 (Pillow, Noto Sans CJK KR) | 오프라인 |
+| `make_labels.py` → `labels/` | 한글 라벨 PNG 43장 + manifest.json 생성 (Pillow, Noto Sans CJK KR) | 오프라인 |
 
 ---
 
@@ -117,8 +123,8 @@ HARVEST_HUD_DIR=/dev/null ros2 run strawberry_sim_core fake_vision_node
               배치 5   낙하 1                    (2026-09-15) 둘째 줄: 트레이 슬롯 릴리스 수 · 이송 거부로 놓아 버린 수(빨강)
 ```
 
-**패널 위치**는 `../isaac_sim_hud.py` 상단의 `POS_X` / `POS_Y` — 뷰포트 좌상단 (0,0) 기준
-픽셀이고 기본값은 24/24 다. `PANEL_WIDTH`(440) 로 폭을, `PAD`/`ROW_GAP`/`HEAD_W` 로 안쪽
+**패널 위치**는 `../isaac_sim_viewport_display.py` 상단의 `POS_X` / `POS_Y` — 뷰포트 좌상단 (0,0) 기준
+픽셀이고 기본값은 16/32 다. `PANEL_WIDTH`(440) 로 폭을, `PAD`/`ROW_GAP`/`HEAD_W` 로 안쪽
 여백을 조절한다.
 
 ### 트리 패널 (2026-09-11)
@@ -165,6 +171,50 @@ HARVEST_HUD_DIR=/dev/null ros2 run strawberry_sim_core fake_vision_node
 `hold_on_place_failure=false` 일 때만 불리는 유일한 "그 자리에서 조우 열기" 다. 파지 자체가 실패한 경우(`PLACE_GATE_BLOCKED_*`)는
 과실이 없으므로 세지 않는다(그건 `failed`). Isaac 브릿지는 같은 사건을 릴리스 **위치**(계란판 상자 밖)로 판정해 과실을 떨어뜨리고
 Kit 로그에 `dropped=n` 을 찍는다 — 두 수는 같아야 하고, 다르면 어느 쪽이 틀렸는지 로그로 가린다.
+
+---
+
+## 손목 카메라 창 (2026-09-16)
+
+뷰포트 좌하단에 로봇 손목 D455 **컬러 카메라 렌더**를 작게 띄운다. 실기 비전 노드가 띄우는 카메라 창에 대응하는 화면이고,
+녹화하면 로봇 동작·HUD·손목 시점이 한 프레임에 같이 찍힌다. HUD 버스 데이터는 쓰지 않는다 — 렌더만 한다.
+
+```
+┌ 손목 카메라 · D455 컬러 렌더 · 인식 없음 ┐
+│                                          │   640×480 렌더를 400×300 으로 표시
+│        (Camera_OmniVision_OV9782_Color)   │   뷰포트 좌하단, 여백 16px
+└──────────────────────────────────────────┘
+```
+
+**인식 결과를 흉내 내지 않는다.** 실기 창의 박스·키포인트·seg·`PICK#`·`LOCK#` 는 YOLO 가 이미지에서 만든 결과다.
+`fake_vision` 은 이미지를 보지 않고 씬 정답 좌표를 **보드 사각형**(분면·세부 칸)으로 잘라 발행한다 — 이 카메라의 시야(프러스텀)와 무관하다.
+그래서 창에는 표시를 그리지 않고, 제목에 `인식 없음` 을 적었다. 창에 보이는 과실과 발행되는 과실은 다를 수 있다
+(분면 자세에서 옆 분면 과실이 화면에 들어오지만 발행되지 않음 등). 세부 자세에서 칸이 화면에 다 안 들어오는데 좌표가 발행된다면
+그곳은 시뮬이 원본보다 관대한 곳이다 — H §1 규칙 0 에 따라 고치지 않고 한계로 기록한다.
+**깊이 창은 띄우지 않는다.** 렌더에는 D455 최소 측정 거리가 없어서 깊이 2 자세(카메라-보드 319mm)에서도 멀쩡해 보인다 — [`docs/d455_min_range.md`](../../../docs/d455_min_range.md) 에서 확인 안 된 것으로 정리한 내용이다.
+
+**시야각은 스크립트가 쓰지 않는다.** USD 카메라에는 FOV 속성이 없고 `fov = 2·atan(조리개 / (2·초점 거리))` 로 정해진다.
+`robot_assembly.usd` 의 `Camera_OmniVision_OV9782_Color` 오버라이드가 단일 출처다:
+
+| 속성 | 값 | 비고 |
+|---|---|---|
+| `horizontalAperture` | 3.896 | NVIDIA 순정 `rsd455.usd` 값 그대로 (오버라이드 안 함) |
+| `focalLength` | 2.34596 | 수평 79.41° 에서 역산 (순정 1.93 → 90.5°) |
+| `verticalAperture` | 2.922 | 3.896 × 480/640 (순정 2.453 → 64.9°) |
+| 결과 | **79.41° × 63.83°** | 실기 로그 [`docs/lab_data/realsense_d455_enumerate.txt`](../../../docs/lab_data/realsense_d455_enumerate.txt) Color 640×480: 79.41° × 63.89° (세로 0.06° 차는 로그의 fx≠fy) |
+
+설정 당시 메모에는 수평 조리개를 USD 표준 20.955 로 강제한다고 적혀 있지만, 그 스크립트는 조리개 값이 **비어 있을 때만** 20.955 를 넣는다.
+순정 애셋에 3.896 이 이미 있어서 그 분기는 돌지 않았고, 실제 씬 값은 위 표다. 시야각은 조리개와 초점 거리의 비로만 정해지므로 결과는 같다.
+스크립트는 Run 할 때 이 속성을 읽어 콘솔에 `[wrist_cam] ... fov 79.41 x 63.83 deg` 를 찍고, 로그 값과 0.2° 넘게 어긋나거나 4:3 이 아니면 WARNING 을 낸다.
+로그의 주점 오프셋(ppx 330.2 / ppy 247.3, 중심에서 약 10·7px)과 렌즈 왜곡 계수는 반영하지 않았다.
+
+- **띄우는 방식**: 별도 뷰포트 창이 아니라 주 뷰포트의 프레임 안에 `omni.kit.widget.viewport.ViewportWidget` 을 넣는다(HUD 패널과 같은 자리).
+  창 제목줄·뷰포트 메뉴가 없고 뷰포트와 같이 움직이고 같이 녹화된다.
+- **조절**: `CAM_POS_X` / `CAM_MARGIN_BOTTOM` / `CAM_WIDTH`(높이는 조리개 비율로 따라감). 끄려면 Isaac 기동 전 `export HARVEST_WRIST_CAM=0`.
+- **보드 하이라이트도 창에 보인다.** 하이라이트는 씬 prim 이라 이 카메라에도 찍힌다. 실기 보드에는 없는 색이다.
+- **확인 안 된 것**: Kit 화면(렌더가 뜨는지·위아래 방향·프레임 저하)은 사용자 확인. 오프라인에서는 가짜 Kit 모듈로 생성·재실행·파괴·실패 경로와
+  실제 `main_scene.usd` 의 FOV 계산만 봤다. 기하로는 카메라 광축이 툴 축에서 23.8° 기울어 손가락 쪽을 보고, 렌즈 커버·케이스 메쉬가
+  카메라 앞(근거리 클립 10mm 너머)에 없다.
 
 ---
 
