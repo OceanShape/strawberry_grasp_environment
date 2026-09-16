@@ -51,7 +51,7 @@ strawberry_harvest/
 └── scripts/                               # Isaac Sim Script Editor에서 실행하는 스크립트
     ├── isaac_sim_script_editor_bridge.py  # 딸기 좌표 발행 + /joint_command 수신 → 로봇 구동
     │                                       #   ⚠️ ASCII 전용 (Kit 이 한글을 '?' 로 찍는다)
-    ├── isaac_sim_viewport_display.py       # 뷰포트 표시: 상태 HUD + 보드 분면 하이라이트 + 손목 카메라 창 (ASCII 전용)
+    ├── isaac_sim_viewport_display.py       # 뷰포트 표시: 상태 HUD + 보드 분면 하이라이트 + 그리퍼 카메라 창 (ASCII 전용)
     └── self_collision_logger_script.py    # 자기 충돌 감지 → log/collision_*.log 기록
 ```
 
@@ -74,7 +74,7 @@ strawberry_harvest/
 | joint drive `stiffness=1e4` / `damping=1e3` | `joints/rh_*` (그리퍼 4관절) | 같은 이유. 파지력 과다 방지를 위해 팔보다 한 단계 낮게 |
 | D455 재질 `enable_ORM_texture=0`, `metallic 1.0`, `roughness 0.6`, `diffuse_tint 0.7` (Aluminum_Anodized·Aluminum_Cast), 렌즈 모듈 `roughness 0.45` (OmniPBR) | `rh_p12_rn_base/rsd455/RSD455/Looks/*/Shader` | 순정 ORM 텍스처가 금속 1.0 / 거칠기 0.14(크롬 거울)라, 09-16 조명 개편 뒤 무텍스처 흰 돔라이트가 그대로 비쳐 센서가 반투명 유리처럼 보였음. 무광 알루미늄으로 오버라이드. 원본 rsd455.usd·MDL 무수정 (2026-09-16 수정) |
 | 앞면 렌즈 커버 `Visual/Glass` 를 새 재질 `Looks/lens_cover`(OmniPBR, 검정 광택, 블렌드 불투명도 0.35)로 재바인딩 | `rh_p12_rn_base/rsd455/RSD455/Visual/Glass` | 순정 OmniGlass 는 RTX 실시간 렌더에서 불투명 케이스 뒤에 있어도 깊이 판정 없이 합성돼, 뒤에서 봐도 알약 모양 앞면이 케이스를 뚫고 보였다(Glass 숨기면 정상, thin_walled·doubleSided 는 무효 — 헤드리스 재현). OmniPBR 블렌드는 깊이 판정이 되고 앞에서 렌즈도 비친다 (2026-09-16 수정) |
-| D455 부착 오프셋 `translate (-87.1, 7.3, 63.4) mm` · `orient` — **캘리브레이션 값을 Isaac 에서 손으로 보정한 것, 첫 커밋 이후 무변경** | `rh_p12_rn_base/rsd455` | 실기는 그리퍼 정중앙·정면 부착이지만 eye-in-hand 캘리브레이션 결과(`configs/camera_calibration_to_isaac.py`)는 툴축에서 수십 mm 벗어나 있고, 시뮬에서 실기 화면을 재현하려면 손 보정이 더 필요했다. **어떤 노드도 이 프림을 참조하지 않는다** — `fake_vision` 은 씬의 실제 과실 자세를 보드 사각형으로 자를 뿐이고, 좌하단 손목 카메라 창은 렌더 전용이다. 화면이 보드 중앙보다 살짝 왼쪽에서 보는 것은 실기 프레임과 같은 방향이며, 검산은 `src/strawberry_motion/scripts/check_wrist_camera_projection.py`(Isaac·GPU 없이 실행, 결과 `log/m3/offline_checks/wrist_camera_projection_20260916.txt`) (2026-09-16 기록) |
+| D455 부착 오프셋 `translate (-87.1, 7.3, 63.4) mm` · `orient` — **캘리브레이션 값을 Isaac 에서 손으로 보정한 것, 첫 커밋 이후 무변경** | `rh_p12_rn_base/rsd455` | 실기는 그리퍼 정중앙·정면 부착이지만 eye-in-hand 캘리브레이션 결과(`configs/camera_calibration_to_isaac.py`)는 툴축에서 수십 mm 벗어나 있고, 시뮬에서 실기 화면을 재현하려면 손 보정이 더 필요했다. **어떤 노드도 이 프림을 참조하지 않는다** — `fake_vision` 은 씬의 실제 과실 자세를 보드 사각형으로 자를 뿐이고, 좌하단 그리퍼 카메라 창은 렌더 전용이다. 화면이 보드 중앙보다 살짝 왼쪽에서 보는 것은 실기 프레임과 같은 방향이며, 검산은 `src/strawberry_motion/scripts/check_wrist_camera_projection.py`(Isaac·GPU 없이 실행, 결과 `log/m3/offline_checks/wrist_camera_projection_20260916.txt`) (2026-09-16 기록) |
 
 ⚠️ URDF를 재빌드해서 `doosan_e0509_rh_p12_rn/`이 교체되어도 이 오버라이드들은 assembly 레이어에 남아 있으므로 유지됩니다. 단, 링크/조인트 이름이 바뀌면 오버라이드가 붕 뜨므로(dangling over) 재확인이 필요합니다.
 
@@ -94,7 +94,7 @@ strawberry_harvest/
 - 테이블, 화이트보드는 `lab_environment.usd`에 조립되어 있으며, `main_scene.usd`에서 payload로 불러옵니다.
 - `whiteboard.usd`에는 딸기를 매다는 `attach_points` prim이 정의되어 있습니다.
 - `whiteboard.usd`의 `highlight/` 는 **활성 칸 하이라이트 오버레이**입니다 — 분면 4장 + 세부 칸 16장(09-12).
-  2026-09-16 부터 **시안 발광 테두리**(그 전엔 격자 텍스처에 살구 tint 를 곱한 면 채우기): 분면 띠는 격자선과 같은 20mm 로
+  2026-09-16 부터 **하늘색 발광 테두리**(그 전엔 격자 텍스처에 살구 tint 를 곱한 면 채우기): 분면 띠는 격자선과 같은 20mm 로
   선 위에 앉고, 세부 칸은 안쪽 14mm 띠. `scripts/scene_tools/gen_board_highlight.py` 가 이 스코프를 통째로 생성합니다(손으로 고치지 말 것).
   기본은 전부 `invisible` 이고 `scripts/isaac_sim_viewport_display.py` 가 HUD 의 영역 값에 맞춰
   세션 레이어에서 켭니다 (홈 = 4장 전부, 분면 = 그 한 장, 세부 자세 = 세부 칸 한 장). 시각 전용 — 콜라이더 없음.

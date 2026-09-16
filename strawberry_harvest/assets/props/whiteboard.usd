@@ -78,7 +78,7 @@ def Xform "whiteboard"
     # 로컬 두께: x 0.018349 / y 0.025316 (보드 스케일 1.09 / 0.79 보정).
     def Scope "highlight"
     {
-        # 발광 띠 머티리얼. 색은 sRGB #38BDF8 → linear (OmniPBR 색 입력은 전부 linear).
+        # 발광 띠 머티리얼. 색은 sRGB #81B8DC → linear (OmniPBR 색 입력은 전부 linear).
         # 세기는 낮게 — 번지면(블룸) 격자선 위에 앉은 느낌이 사라진다. 조절은 생성 스크립트의 EMISSIVE_INTENSITY.
         def Material "Glow_Mat"
         {
@@ -91,9 +91,9 @@ def Xform "whiteboard"
                 uniform token info:implementationSource = "sourceAsset"
                 uniform asset info:mdl:sourceAsset = @OmniPBR.mdl@
                 uniform token info:mdl:sourceAsset:subIdentifier = "OmniPBR"
-                color3f inputs:diffuse_color_constant = (0.039546, 0.508881, 0.938686)
+                color3f inputs:diffuse_color_constant = (0.219526, 0.47932, 0.715694)
                 bool inputs:enable_emission = 1
-                color3f inputs:emissive_color = (0.039546, 0.508881, 0.938686)
+                color3f inputs:emissive_color = (0.219526, 0.47932, 0.715694)
                 float inputs:emissive_intensity = 4
                 float inputs:reflection_roughness_constant = 1
                 float inputs:specular_level = 0

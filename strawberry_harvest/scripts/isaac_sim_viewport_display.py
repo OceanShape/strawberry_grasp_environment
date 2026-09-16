@@ -166,7 +166,7 @@ EN = {
               "RETREAT": "RETREAT", "PLACE": "PLACE",
               "RETURN": "RETURN", "DONE": "DONE"},
     "area": {"home": "HOME", "nw": "NW", "ne": "NE", "se": "SE", "sw": "SW"},
-    "cam_title": "WRIST CAM  D455 color render - no detection",
+    "cam_title": "GRIPPER CAM  D455 render - no detection",
 }
 
 NODE_ORDER = ["vision", "planner", "controller", "scan"]
@@ -248,8 +248,8 @@ CAM_ENABLED = os.environ.get("HARVEST_WRIST_CAM", "1") != "0"
 
 # ---- quadrant guide over the inset --------------------------------------------
 # [2026-09-16] The real vision node's window draws a cross and the four quadrant
-# names in OpenCV green (0, 255, 0). The inset draws the same guide so the two
-# windows read as one structure side by side. Two facts keep it honest:
+# names over its camera view. The inset draws the same guide so the two windows read
+# as one structure side by side. Two facts keep it honest:
 #
 #   * It is a FIXED image-space guide. The executor's real boundary is the board's
 #     midlines in robot coordinates (quadrant_filter.BOARD_SUBCELL_*_MID_M,
@@ -259,25 +259,45 @@ CAM_ENABLED = os.environ.get("HARVEST_WRIST_CAM", "1") != "0"
 #     so a centre cross sits on the real split to within 1%. At a quadrant pose the
 #     same cross is that quadrant's own 2x2 sub-cell split -- the executor's depth-2
 #     rule is the parent quadrant's centre lines, so the picture stays the same rule.
-#   * Label slots follow the real window as read from the footage (user, 2026-09-16):
-#     the four names cluster at the crossing, each on the FAR side of it --
-#     NW bottom-right, NE bottom-left, SW top-right, SE top-left. Only
-#     CAM_GUIDE_SLOT encodes that; change it if the footage says otherwise.
+#   * Each name sits in the OUTER corner of its own quadrant, which is where that
+#     quadrant actually is: at the overview pose the camera's right is world +X and
+#     its up is world +Z, so NW (board -X, +Z) lands top-left, NE top-right, SW
+#     bottom-left, SE bottom-right -- the corners check_wrist_camera_projection.py
+#     prints for the board corners (NW 5.9% / 7.3% ... SE 89.2% / 88.0%).
+#     (Until 2026-09-16 the four names were clustered at the crossing, each on the
+#     far side of it; on screen that read as the board being mirrored.)
 #
-# Colour is pure #00FF00 (captures look yellow-green only from compression) with a
-# 1 px black outline so it survives over unripe fruit. Label height is a fraction
-# of the inset height, so a bigger inset scales the guide with it. The caption gets
-# the current area (HOME / NE / SW/SE ...) from the HUD's own area value, which is
-# what matters at a quadrant pose where the crossing has left the frame.
+# Colour (2026-09-16, user): a softer green #4ADE80. The cross is 2 px at 70% alpha
+# with no outline -- it marks a boundary, it should not compete with the fruit. The
+# names keep a 1 px black outline because light green on the white board is otherwise
+# hard to read. Label height is a fraction of the inset height, so a bigger inset
+# scales the guide with it.
+#
+# The guide fades out while the arm is picking (CAM_GUIDE_STATES): reading which
+# quadrant the view belongs to matters during the scan, and during the approach the
+# cross would just sit across the fruit. The caption keeps the current area at all
+# times, which is what matters once the crossing has left the frame.
 CAM_GUIDE_ON = os.environ.get("HARVEST_WRIST_GUIDE", "1") != "0"
-CAM_GUIDE_GREEN = _rgb(0x00FF00)
-CAM_GUIDE_OUTLINE = cl(0.0, 0.0, 0.0, 1.0)
-CAM_GUIDE_LINE_PX = 1           # green core; the black outline adds 1 px each side
-CAM_GUIDE_GAP_PX = 9            # label distance from the crossing (advice: 8-10)
-CAM_GUIDE_TEXT_FRAC = 0.05      # label height / inset height (advice: ~5%)
+CAM_GUIDE_GREEN = _rgb(0x4ADE80)                     # caption area value (no fade)
+CAM_GUIDE_LINE_RGBA = (0.290, 0.871, 0.502, 0.70)    # #4ADE80, 70% -- the cross
+CAM_GUIDE_TEXT_RGBA = (0.290, 0.871, 0.502, 1.0)     # #4ADE80 -- the four names
+CAM_GUIDE_OUTLINE_RGBA = (0.0, 0.0, 0.0, 0.85)       # 1 px outline under the names only
+CAM_GUIDE_LINE_PX = 2
+CAM_GUIDE_MARGIN_PX = 10        # label distance from the inset edge
+CAM_GUIDE_TEXT_FRAC = 0.065     # label height / inset height (480x360 -> 23 px)
 CAM_GUIDE_FONT = "${fonts}/OpenSans-SemiBold.ttf"
-# name -> corner of the crossing it sits in: t/b = above/below, l/r = left/right
-CAM_GUIDE_SLOT = {"NW": "br", "NE": "bl", "SW": "tr", "SE": "tl"}
+CAM_GUIDE_FADE_SEC = 0.3        # phase change -> guide fades in / out over this long
+#: Sequence states that keep the guide up -- the arm is at (or returning to) a scan
+#: pose and the view is the board. Everything else is the pick, where it fades out.
+CAM_GUIDE_STATES = ("IDLE", "SCAN_MOVE", "DETECT", "PLAN", "RETURN", "DONE")
+# name -> the corner of the inset it sits in: t/b = top/bottom, l/r = left/right
+CAM_GUIDE_SLOT = {"NW": "tl", "NE": "tr", "SW": "bl", "SE": "br"}
+
+
+def _fade(rgba, alpha):
+    """Guide colour at a fade level. rgba is a plain float tuple, alpha 0..1."""
+    r, g, b, a = rgba
+    return cl(r, g, b, a * alpha)
 
 
 class _BoardHighlight:
@@ -589,6 +609,7 @@ class HarvestHUD:
         self._tree = None
         self._tree_warned = False
         self.region_listener = None          # wrist camera caption follows the area (2026-09-16)
+        self.phase_listener = None           # ... and its guide fades with the phase
         self._build()
         self._sub = (omni.kit.app.get_app().get_update_event_stream()
                      .create_subscription_to_pop(self._on_update, name="harvest_hud_update"))
@@ -727,6 +748,11 @@ class HarvestHUD:
         state = snap["sequence"]["state"]
         color = PHASE_COLOR.get(state, C_TEXT)
         self._w["state"].set(state, color)
+        if self.phase_listener is not None:
+            try:
+                self.phase_listener(state)
+            except Exception:                                      # noqa: BLE001
+                pass                       # the inset must never take the HUD down
 
         idx = BAR_STATES.index(state) if state in BAR_STATES else -1
         for i, seg in enumerate(self._seg):
@@ -800,6 +826,12 @@ class _WristCamera:
         self._widget = None
         self._region_lbl = None
         self._region_text = None
+        self._guide = []            # [(widget, style dict, colour key, base rgba)]
+        self._guide_sub = None
+        self._alpha = 1.0           # current guide fade level
+        self._alpha_target = 1.0
+        self._last_tick = 0.0
+        self._fade_warned = False
 
     def build(self, vp_window):
         """True when the inset is on screen."""
@@ -859,61 +891,108 @@ class _WristCamera:
                             ui.Spacer(height=CAM_PAD)
                     ui.Spacer()
                 ui.Spacer(height=CAM_MARGIN_BOTTOM)
+        if self._guide:
+            self._last_tick = time.time()
+            self._guide_sub = (omni.kit.app.get_app().get_update_event_stream()
+                               .create_subscription_to_pop(self._on_guide_tick,
+                                                           name="wrist_cam_guide_fade"))
         print("[wrist_cam] inset on: %dx%d render shown at %dx%d, guide %s"
               % (CAM_RES + (CAM_WIDTH, img_h, "on" if CAM_GUIDE_ON else "off")))
         return True
 
     # -- quadrant guide ------------------------------------------------------------
 
-    @staticmethod
-    def _build_guide(w, h):
-        """Centre cross + NW/NE/SW/SE at the crossing, drawn on top of the render."""
+    def _build_guide(self, w, h):
+        """Centre cross + NW/NE/SW/SE in each quadrant's outer corner, over the render."""
         cx, cy = w // 2, h // 2
-        core = CAM_GUIDE_LINE_PX
-        edge = core + 2                               # black outline, 1 px each side
+        t = CAM_GUIDE_LINE_PX
         size = max(12, int(round(h * CAM_GUIDE_TEXT_FRAC)))
-        box = size * 3                                # label anchor box (text-aligned inside)
-        gap = CAM_GUIDE_GAP_PX
+        box = size * 3                                # label anchor box (text aligned inside)
+        m = CAM_GUIDE_MARGIN_PX
 
-        def bar(x, y, bw, bh, color):
+        def keep(widget, style, key, rgba):
+            # Every guide widget is repainted by _apply_alpha, so its style dict and
+            # its colour at full strength are kept next to it.
+            self._guide.append((widget, dict(style), key, rgba))
+
+        def bar(x, y, bw, bh):
+            style = {"background_color": _fade(CAM_GUIDE_LINE_RGBA, 1.0)}
             with ui.Placer(offset_x=x, offset_y=y):
-                ui.Rectangle(width=bw, height=bh, style={"background_color": color})
+                keep(ui.Rectangle(width=bw, height=bh, style=style), style,
+                     "background_color", CAM_GUIDE_LINE_RGBA)
 
-        # lines: outline first, green core on top
-        bar(cx - edge // 2, 0, edge, h, CAM_GUIDE_OUTLINE)
-        bar(0, cy - edge // 2, w, edge, CAM_GUIDE_OUTLINE)
-        bar(cx - core // 2, 0, core, h, CAM_GUIDE_GREEN)
-        bar(0, cy - core // 2, w, core, CAM_GUIDE_GREEN)
+        bar(cx - t // 2, 0, t, h)
+        bar(0, cy - t // 2, w, t)
 
-        # labels: the anchor box touches the crossing at (gap, gap); alignment inside
-        # the box pushes the text into the corner nearest the crossing.
-        anchor = {
-            "tl": (cx - gap - box, cy - gap - box, ui.Alignment.RIGHT_BOTTOM),
-            "tr": (cx + gap,       cy - gap - box, ui.Alignment.LEFT_BOTTOM),
-            "bl": (cx - gap - box, cy + gap,       ui.Alignment.RIGHT_TOP),
-            "br": (cx + gap,       cy + gap,       ui.Alignment.LEFT_TOP),
+        corner = {
+            "tl": (m, m, ui.Alignment.LEFT_TOP),
+            "tr": (w - m - box, m, ui.Alignment.RIGHT_TOP),
+            "bl": (m, h - m - box, ui.Alignment.LEFT_BOTTOM),
+            "br": (w - m - box, h - m - box, ui.Alignment.RIGHT_BOTTOM),
         }
         for name, slot in CAM_GUIDE_SLOT.items():
-            x, y, align = anchor[slot]
-            # 1 px black outline = the same text four times, offset, under the green one
-            for dx, dy, color in ((-1, 0, CAM_GUIDE_OUTLINE), (1, 0, CAM_GUIDE_OUTLINE),
-                                  (0, -1, CAM_GUIDE_OUTLINE), (0, 1, CAM_GUIDE_OUTLINE),
-                                  (0, 0, CAM_GUIDE_GREEN)):
+            x, y, align = corner[slot]
+            # outline = the same text four times, offset, under the green one
+            for dx, dy, rgba in ((-1, 0, CAM_GUIDE_OUTLINE_RGBA), (1, 0, CAM_GUIDE_OUTLINE_RGBA),
+                                 (0, -1, CAM_GUIDE_OUTLINE_RGBA), (0, 1, CAM_GUIDE_OUTLINE_RGBA),
+                                 (0, 0, CAM_GUIDE_TEXT_RGBA)):
+                style = {"color": _fade(rgba, 1.0), "font_size": size, "font": CAM_GUIDE_FONT}
                 with ui.Placer(offset_x=x + dx, offset_y=y + dy):
-                    ui.Label(name, width=box, height=box, alignment=align,
-                             style={"color": color, "font_size": size,
-                                    "font": CAM_GUIDE_FONT})
+                    keep(ui.Label(name, width=box, height=box, alignment=align, style=style),
+                         style, "color", rgba)
+
+    def set_phase(self, state):
+        """Guide up while the view is the board, faded out during the pick."""
+        self._alpha_target = 1.0 if state in CAM_GUIDE_STATES else 0.0
+
+    def _on_guide_tick(self, _event):
+        now = time.time()
+        dt, self._last_tick = now - self._last_tick, now
+        if abs(self._alpha - self._alpha_target) < 1e-3:
+            return
+        step = max(0.0, dt) / CAM_GUIDE_FADE_SEC
+        self._alpha += step if self._alpha_target > self._alpha else -step
+        self._alpha = min(1.0, max(0.0, self._alpha))
+        try:
+            self._apply_alpha()
+        except Exception as exc:                                   # noqa: BLE001
+            # The fade must never take the inset (or the HUD) down: stop ticking.
+            if not self._fade_warned:
+                self._fade_warned = True
+                print("[wrist_cam] guide fade stopped: %r" % (exc,))
+            if self._guide_sub is not None:
+                self._guide_sub.unsubscribe()
+                self._guide_sub = None
+
+    def _apply_alpha(self):
+        visible = self._alpha > 0.01
+        for widget, style, key, rgba in self._guide:
+            widget.visible = visible
+            if visible:
+                style[key] = _fade(rgba, self._alpha)
+                widget.style = dict(style)
 
     def set_region(self, key):
-        """Caption area text from the HUD's highlight key: 'home' -> HOME, 'sw/se' -> SW/SE."""
+        """Caption area from the HUD's highlight key: 'home' -> HOME, 'nw/sw' -> NW/sw.
+
+        The sub-cell stays lower case, the same way the HUD tree writes depth-2 nodes.
+        """
         if self._region_lbl is None:
             return
-        text = "HOME" if not key or key == "home" else str(key).upper()
+        if not key or key == "home":
+            text = "HOME"
+        else:
+            text = "/".join(p.upper() if i == 0 else p.lower()
+                            for i, p in enumerate(str(key).split("/")))
         if text != self._region_text:
             self._region_text = text
             self._region_lbl.text = text
 
     def destroy(self):
+        if self._guide_sub is not None:
+            self._guide_sub.unsubscribe()
+            self._guide_sub = None
+        self._guide = []
         # ViewportWidget does not release its render texture by itself -- destroy it first.
         if self._widget is not None:
             try:
@@ -943,6 +1022,7 @@ class ViewportDisplay:
             if cam.build(get_active_viewport_window()):
                 self.cam = cam
                 self.hud.region_listener = cam.set_region
+                self.hud.phase_listener = cam.set_phase
         except Exception as exc:                                   # noqa: BLE001
             cam.destroy()
             print("[wrist_cam] inset failed, HUD continues: %r" % (exc,))

@@ -61,8 +61,10 @@ ITEMS = [
     # [T4c 2026-09-15] 완료 둘째 줄 '배치 n · 낙하 m' (isaac_sim_viewport_display.HarvestHUD._row_final)
     ("final_placed", "배치", 32, C_OK, False),
     ("final_dropped", "낙하", 32, C_BAD, False),
-    # [2026-09-16] 손목 카메라 창 제목 (isaac_sim_viewport_display._WristCamera) — 인식 결과가 아니라 렌더라는 것을 창에 적는다
-    ("cam_title", "손목 카메라 · D455 컬러 렌더 · 인식 없음", 20, C_DIM, False),
+    # [2026-09-16] 그리퍼 카메라 창 제목 (isaac_sim_viewport_display._WristCamera) — 인식 결과가 아니라 렌더라는 것을 창에 적는다.
+    #   화면 이름만 '그리퍼 카메라' 로 바꿨다(09-16 사용자). 코드·환경변수·콘솔 접두는 wrist_cam 그대로다 — 카메라 prim 이 손목 링크에 붙어 있다.
+#   '컬러' 는 뺐다 — 캡션 + '영역 NW/sw' 가 창 폭 480 을 20px 넘겼다. 컬러/깊이 구분은 hud/README 가 설명한다.
+    ("cam_title", "그리퍼 카메라 · D455 렌더 · 인식 없음", 20, C_DIM, False),
 ] + [("state_" + k, v, 40, _rgb(PHASE[k]), True) for k, v in STATE_KO.items()] \
   + [("region_" + k, v, 24, C_TEXT, False) for k, v in REGION_KO.items()]
 

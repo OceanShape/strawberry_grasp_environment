@@ -117,7 +117,7 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
 (35mm 환산 41mm, hfov 47°). 왼쪽 후방이라 팔이 화면을 가로질러 오른쪽 트레이로 가는 동선이 보이고, 파지 때 손목이 팔
 몸통과 안 겹친다(오른쪽 후방은 트레이가 카메라 앞에 와서 팔을 가린다). 종전 09-10 구도는 왼쪽 44°/27.5°/3.09 m 에 Kit 기본
 렌즈(18.147 = hfov 60°, 31mm 환산)라 보드가 화면 폭 **24%** 였고 원근이 과장됐다. 지금 값은 보드 **34%**, 트레이 x 75~85%.
-조언은 40% 였지만, 좌상단 HUD 패널(x<24%, y<43%)과 좌하단 손목 카메라 창(x<27%, y>60%)을 피해 피사체를 x≥28% 에 두면
+조언은 40% 였지만, 좌상단 HUD 패널(x<24%, y<43%)과 좌하단 그리퍼 카메라 창(x<27%, y>60%)을 피해 피사체를 x≥28% 에 두면
 34% 가 상한이다 — 더 당기면 보드 NW 가 HUD 밑으로 들어간다. 후보 비교·재계산은
 `python3 strawberry_harvest/scripts/scene_tools/check_camera_framing.py` (numpy 만; 보드·트레이·로봇 지점의 화면 위치와 UI 겹침을 표로 낸다).
 구도는 녹화하면서 계속 바꿀 수 있다 — 값은 `extension.toml` 한 곳이다.
@@ -142,10 +142,10 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
 2. **`strawberry_harvest/scenes/main_scene.usd` 로드**
    ⚠️ 씬 파일을 수정했다면 **반드시 재로드**해야 반영된다 (노드 재시작만으론 안 됨)
 3. **Script Editor**에서 `strawberry_harvest/scripts/isaac_sim_script_editor_bridge.py` 실행
-4. **Script Editor**에서 `strawberry_harvest/scripts/isaac_sim_viewport_display.py` 실행 — **상태 HUD + 손목 카메라 창** (09-16 까지 이름 `isaac_sim_hud.py`)
+4. **Script Editor**에서 `strawberry_harvest/scripts/isaac_sim_viewport_display.py` 실행 — **상태 HUD + 그리퍼 카메라 창** (09-16 까지 이름 `isaac_sim_hud.py`)
 5. **Play** 클릭
 
-**4번 뷰포트 표시** — 뷰포트 좌상단에 반투명 상태 HUD 패널, 좌하단에 손목 카메라 창이 뜬다. 별도 상태창 프로그램은 폐기했고
+**4번 뷰포트 표시** — 뷰포트 좌상단에 반투명 상태 HUD 패널, 좌하단에 그리퍼 카메라 창이 뜬다. 별도 상태창 프로그램은 폐기했고
 이것이 유일한 상태 표시다. Isaac Sim 창 하나만 녹화하면 로봇 동작과 상태가 같이 찍힌다.
 
 ```
@@ -164,15 +164,16 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
 
 - **트리**(2026-09-11, 영역·타겟·배치 줄 대체)는 `scan_executor` 의 순회 결정을 실행 중에 그린다. 1차 스캔에서 후보 0 인
   분면은 `제외`, 분면 자세의 후보가 분할 기준(3) 미만이면 둘째 줄 없음(잎), 이상이면 `분할` 과 함께 세부 칸 줄이 열린다
-  (09-16 부터 방위 글자 없음 — 방위는 손목 카메라 창 가이드가 보여 준다).
-  로봇이 있는 노드·경로는 시안(보드 테두리와 같은 색, 09-16), 끝난 노드는 초록 테두리, 세부 자세가 거부돼 부모 자세에서 딴 세부 칸은 호박색 테두리.
-  순회가 끝나면 세부 칸 줄은 접힌다. 보드 위 시안 테두리 하이라이트(09-16, 살구색 면 채우기에서)도 세부 칸에서 일할 때는 그 칸 하나만 켠다(`whiteboard.usd` 세부 칸 16장,
+  (09-16 부터 방위 글자 없음 — 방위는 그리퍼 카메라 창 가이드가 보여 준다).
+  로봇이 있는 노드·경로는 하늘색(보드 테두리와 같은 색, 09-16), 끝난 노드는 초록 테두리, 세부 자세가 거부돼 부모 자세에서 딴 세부 칸은 호박색 테두리.
+  순회가 끝나면 세부 칸 줄은 접힌다. 보드 위 하늘색 테두리 하이라이트(09-16, 살구색 면 채우기에서)도 세부 칸에서 일할 때는 그 칸 하나만 켠다(`whiteboard.usd` 세부 칸 16장,
   **씬 재로드 필요** — 옛 애셋이면 부모 분면을 켠다). 실행기 코드는 안 바뀐다(프로브가 메서드 경계에서 받는다). 규칙·색·문구는 `hud/tree_model.py`, 설명은 `hud/README.md`.
 - **패널 위치**는 `isaac_sim_viewport_display.py` 의 `POS_X` / `POS_Y` (뷰포트 좌상단 기준 픽셀, 기본 16/32).
-- **손목 카메라 창** (2026-09-16) — 뷰포트 좌하단에 로봇 손목 D455 컬러 카메라 렌더가 작게 뜬다(640×480 렌더를 480×360 으로 표시 — 09-16 S5 에서 400×300 에서 키움).
-  실기 비전 노드의 카메라 창에 대응하는 화면이지만 **렌더일 뿐 인식 결과가 아니다** — 창 제목이 `손목 카메라 · D455 컬러 렌더 · 인식 없음` 이다.
-  실기 창처럼 **초록 십자 + 교차점의 NW·NE·SW·SE** 를 그리고 캡션 끝에 현재 `영역` 을 적는다(09-16). 화면 고정 가이드이지 인식이 아니다 —
-  오버뷰 자세에서 실행기의 실제 분면 경계(보드 중심선)가 화면 49.3%/49.3% 에 맺혀 중앙 십자와 1% 안이다(`hud/README.md` 손목 카메라 창 절).
+- **그리퍼 카메라 창** (2026-09-16) — 뷰포트 좌하단에 로봇 손목 D455 컬러 카메라 렌더가 작게 뜬다(640×480 렌더를 480×360 으로 표시 — 09-16 S5 에서 400×300 에서 키움).
+  실기 비전 노드의 카메라 창에 대응하는 화면이지만 **렌더일 뿐 인식 결과가 아니다** — 창 제목이 `그리퍼 카메라 · D455 렌더 · 인식 없음` 이다.
+  실기 창처럼 **연초록 십자 + 각 분면 바깥 모서리의 NW·NE·SW·SE** 를 그리고 캡션 끝에 현재 `영역`(깊이 2 는 `NW/sw` 처럼 둘째만 소문자)을 적는다(09-16).
+  십자는 2px·`#4ADE80`·70%, **스캔 구간에만 뜨고 접근·파지 중에는 0.3초 페이드로 사라진다**. 화면 고정 가이드이지 인식이 아니다 —
+  오버뷰 자세에서 실행기의 실제 분면 경계(보드 중심선)가 화면 49.3%/49.3% 에 맺혀 중앙 십자와 1% 안이다(`hud/README.md` 그리퍼 카메라 창 절).
   `fake_vision` 은 이 이미지를 보지 않고 씬 정답 좌표를 보드 사각형(분면·세부 칸)으로 잘라 발행하므로, 창에 보이는 과실과 발행되는 과실이 다를 수 있다.
   시야각은 스크립트가 쓰지 않는다 — `robot_assembly.usd` 오버라이드(초점 거리 2.346 / 수평 조리개 3.896 / 수직 조리개 2.922 → 79.41°×63.83°)가 단일 출처이고,
   Run 하면 Kit 콘솔에 `[wrist_cam] ... fov 79.41 x 63.83 deg` 가 찍힌다(실기 로그 `docs/lab_data/realsense_d455_enumerate.txt` Color 640×480: 79.41°×63.89°). 어긋나면 WARNING.
@@ -795,8 +796,8 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | 명령이 두 번 실행되는 듯 / 토픽이 겹친다 | 이전 실행의 노드가 살아 있다. "전체 종료 / 재실행 전 초기화" 1~2단계 수행 |
 | `Ctrl+C` 했는데 노드가 남아 있다 | 손으로 띄운 경우다 (`&`로 보낸 노드에는 `Ctrl+C`가 안 닿는다). `bash scripts/run_nodes.sh --kill` 로 정리 |
 | HUD 가 안 보인다 | 터미널 1 의 4번 `isaac_sim_viewport_display.py` 를 Run 안 했거나 활성 뷰포트가 없다. Run 하면 에디터에 오류가 그대로 찍힌다 |
-| 손목 카메라 창이 안 뜬다 | Kit 콘솔의 `[wrist_cam]` 줄을 본다. `camera prim not found` = 씬 로드 전에 Run 했다(로드 후 다시 Run). `inset failed` = 위젯 생성 오류(HUD 는 계속 뜬다). `HARVEST_WRIST_CAM=0` 으로 기동했으면 `inset skipped` |
-| 손목 카메라 창 시야각이 이상하다 | 콘솔 `[wrist_cam] ... fov` 값이 79.41 x 63.83 이 아니면 WARNING 이 같이 찍힌다. 고칠 곳은 `robot_assembly.usd` 의 `Camera_OmniVision_OV9782_Color` 초점 거리·조리개(스크립트 아님) |
+| 그리퍼 카메라 창이 안 뜬다 | Kit 콘솔의 `[wrist_cam]` 줄을 본다. `camera prim not found` = 씬 로드 전에 Run 했다(로드 후 다시 Run). `inset failed` = 위젯 생성 오류(HUD 는 계속 뜬다). `HARVEST_WRIST_CAM=0` 으로 기동했으면 `inset skipped` |
+| 그리퍼 카메라 창 시야각이 이상하다 | 콘솔 `[wrist_cam] ... fov` 값이 79.41 x 63.83 이 아니면 WARNING 이 같이 찍힌다. 고칠 곳은 `robot_assembly.usd` 의 `Camera_OmniVision_OV9782_Color` 초점 거리·조리개(스크립트 아님) |
 | HUD 한글이 `?` 로 나온다 | `hud/labels/` PNG 없음. `python3 strawberry_harvest/scripts/hud/make_labels.py` |
 | HUD 램프가 전부 빨강 | `ls -l /tmp/harvest_hud_*.json` — 파일이 없으면 그 노드에 계측이 안 붙었다. `colcon build` 후 재기동 |
 | **그리퍼가 아예 안 움직인다** | Isaac Script Editor 브릿지를 다시 Run 안 했다. 콘솔에 `[bridge] DOF map:` 이 찍히는지 확인 |
@@ -817,7 +818,7 @@ cd ~/strawberry_grasp_environment && bash scripts/check_planner.sh
 | **`GRASP_POSE_REACHED offset=+0.040m variant=-5.0°`** | 높은 딸기에서 −5° 변형의 15~25mm 가 도달 한계 밖이라 40mm 로 밀린 것. 사다리가 `[15,20,25]` 면 −5° 가 전부 실패해 0° 로 넘어가 15mm 가 된다. 40mm 가 보이면 사다리가 옛 값으로 돌아간 것 |
 | **분리 후 바로 배치로 넘어간다 (역순 후퇴 없음)** | 설계 5단계 누락. `planner.log` 에 `DETACH_PULL_DOWN` 다음 `RETREAT` 줄이 있어야 한다. 없으면 `-p enable_straight_reverse_retreat:=true` 누락 — 실기 코드는 `measured_tcp` 프로파일에만 걸려 있어 legacy 는 기본적으로 생략된다 |
 | **분리까지 성공했는데 배치 안 하고 놔버린다** | `TAUGHT_TRAY_SLOT0_PLACE_BLOCKED: above plan failed` 확인. J2 가드 100°가 nw 딸기(114°, 113°)를 막았다. 2026-09-10 에 **130°** 로 |
-| **보드 위 시안 테두리(분면 표시)가 안 뜬다 / 안 바뀐다** | HUD 스크립트가 켜고 끈다 — Isaac 콘솔에 `[hud] 보드 하이라이트 prim 을 못 찾았다` 가 있으면 씬을 다시 로드하지 않은 것(`whiteboard.usd` 의 `highlight` 가 2026-09-10 추가). 영역 값 자체가 안 바뀌면 HUD 패널의 "영역" 도 같이 멈춰 있을 것 — scan_executor 계측 문제 |
+| **보드 위 하늘색 테두리(분면 표시)가 안 뜬다 / 안 바뀐다** | HUD 스크립트가 켜고 끈다 — Isaac 콘솔에 `[hud] 보드 하이라이트 prim 을 못 찾았다` 가 있으면 씬을 다시 로드하지 않은 것(`whiteboard.usd` 의 `highlight` 가 2026-09-10 추가). 영역 값 자체가 안 바뀌면 HUD 패널의 "영역" 도 같이 멈춰 있을 것 — scan_executor 계측 문제 |
 | **동작이 너무 느리다 / 빠르다** | 브릿지 `-p sim_speed_scale:=1.0`(기본, 09-14 부터 — 실기 요청 시간 그대로. 2.0 은 검증용으로 쓰지 않는다). 3.0 이면 더 빠르고 1.0 이면 2026-09-09 이전 속도다. 스캔 이동은 scan_executor `-p scan_movej_vel_deg_s:=120`(기본, 실기는 60) |
 | **HUD `타겟` 총수가 한 번에 6 이 되지 않는다** | **정상이다.** 2026-09-09 분면 필터 이후 이 값은 **지금 스캔 중인 분면**의 개수다. `Isaac→fake` 쪽이 전체(6)다 |
 | **첫 분면에서 6개를 다 시도하고 나머지 분면은 후보 없음** | 분면 필터가 꺼져 있다. `fake_vision_node` 의 `quadrant_filter_enabled` 확인. 기동 로그의 `quadrant_filter=True` 도 같이 본다 |

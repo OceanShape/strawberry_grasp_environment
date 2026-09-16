@@ -134,7 +134,7 @@ curobo_planner_node             ← cuRobo pre-approach + pick 시퀀스
 | `sim_executor_bridge_node` | `src/strawberry_sim_core/` | 두산 motion 서비스(`MoveJoint`/`MoveLine`/`MoveSplineJoint`)와 그리퍼 액션을 가로채 `/joint_command` 발행. MoveLine은 cuRobo IK로 실제 계산 — BASE(ref=0)/TOOL(ref=1) 좌표계 지원, 상대 이동(mode=1)만, **현재 관절 최근접 해 선택 + 관절 이동 45° 상한 가드**(elbow-flip 다이브 방지, 2026-07-16). IK 실패·예외·가드 탈락 시 `success=False` 반환 |
 | `isaac_sim_script_editor_bridge.py` | `strawberry_harvest/scripts/` | Isaac Sim Script Editor에서 실행. 딸기 prim 좌표를 `/isaac_sim/strawberries`로 발행하고, `/joint_command`를 받아 `/World/robot_assembly` articulation에 주입. **익은 딸기만 발행**(실기 fusion 노드가 ripe만 내보내는 것에 맞춤) — 씬에는 익은 6 / 안 익은 6, 총 12개가 있다. **[T2] `/sim/grasp_event` 를 받아 CONTACT 과실을 그리퍼 밑동에 키네마틱 부착·추종하고 RELEASE 에 정지시킨다. 부착·해제된 딸기는 발행에서 제외** |
 | `self_collision_logger_script.py` | `strawberry_harvest/scripts/` | 로봇 자기 충돌 감지 → `log/collision_*.log` 기록 |
-| 뷰포트 표시 (`isaac_sim_viewport_display.py`, 09-16 까지 `isaac_sim_hud.py`) | `strawberry_harvest/scripts/` | Isaac Sim 뷰포트 위에 얹히는 상태 HUD 패널과 좌하단 손목 카메라 창(D455 컬러 렌더 — 인식 결과 아님). 노드 램프·타겟 카운터·현재 단계·완주 결과를 표시. 노드 4개가 `/tmp/harvest_hud_<role>.json` 에 쓴 스냅샷을 읽기만 한다 — ROS 노드가 아니다 (2026-09-09, `status_monitor_node` 대체) |
+| 뷰포트 표시 (`isaac_sim_viewport_display.py`, 09-16 까지 `isaac_sim_hud.py`) | `strawberry_harvest/scripts/` | Isaac Sim 뷰포트 위에 얹히는 상태 HUD 패널과 좌하단 그리퍼 카메라 창(D455 컬러 렌더 — 인식 결과 아님). 노드 램프·타겟 카운터·현재 단계·완주 결과를 표시. 노드 4개가 `/tmp/harvest_hud_<role>.json` 에 쓴 스냅샷을 읽기만 한다 — ROS 노드가 아니다 (2026-09-09, `status_monitor_node` 대체) |
 
 ### 그리퍼 파지 판정 — 기하 기반 (2026-09-07 변경)
 

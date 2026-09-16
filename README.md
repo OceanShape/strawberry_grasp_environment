@@ -71,7 +71,7 @@ strawberry_grasp_environment/
 | `curobo_planner_node` | `src/strawberry_motion/scripts/` | cuRobo 기반 pre-approach 계획 + pick 시퀀스 실행 |
 | `fake_vision_node` | `src/strawberry_sim_core/` | Isaac Sim 딸기 좌표를 실기 비전과 동일 형식으로 발행 |
 | `sim_executor_bridge_node` | `src/strawberry_sim_core/` | 두산 motion 서비스 모방 → `/joint_command` 변환 (가상 제어기) |
-| `isaac_sim_viewport_display.py` | `strawberry_harvest/scripts/` | 뷰포트 표시 — 상태 HUD 패널(노드 램프·단계·쿼드트리 순회 상태·완료 결과 `배치 n · 낙하 m`) + 보드 작업 영역 하이라이트 + 좌하단 손목 카메라 창(D455 컬러 렌더, 인식 없음). 읽기 전용, 파이프라인에 개입하지 않음 (09-16 `isaac_sim_hud.py` 에서 이름 변경) |
+| `isaac_sim_viewport_display.py` | `strawberry_harvest/scripts/` | 뷰포트 표시 — 상태 HUD 패널(노드 램프·단계·쿼드트리 순회 상태·완료 결과 `배치 n · 낙하 m`) + 보드 작업 영역 하이라이트 + 좌하단 그리퍼 카메라 창(D455 컬러 렌더, 인식 없음). 읽기 전용, 파이프라인에 개입하지 않음 (09-16 `isaac_sim_hud.py` 에서 이름 변경) |
 | Script Editor 브릿지 | `strawberry_harvest/scripts/` | Isaac Sim 내부: 딸기 좌표 발행 + 관절 명령 주입 |
 
 > 노드 실행 방법 및 ROS 2 인터페이스 상세: [`docs/pipeline_overview.md`](docs/pipeline_overview.md)
