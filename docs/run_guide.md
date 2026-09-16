@@ -189,9 +189,15 @@ bash scripts/run_isaacsim.sh --/exts/strawberry.sim.setup/pin_persp_camera=false
   *파지 판정 통과 + 트레이 슬롯 릴리스 완료* 까지만 센다.
 - **낙하 (2026-09-15, T4c)**: 둘째 줄 `낙하 m` 은 이송·배치 계획이 거부돼 그 자리에서 놓은 과실 수(플래너 `PICK_SEQUENCE_CONTINUE … released fruit here` 와 같은 수).
   브릿지는 그 과실을 **떨어뜨린다** — 트레이 밖 릴리스면 kinematic 을 풀고 콜라이더를 켜서 중력에 맡기고, 바닥(`lab_environment.usd` `floor`, 상판 아래 **0.45m** — 09-16 에 0.75m 에서 올렸다, 떨어진 과실이 롱샷 화면 아래로 잘려서. **씬 재로드 필요**)에
-  닿아 멈춘다. Kit 로그 `RELEASE … DROPPED outside tray at … -> falls  dropped=n`, 3초 뒤 `DROP_REST … -> on floor | caught above floor (N mm up) | BELOW FLOOR (tunnelled)`.
+  닿아 멈춘다. Kit 로그 `RELEASE … DROPPED outside tray at … -> falls  dropped=n`, 3초 뒤 `DROP_REST … -> on floor | caught above floor (N mm up) | BELOW FLOOR (tunnelled), N mm from below the release point (dx, dy)`.
   `BELOW FLOOR` 가 나오면 안 된다(런 13 에서 20mm 바닥을 관통해 1m 로 두껍게 하고 CCD 를 켰다). `caught` 는 아래 과실에 걸린 것 — 물리 그대로, 기록만.
-  트레이 안 릴리스는 종전대로 동결(`RELEASE … PLACED in tray, frozen at`).
+  **낙하 시작점 (2026-09-16 수정)**: 09-15~09-16 런에서 떨어진 과실이 전부 **그리퍼가 놓은 자리(y 739)가 아니라 보드에 매달렸던 자리(y 782.8) 아래**에 멈췄다.
+  운반 중 과실은 kinematic 이라 PhysX 가 USD 에 자세를 써 주지 않고, 루트 레이어엔 보드 위치가 남아 있었다 — 낙하 코드가 세션 레이어 자세를 지우는 순간 합성 자세가
+  보드로 튀고 PhysX 가 그걸 순간이동으로 받아 보드에서 떨어뜨렸다(운반 자체는 정상: 런 뒤 PhysX = USD 8/8). 이제 세션 자세를 지우기 **전에** 운반 자세를 루트 레이어에
+  써 둔다(`_pin_pose_to_root`). 확인은 `DROP_REST` 끝의 `N mm from below the release point` — 그리퍼에서 떨어지면 수십 mm 안(아래 과실에 부딪히면 더 큼),
+  보드에서 떨어지면 dy 가 +44 근처다. 낙하가 있는 런 뒤엔 스테이지가 dirty 다(PhysX 가 낙하 자세를 루트 레이어에 쓴다 — 전부터 그랬다) — **Kit 에서 저장하지 않는다**.
+  트레이 안 릴리스는 종전대로 동결(`RELEASE … PLACED in tray, frozen at`). 동결된 과실이 20mm 넘게 움직이면 `PLACED_FRUIT_MOVED …` 한 줄이 찍힌다(09-16, 14:38 런에서
+  6번째 과실이 계란판에서 사라졌다는 목격이 있었는데 로그에 흔적이 없어 넣은 감시 — 이후 런에서 아직 재현 안 됨).
 - **제원 정합 (2026-09-14)**: 브릿지 기동 로그에 `DOOSAN_MOVEIT_REF` 한 줄이 뜨고, 스캔 MoveJoint 마다 `MOVEJ_OVER_DOOSAN_MOVEIT J2 acc 162>120 J3 acc 180>150` 이 남는다.
   **정상이다** — 실기 노드가 보낸 가속도를 자르지 않고 그대로 실행하면서 두산 공식 MoveIt 설정 초과만 기록하는 것이다(`docs/e0509_spec_audit.md` D3).
   시뮬 로봇 J2·J3·J5 한계는 실기 값 ±95·±135·±135 로 좁혔다(D1, **씬 재로드 필요**). J3 는 트레이 위 자세가 정확히 135° 라 한계에 닿는다 — 도착 잔차가 커지면 여기부터 본다.

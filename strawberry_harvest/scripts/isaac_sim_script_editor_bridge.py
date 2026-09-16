@@ -122,7 +122,8 @@ def start_bridge():
     node.harvested = set()        # prim paths released (tray or not) -- never published again
     node.dropped = 0              # [T4c] releases outside the tray -> fell under gravity
     node.tray_bounds = None       # [T4c] lazily computed world-space box of the egg carton
-    node.falling = {}             # [T4c] prim path -> timeline time of the drop; rest pose logged once
+    node.falling = {}             # [T4c] prim path -> (timeline time of the drop, release pose); rest logged once
+    node.placed = {}              # [2026-09-16] prim path -> pose it was frozen at in the tray; moved = logged once
     node.gripper_rigid = None     # lazily created physics view of the gripper base link
 
     if hasattr(builtins, "my_physx_sub"):
@@ -366,7 +367,10 @@ def start_bridge():
         viewport (headless check 2026-09-15; the check scripts were not kept, results in SUBMISSION_PLAN T4c: variant B --
         copying the PhysX pose into USD each step -- made omni.physx teleport the body every
         step and reset its velocity; removing the opinions instead shows the fall with no
-        jump, because PhysX kept writing the carried pose to the root layer meanwhile)."""
+        jump, because PhysX kept writing the carried pose to the root layer meanwhile).
+        [2026-09-16] That last clause was wrong: PhysX does not write back a KINEMATIC body,
+        so the root layer still held the board pose and the fruit jumped there. The caller
+        now pins the carried pose into the root layer first (_pin_pose_to_root)."""
         spec = stage.GetSessionLayer().GetPrimAtPath(path)
         if spec is None:
             return
@@ -374,14 +378,33 @@ def start_bridge():
             if name in spec.properties:
                 spec.RemoveProperty(spec.properties[name])
 
+    def _pin_pose_to_root(stage, prim):
+        """[2026-09-16] Write the fruit's CURRENT composed pose into the root layer, so that
+        removing the session opinions right after does not move it.
+
+        While carried the body is kinematic, and PhysX does not write kinematic poses back
+        to USD: the root layer still holds the spot the fruit hung at on the board. Removing
+        the session opinions alone therefore snaps the composed pose back to the board, PhysX
+        takes that as a teleport, and the fruit falls FROM THE BOARD instead of from the
+        gripper. Every dropped fruit in the runs of 2026-09-16 14:38, 16:18 and 16:36 came to
+        rest under its own board position (y 782.8) and not under the release point (y 739),
+        and PhysX == USD for all eight fruit after the run (so the carry itself is fine).
+        The 09-15 note below ("PhysX kept writing the carried pose to the root layer") was a
+        headless-check inference and does not hold for a kinematic body.
+        The root layer is where PhysX writes the fall anyway, so this adds no new way for a
+        stage save to bake harvest state that the fall did not already add."""
+        _set_world_xform(stage, prim, _usd_world(prim), layer=stage.GetRootLayer())
+
     def _watch_falling(stage):
         """[T4c] Once per dropped fruit, DROP_REST_AFTER_S after the release, print where it
         came to rest (USD pose = PhysX write-back once the session opinions are gone). Run 13:
-        one fruit landed on an unripe fruit below it, one vanished -- the log now says which."""
-        if not node.falling:
-            return
+        one fruit landed on an unripe fruit below it, one vanished -- the log now says which.
+        [2026-09-16] Also prints how far the rest point is from straight below the release
+        point: a fall that started at the gripper lands within a few tens of mm (a hit on a
+        fruit below it deflects more); one that started at the board lands ~44 mm behind.
+        Then the same pass checks that fruit frozen in the tray has not moved."""
         now = omni.timeline.get_timeline_interface().get_current_time()
-        for path, t0 in list(node.falling.items()):
+        for path, (t0, rel) in list(node.falling.items()):
             if now - t0 < DROP_REST_AFTER_S:
                 continue
             del node.falling[path]
@@ -395,9 +418,28 @@ def start_bridge():
                 where = "on floor"
             else:
                 where = "caught above floor (%.0f mm up)" % ((pos[2] - FLOOR_TOP_M) * 1000)
-            print("[bridge] DROP_REST %s  at (%.1f, %.1f, %.1f) mm after %.1f s -> %s"
+            drift = ((pos[0] - rel[0]) ** 2 + (pos[1] - rel[1]) ** 2) ** 0.5
+            print("[bridge] DROP_REST %s  at (%.1f, %.1f, %.1f) mm after %.1f s -> %s, "
+                  "%.0f mm from below the release point (dx %+.0f, dy %+.0f)"
                   % (path.split("/")[-1], pos[0] * 1000, pos[1] * 1000, pos[2] * 1000,
-                     now - t0, where))
+                     now - t0, where, drift * 1000, (pos[0] - rel[0]) * 1000, (pos[1] - rel[1]) * 1000))
+        # [2026-09-16] Fruit frozen in the tray must stay put (kinematic, colliders off, nothing
+        # touches it). A 14:38 run was seen to lose its 6th fruit from the carton; no log line
+        # could say whether it moved. Now one line says so, once, if it ever does.
+        for path, pose in list(node.placed.items()):
+            if pose is None:
+                continue
+            prim = stage.GetPrimAtPath(path)
+            if not prim or not prim.IsValid():
+                print("[bridge] PLACED_FRUIT_GONE %s  prim no longer valid" % path.split("/")[-1])
+                node.placed[path] = None
+                continue
+            cur = _usd_world(prim).ExtractTranslation()
+            if (cur - pose).GetLength() > 0.02:
+                print("[bridge] PLACED_FRUIT_MOVED %s  from (%.1f, %.1f, %.1f) to (%.1f, %.1f, %.1f) mm"
+                      % (path.split("/")[-1], pose[0] * 1000, pose[1] * 1000, pose[2] * 1000,
+                         cur[0] * 1000, cur[1] * 1000, cur[2] * 1000))
+                node.placed[path] = None
 
     def _tray_bounds(stage):
         """World-space box of the egg carton, computed once per Run (the tray never moves)."""
@@ -425,14 +467,15 @@ def start_bridge():
             return False
         return b[0] <= pos[0] <= b[1] and b[2] <= pos[1] <= b[3] and pos[2] <= b[4]
 
-    def _set_world_xform(stage, prim, world_m):
-        """Write translate/orient ops (scale untouched) so the prim lands at world_m."""
+    def _set_world_xform(stage, prim, world_m, layer=None):
+        """Write translate/orient ops (scale untouched) so the prim lands at world_m.
+        Session layer unless another layer is given."""
         parent_w = _usd_world(prim.GetParent()) if prim.GetParent() else Gf.Matrix4d(1.0)
         local_m = world_m * parent_w.GetInverse()
         t = Gf.Transform()
         t.SetMatrix(local_m)
         q = t.GetRotation().GetQuat()
-        with Usd.EditContext(stage, stage.GetSessionLayer()):
+        with Usd.EditContext(stage, layer or stage.GetSessionLayer()):
             for op in UsdGeom.Xformable(prim).GetOrderedXformOps():
                 name = op.GetOpName()
                 if name == "xformOp:translate":
@@ -476,15 +519,21 @@ def start_bridge():
         node.attached = None
         name = path.split("/")[-1]
         if _in_tray(stage, pos):
+            node.placed[path] = Gf.Vec3d(pos)
             print("[bridge] RELEASE %s  PLACED in tray, frozen at (%.1f, %.1f, %.1f) mm  harvested=%d"
                   % (name, pos[0] * 1000, pos[1] * 1000, pos[2] * 1000, len(node.harvested)))
             return
         # [T4c] outside the tray: let it fall. The count is printed so the Kit log agrees
         # with the HUD's dropped count (harvest_probe counts the planner side).
+        # [2026-09-16] Order matters: pin the carried pose into the root layer FIRST, then
+        # drop the session opinions (composed pose unchanged -> no teleport), then make the
+        # body dynamic. See _pin_pose_to_root.
         if prim and prim.IsValid():
-            _set_dropped_physics(stage, prim)
+            _pin_pose_to_root(stage, prim)
             _remove_session_xform_opinions(stage, path)
-            node.falling[path] = omni.timeline.get_timeline_interface().get_current_time()
+            _set_dropped_physics(stage, prim)
+            node.falling[path] = (omni.timeline.get_timeline_interface().get_current_time(),
+                                  Gf.Vec3d(pos))
         node.dropped += 1
         print("[bridge] RELEASE %s  DROPPED outside tray at (%.1f, %.1f, %.1f) mm -> falls  harvested=%d dropped=%d"
               % (name, pos[0] * 1000, pos[1] * 1000, pos[2] * 1000, len(node.harvested), node.dropped))
