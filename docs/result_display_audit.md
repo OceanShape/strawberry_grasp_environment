@@ -287,7 +287,7 @@ A 는 거부 가드가 두 종류이고 가드 너머는 특정 불가 → **원
 
 ## 8. 녹화 전 확인 (Isaac 화면)
 
-1. **반영 순서**: 씬 재로드(새 서브레이어) → 뷰포트 1920×1080 맞춤(`isaac_sim_fit_viewport_1080p.py`, `portfolio/README.md` 녹화 절차 3번) → 브릿지·뷰포트 표시 스크립트 Run → `bash scripts/run_nodes.sh --kill` → `bash scripts/run_nodes.sh`(프로브는 노드가 뜰 때 읽힌다) → 트리거.
+1. **반영 순서**: 씬 재로드(새 서브레이어) → 뷰포트 렌더 해상도 1920×1080 맞춤(`isaac_sim_fit_viewport_1080p.py`, `portfolio/README.md` 녹화 절차 3번) → 브릿지·뷰포트 표시 스크립트 Run → `bash scripts/run_nodes.sh --kill` → `bash scripts/run_nodes.sh`(프로브는 노드가 뜰 때 읽힌다) → 트리거.
 2. Kit 콘솔 `[hud] scene fruit: target 8 / non-target 4 (…; non-target constant diffuse 4/4)` — `0/4` 면 씬 재로드가 안 된 것.
 3. 안 익은 딸기가 연한 녹백색으로 보이는지(텍스처 색이 보이면 Kit/RTX 가 빈 연결을 따르지 않는 경우), 조명 아래 흰색으로 날아가지 않는지, 롱샷 축소에서 익은 딸기와 갈리는지.
 4. HUD: `타겟 8 / 비대상 4` 상시, 결과 바 8칸이 결과마다 칠해지고 범례가 0 부터 오르는지, 완료 때 `수확 완료 n / 8` 바로 아래 바가 있는지.
