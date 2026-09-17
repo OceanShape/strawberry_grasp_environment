@@ -1,0 +1,205 @@
+# HUD 결과 바·타겟 수 — Kit 스텁 하네스 + 프로브 재생 검증 보고 (수정 전 코드 기준)
+# 출처: 2026-09-17 세션 워크플로 wf_bf80b6b6-7a0 journal (에이전트 2개). 이 파일은 보고 원문 보존본이며, 하네스 스크립트 자체는 세션 스크래치에 있어 남지 않았다.
+
+
+
+==================== [1]  ====================
+{
+ "tests_run": [
+  {
+   "name": "T1 래핑 지점 정적 확인 (probe_replay/t1_static_wrap_points.py)",
+   "result": "pass",
+   "detail": "AST 검사 결과 11개 지점이 모두 있음. 클래스 메서드 6개(run, search_grasp, execute_open_stem_descent_if_needed, execute_detach_and_retreat, return_to_pick_start_and_complete, _release_and_continue_after_place_failure)와 생성자에서 넣는 인스턴스 속성 4개(_execute_final_approach_fn, _execute_pitch_detach_fn, _execute_retreat_steps_fn, _close_and_verify_grasp_fn). run() 안에서 self.search_grasp :874, self._execute_final_approach_fn :958, self.execute_open_stem_descent_if_needed :1007, self._close_and_verify_grasp_fn :1018, self.execute_detach_and_retreat :1029, self.return_to_pick_start_and_complete :1057 로 부른다. _execute_pitch_detach_fn :298 과 _execute_retreat_steps_fn :316/:268 은 detach 함수와 close-failed 함수 안에서, _release_and_continue_after_place_failure 는 maybe_execute_place_after_retreat :380/:443/:456 에서, 트레이 메서드는 self._tray_place_executor.execute_marker_place_after_retreat :393 에서 부른다. 노드는 같은 트레이 객체를 넘기고(curobo_planner_node.py:452), self.pick_sequence_executor.run(next_msg) 로 속성을 조회해 부르며(:1039), attach(:534)는 실행기 생성(:446) 뒤에 온다. 호출 없이 바인드 메서드만 잡아 두는 곳은 없음. execute_detach_and_retreat 의 반환은 둘뿐: :332 return None(후퇴 실패 전용, 바로 전에 hold 래치)과 :335 조인트 리스트(None 이 될 수 없음). raise 는 없음. run() 은 호출 바로 다음 문장(:1037)에서 'if retreat_joints is None: return' 으로 곧장 끝난다."
+  },
+  {
+   "name": "T2 로그 재생 20260916T171551-df811bd1 (probe_replay/t2_replay_run.py)",
+   "result": "pass",
+   "detail": "curobo_planner.log 에서 8픽을 뽑음(모두 GRASP_CONTACT_DETECTED, DETACH_PULL OK, 후퇴 실패 없음). place_status 순서는 [failed, success, failed, failed, success, success, success, failed] 이고 jsonl(marker_place_complete/place_failure_continue)과 Kit '[bridge] RELEASE PLACED/DROPPED' 순서와 셋 다 같다. 실제 PickSequenceExecutor.run() 에 가짜 의존성을 넣고 harvest_probe.attach('planner') 를 건 뒤 재생했다. 결과 outcomes=[place_failed, placed, place_failed, place_failed, placed, placed, placed, place_failed](로그 순서와 같음), succeeded=4 = placed 수, dropped=4 = place_failed 수, failed=0, run.started_at 은 scan 파일 값과 같음. stderr 는 칸마다 정확히 한 줄(8줄, 형식 정규식 일치, 번호 1..8). bus.log 의 outcomes_append 도 8줄이고, 미러 파일(스크래치)의 outcomes 도 같다."
+  },
+  {
+   "name": "T3 경로별 재생 (probe_replay/t3_paths.py, 시나리오마다 서브프로세스)",
+   "result": "pass",
+   "detail": "A: 후퇴 실패면 outcomes=[detach_failed], 트레이 호출 0, hold=straight_reverse_retreat_failed, 다음 픽은 무시돼 칸 추가 없음. B: 당김 실패+후퇴 OK+배치 성공이면 [placed](당김 실패는 세지 않음). C: GRASP_EMPTY→PLACE_GATE_BLOCKED_CONTINUE 이면 칸 없음, failed=1, dropped=0. D: hold 모드에서 place 'failed' 면 [place_failed], dropped=0, hold=marker_place_failed, 다음 픽 무시. E: hold 모드 GRASP_EMPTY 는 칸 없음. F: GRASP_EMPTY+후퇴 실패면 [detach_failed] 이고 failed=1(관찰). G: GRIPPER_CLOSE_FAILED 는 칸 없음, failed=1. H: 파지 전 중단은 칸 없음. I: skip(계속 모드)은 [place_failed]+dropped 1. J: tray_complete 는 [place_failed], hold=taught_tray_full. K: failed_after_release(계속 모드)는 [place_failed]+dropped 1. L: 트레이가 예외를 던지면 칸 없이 예외가 그대로 호출자까지 전파. 모든 시나리오에서 stderr '결과 바' 줄 수 = 칸 수."
+  },
+  {
+   "name": "T4 래퍼 투명성 (probe_replay/t4_transparency.py)",
+   "result": "pass",
+   "detail": "반환값 동일성(is), args/kwargs 전달, 원본 예외(타입, 메시지, 원 프레임 traceback)와 트레이 예외 객체 동일성 모두 유지. status_bus.append/bump/publish 가 던지거나, result_bar 판정 함수가 던지거나, sys.stderr.write 가 던지거나, HARVEST_HUD_LOG 가 디렉터리이거나, scan 파일이 깨진 JSON 이어도 원래 호출 경로로 예외가 새지 않고 원본 반환값이 나온다. 실제 run() 에서 append 가 던져도 run 은 끝나고 hold 가 래치된다. 관찰: outcomes 가 리스트가 아니게 되면 append 가 0 을 돌려주는데 '결과 바 0번째 = ...' 줄은 그대로 찍힌다. 판정 함수가 던지면 succeeded 만 오르고 칸은 붙지 않는다(인위적 상황)."
+  },
+  {
+   "name": "T5 stderr 한 줄 로그 형식 (T2/T3/T9 안에서 검사)",
+   "result": "pass",
+   "detail": "형식 '^[harvest_probe] 결과 바 N번째 = <key> (<한글 라벨>, place_status=<s> | execute_detach_and_retreat returned None)$'. 칸마다 정확히 한 줄이고, 칸이 아닌 경로(C/E/G/H/L)에서는 0줄. 새 런이면 번호가 1부터 다시 시작(T9)."
+  },
+  {
+   "name": "T6 bus_merge.load 조합 (probe_replay/t6_bus_merge.py, t6b_head_compare.py)",
+   "result": "fail",
+   "detail": "23개 중 19개 통과. 통과 항목: 파일 없음, planner 만(결과 사용), scan 만(0 + finished), started_at 같음(사용), 다름(숨김), scan started_at None(사용), planner None+scan 값 있음(숨김), outcomes 에 비문자열 섞임(문자열만 남김, 'bogus' 같은 알 수 없는 문자열은 남고 view 가 거름), outcomes 가 문자열(무시), stale planner 60초(같은 런이면 유지, 다르면 숨김), EPOCH 이전 파일, 잘린 JSON, e2e(자식 프로세스 probe 가 scan float started_at 을 JSON 왕복 뒤 정확히 맞춤 → 합친 결과 [placed, place_failed] succ 1 dropped 1 → scan 이 새 런을 시작하면 숨김). 실패 4개: scan 또는 planner 의 state.run 이 dict 가 아니면(None/[]/'x') load() 가 AttributeError 를 던진다. 같은 입력을 HEAD 의 bus_merge 에 넣으면 예외가 없다(t6b)."
+  },
+  {
+   "name": "T7 status_bus.append 경합 (probe_replay/t7_append_race.py)",
+   "result": "pass",
+   "detail": "setswitchinterval 1e-6, 16스레드×2000회 append 에 bump, snapshot 반복, bus_sink._write_once 반복을 동시에 돌림. 결과 32000개 전부 보존, 중복 없음, 스레드별 순서 유지, 반환 인덱스는 1..32000 이 한 번씩, bump 640, 로그 줄 32000(인덱스 유일), 스냅샷 7957회 중 이상 0. reset 뒤 append 는 인덱스 1. 섹션이 없거나 대상이 리스트가 아니면 0 을 돌려준다."
+  },
+  {
+   "name": "T8 result_bar.view 경계 (probe_replay/t8_view_bounds.py)",
+   "result": "pass",
+   "detail": "n_cells 가 0/None/-5 이면 cells=[] 이고 counts 는 전체를 세며 overflow=3. outcomes=None 이면 cells 전부 None, counts 0(세 키 모두). 알 수 없는 키는 구멍 없이 건너뛰고, 넘치면 바는 잘리고 counts 는 전부 센다. float/True/'3' 은 int 로 변환, 비숫자 문자열 'abc' 는 ValueError(HUD 는 len() 결과 int 만 넘김). 입력은 바뀌지 않음. 판정: 'success' 만 placed, 그 밖의 문자열(''·skip·tray_complete·failed_after_release 포함)은 place_failed, 문자열이 아니면 None. detach 는 None 일 때만 detach_failed([]·False 는 None)."
+  },
+  {
+   "name": "T9 같은 planner 프로세스에서 두 런 (probe_replay/t9_two_runs.py)",
+   "result": "pass",
+   "detail": "런 1 결과는 [placed, place_failed, placed]. scan started_at 이 바뀐 뒤 planner 첫 픽까지는 런 1 상태가 유지되고, 첫 픽의 _sync_run 에서 reset 된 뒤 [place_failed], succeeded 0, dropped 1, started_at 도 새 값으로 맞춰진다. stderr 번호는 1,2,3,1."
+  }
+ ],
+ "defects": [
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/hud/bus_merge.py:148-149",
+   "what": "새로 넣은 same_run 계산이 (scan or {}).get(\"run\", {}).get(\"started_at\") 모양이다. 그래서 state.run 이 dict 가 아니면(None, 리스트, 문자열) AttributeError 가 나고 load() 전체가 예외를 던진다. HUD 의 _on_update(isaac_sim_viewport_display.py:805-807)는 이 예외를 잡고 return 하므로, 그 파일이 남아 있는 동안 램프·트리·단계·결과 바 전부가 매 프레임 갱신되지 않는다. HEAD 의 bus_merge 는 같은 입력에서 예외가 없어서 회귀다. 모듈 docstring 의 '파싱 실패는 그 파일만 조용히 건너뛴다'와도 어긋난다. 다만 bus_sink 는 status_bus 스냅샷만 쓰고 그 안의 run 은 늘 dict 라, 정상 노드 경로로는 생기지 않는다. 같은 성격의 기존 경로(nodes.<role>.last_seen 이 문자열이면 ValueError)도 HEAD 부터 있다.",
+   "repro": "python3 /tmp/claude-1000/-home-oceanshape-strawberry-grasp-environment/bcc547be-1fe6-4c91-bfff-415b27806c93/scratchpad/hudtest/probe_replay/t6_bus_merge.py 출력: 'malformed scan run=None -> load() must not raise FAIL AttributeError(\"'NoneType' object has no attribute 'get'\")' (run=[], 'x', planner run=None 도 같음). t6b_head_compare.py HEAD 는 'HEAD scan run=None -> ok', WORKTREE 는 'RAISES AttributeError'."
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/hud/harvest_probe.py:262-266 (판정 result_bar.py:72-74, 문서 result_bar.py:25-26)",
+   "what": "파지 판정이 GRASP_EMPTY 인데 후퇴까지 실패하면 execute_detach_and_retreat 가 None 을 돌려준다. 그러면 호박색 '분리 실패' 칸이 붙고, 같은 픽에서 _after_grasp 가 failed 도 올린다. result_bar 문서(:25-26)는 '파지 판정 실패(GRASP_EMPTY 등)는 칸이 회색으로 남는다'고 적어 두었는데, 후퇴가 실패한 경우만 예외다. 떼어낼 과실이 없는 픽이 '분리 실패'로 보인다. 정의(:22-23, None=분리 실패) 글자 그대로는 맞으므로 의도 확인이 필요하다. log/m3 보존 런에서 GRASP_EMPTY·후퇴 실패는 0건이다.",
+   "repro": "python3 .../hudtest/probe_replay/t3_paths.py 출력: 'F_grasp_empty_and_retreat_fail PASS outcomes=['detach_failed'] succ=0 failed=1 dropped=0 tray_calls=0 hold=straight_reverse_retreat_failed' 와 stderr '[harvest_probe] 결과 바 1번째 = detach_failed (분리 실패, execute_detach_and_retreat returned None)'"
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/hud/result_bar.py:65-69 (문서 :18-21), harvest_probe.py:301",
+   "what": "failed_after_release 는 슬롯에서 이미 릴리스한 뒤 상승만 실패한 상태인데, 빨강 '배치 실패'로 칠해진다. hold_on_place_failure=false 이면 _release_and_continue_after_place_failure 가 불려 dropped 도 1 오른다. Kit 브릿지는 릴리스 위치로 판정해 PLACED 로 적을 상황이라 HUD 범례·dropped 와 Kit dropped=n 이 어긋날 수 있다. dropped 쪽 어긋남은 T4c 부터 있었다. 문서에 의도로 적혀 있고, log/m3 에서 failed_after_release 는 0건(place_status 는 failed 110건뿐)이다.",
+   "repro": "python3 .../hudtest/probe_replay/t3_paths.py 출력: 'K_failed_after_release_continue PASS outcomes=['place_failed'] succ=0 failed=0 dropped=1' 와 stderr '결과 바 1번째 = place_failed (배치 실패, place_status=failed_after_release)'. 보존 런 확인: grep -rh 'place_status=\\w*' -o log/m3 | sort | uniq -c 결과 '110 place_status=failed' 만 나옴."
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/hud/harvest_probe.py:259-260 (status_bus.py:223/226/230 return 0)",
+   "what": "status_bus.append 가 실패하면 칸이 붙지 않고 0 을 돌려준다(result 섹션이 없거나 outcomes 가 리스트가 아니거나 예외). _record 는 반환값을 확인하지 않아 '결과 바 0번째 = detach_failed (...)' 줄을 그대로 찍는다. 로그만 보면 칸이 기록된 것처럼 읽힌다. 정상 경로에서 outcomes 를 리스트가 아닌 값으로 publish 하는 곳은 없다.",
+   "repro": "python3 .../hudtest/probe_replay/t4_transparency.py 출력: 'stderr when append fails: ['[harvest_probe] 결과 바 0번째 = detach_failed (분리 실패, execute_detach_and_retreat returned None)']' (앞에서 status_bus.publish('result', outcomes=None) 호출)"
+  }
+ ],
+ "overall": "과제 1~8을 모두 재생했고 must_fix·should_fix 는 없다. 실제 런 순서로 돌렸을 때 결과 바 계측은 기대대로 동작한다.\n\n- **래핑 지점:** 11개가 모두 있고, run() 안에서 self.<이름>(...) 또는 self._tray_place_executor.<이름>(...) 으로 부르므로 인스턴스 속성 래핑이 먹힌다. execute_detach_and_retreat 가 None 을 돌려주는 경로는 후퇴 실패(pick_sequence_executor.py:332, 직전에 hold 래치) 하나뿐이고, run 은 :1037 에서 바로 return 한다.\n- **로그 재생:** 모듈을 흉내 낸 가짜가 아니라 실제 PickSequenceExecutor.run() 에 가짜 의존성만 넣어 재생했다. 20260916T171551 런은 텍스트 로그, jsonl, Kit RELEASE 세 출처의 순서가 모두 [실패, 성공, 실패, 실패, 성공, 성공, 성공, 실패]로 같다. 재생 결과도 outcomes 순서가 같고, placed 4 = succeeded, place_failed 4 = dropped 다.\n- **분리 실패, 게이트 차단, hold 모드:** 분리 실패는 칸 1개이고 그 픽에 배치 칸이 따로 붙지 않는다. GRASP_EMPTY 로 게이트가 막히면 칸이 없다. hold 모드에서 배치가 실패하면 place_failed 칸만 붙고 dropped 는 0 이다.\n- **투명성:** 래핑 뒤에도 원본 반환값과 예외가 그대로이고, 계측 쪽 예외는 원본 호출 경로로 새지 않는다.\n- **stderr 로그:** 칸마다 정확히 한 줄이다.\n- **append 경합:** 32000건이 모두 보존된다.\n- **view 경계:** 모두 정상이다.\n- **bus_merge:** 테스트 한 건이 실패했다. state.run 이 dict 가 아니면 load() 가 예외를 던지는 회귀로, HEAD 는 같은 입력에서 문제가 없다. 다만 정상 기록기(bus_sink)로는 생기지 않는 입력이라 note 로 올렸다. 나머지 note 셋은 판정 의미에 관한 것이다: GRASP_EMPTY 에 후퇴까지 실패하면 호박색 칸이 붙음, failed_after_release 가 빨강으로 칠해짐, append 가 실패해도 '0번째' 로그가 찍힘.\n\n리포 파일은 고치지 않았다. /tmp/harvest_hud_* 6개는 테스트 전후 sha256 과 mtime 이 같다(probe_replay/runtime_before.sha 와 after3.sha). 모든 테스트는 HARVEST_HUD_DIR_RUNTIME 과 HARVEST_HUD_LOG 를 스크래치로 돌려서 썼고, bus_sink.DEFAULT_DIR 이 스크래치인지 assert 로 확인했다.\n\n알릴 것 두 가지:\n1. 같은 스크래치 hudtest/ 를 다른 에이전트(kit_stub.py 와 HUD harness.py 작성자)와 같이 쓰고 있었다. 07:47:10 에 그쪽이 내 harness.py 를 덮어썼고, 07:47:25 에 내가 hudtest/run_all.sh 를 만들면서 그쪽 run_all.sh 를 덮어썼을 가능성이 높다. 그쪽 harness.py docstring 이 run_all.sh 를 참조하는데 원래 내용은 복구할 수 없다. 내 run_all.sh 는 치웠고, 내 파일은 전부 hudtest/probe_replay/ 로 옮겼다(harness 이름은 probe_harness.py). 그쪽 harness.py, kit_stub.py, rt_deferred_* 등은 건드리지 않았다.\n2. git status 에 처음 스냅샷에는 없던 'M strawberry_harvest/scenes/main_scene.usd' 가 떴다. mtime 07:39:23 으로 내 첫 테스트(07:42 이후)보다 이르고, 내 테스트는 USD 를 열지 않는다.",
+ "harness_path": "/tmp/claude-1000/-home-oceanshape-strawberry-grasp-environment/bcc547be-1fe6-4c91-bfff-415b27806c93/scratchpad/hudtest/probe_replay/"
+}
+
+==================== [2]  ====================
+{
+ "tests_run": [
+  {
+   "name": "실행: install() (build_fn 지연·즉시 두 의미 × ko·en 네 조합)",
+   "result": "pass",
+   "detail": "kitless/run_all.sh 로 네 번 돌림. 조합마다 85개 검사, FAIL 0. omni.ui 2.27 바이너리 docstring 을 확인해 보니 build_fn 은 'called once the frame is visible', rebuild() 는 'next drawing cycle' 이다. 그래서 지연 의미가 실제 동작이고, 즉시 의미는 대조용으로 같이 돌렸다. 예외 없이 뜨고 'Viewport display started (HUD lang=ko, labels=42, wrist camera=off)' 가 찍힌다. 두 번째 Run 뒤에도 update 구독은 1개만 살아 있다. uninstall() 은 깨끗하게 끝나고, 파괴된 위젯에 쓰기는 0건이다."
+  },
+  {
+   "name": "a) 버스 파일 없음",
+   "result": "pass",
+   "detail": "main_scene 을 브릿지 _ripe_berry_roots 규칙(Traverse, 부모 /World, 이름에 unripe 없음)으로 따로 세면 타겟 8(ripe_01~08), 비대상 4(unripe_02/04/05/06)다. HUD 숫자 '8'/'4' 와 같고, scene_fruit.classify 가 돌려준 경로 목록과도 같으며 mismatch 는 없다. 칸 8개가 전부 C_SEG_OFF, 범례 0/0/0, '수확 완료' 행 visible=False 다. 로그는 '[hud] scene fruit: target 8 / non-target 4 (main_scene.usd; bridge publish filter)' 한 줄에 appearance override 4/4 한 줄이 붙는다."
+  },
+  {
+   "name": "b) scan 새 런 시작, planner 미동기",
+   "result": "pass",
+   "detail": "planner 파일에 직전 런 started_at(T1-100)과 결과 8개가 있어도 칸은 회색, 범례 0/0/0, 'result bar' 로그 없음. planner started_at=None 인 경우(b2)도 같다."
+  },
+  {
+   "name": "c) 결과를 하나씩 늘림 (place_failed, placed, place_failed, place_failed, placed, placed, placed, place_failed)",
+   "result": "pass",
+   "detail": "8단계 모두 칸 k 가 result_bar.COLOR 색으로 칠해진다(placed 는 C_OK, place_failed 는 C_BAD 와 같은 값). 나머지 칸은 회색이다. 범례는 단계마다 누적값이 맞고 최종 4/4/0 이다. 단계마다 '[hud] result bar k/8: <키>' 가 정확히 한 줄 나오고, 칠하는 동안 rebuild 는 0회다."
+  },
+  {
+   "name": "d) finished=True",
+   "result": "pass",
+   "detail": "total=8 이면 '4 / 8 (50%)' 가 보이고 note 로그는 없다. total=7 이면 '[hud] note: HARVEST DONE total 7 (scan candidates) != scene targets 8 (result bar cells)' 가 한 번만 나오고(다음 틱엔 없음) 텍스트는 '4 / 7 (57%)' 다."
+  },
+  {
+   "name": "e) 씬 타겟 수 변경 (익명 루트 레이어에 main_scene 을 서브레이어로 걸고 ripe_08 SetActive(False), 저장 안 함)",
+   "result": "pass",
+   "detail": "숫자 행이 7/4 가 되고 bar Frame 이 한 번 rebuild(build_count 2→3)돼 7칸이 된다. 칸에는 처음 7개 결과가 칠해지고 범례는 전체를 세서 4/4/0 이다. 넘침 경고 'WARNING: 8 results but only 7 scene targets ...' 는 2틱 동안 한 번만 나온다. 이 틱의 로그는 scene fruit 줄, override 줄, WARNING 줄 세 줄이다. 이어서 stage None 이면 '-' / '-' 에 0칸, get_stage 예외면 'scene fruit count failed' 한 번, main 으로 되돌리면 8칸이 복원된다. USD 레이어 dirty 0, 리포 파일 md5 변화 0."
+  },
+  {
+   "name": "f) outcomes 감소",
+   "result": "pass",
+   "detail": "8개에서 0개로 줄면 'result bar cleared (new run)' 이 한 번 나오고 회색·0 이 된다. 그다음 detach_failed 1개는 호박색, 범례 0/0/1 에 '1/8: detach_failed' 로그다. scan 이 T2 로 새 런을 시작하고 planner 가 T1 에 머물러 있으면 cleared 한 번, 회색, 완료 행 숨김이다. planner 가 T2 와 [] 로 동기되면 추가 로그는 없다."
+  },
+  {
+   "name": "g) labels/manifest.json 없음 → LANG en",
+   "result": "pass",
+   "detail": "labels 폴더 없이 .py 심볼릭 링크만 둔 스크래치 HUD_DIR 로 실행했다. LABEL_IMG={} 이고 LANG=en 이다. a~f 가 모두 통과하고 TARGET, NON-TARGET, PLACED, PLACE FAILED, DETACH FAILED, HARVEST DONE 라벨이 모두 있다. 다만 폭이 넘친다(defects 참조)."
+  },
+  {
+   "name": "h) (정보) scan run.started_at=None + planner 결과 있음",
+   "result": "pass",
+   "detail": "bus_merge 규칙 'scan_started is None' 대로 planner 결과가 표시된다(범례 4/4/0). scan 노드가 첫 런을 시작하기 전 대기 상태에서만 생기는 경우다."
+  },
+  {
+   "name": "i) (정보) 씬 집계가 처음부터 실패하는데 결과가 있음",
+   "result": "pass",
+   "detail": "로그에 None 이 찍힌다: '[hud] result bar 1/None: place_failed', 'WARNING: 3 results but only None scene targets -- the bar shows the first None' (defects 참조)."
+  },
+  {
+   "name": "4) 위젯 트리",
+   "result": "pass",
+   "detail": "_row_result VStack 의 자식 순서는 [Rectangle 구분선, HStack 수확 완료, Frame 결과 바, HStack 범례] 다. 결과 바는 '수확 완료' 행 바로 다음 형제이고 범례가 그 뒤에 온다. 스타일 값도 같다: 단계 바 {h 10, gap 3, radius 2, off (1,1,1,0.12)}, 결과 칸 {h 10, gap 3, radius 2, off (1,1,1,0.12)}. 숫자 행은 노드 행 바로 아래(인덱스 1)다. ko 에서는 count_targets, count_non_targets, final_placed, final_dropped, final_detach_failed, final PNG 를 모두 쓰고 파일도 있다."
+  },
+  {
+   "name": "5) 세로·가로 예산 (스텁 트리 레이아웃 추정, PNG 높이는 manifest 값)",
+   "result": "pass",
+   "detail": "패널 높이: 런 중 484(숨긴 행이 spacing 을 안 먹을 때), 496(먹을 때). 완료 후 491.5. 패널 아래 끝 y 는 516/528, 완료 후 523.5. 그리퍼 창 높이 415.5 → 창 위 끝은 뷰포트 1000 에서 568.5, 960 에서 528.5. 간격은 1000 에서 런 중 52.5/40.5, 완료 45. 960 에서 런 중 12.5/0.5, 완료 5.0. 두 가정 모두 겹치지 않는다. 겹치지 않는 최소 뷰포트 높이는 런 중 947.5–959.5, 완료 955 (HEAD 는 821–833 / 886, 옛 47px PNG 로 900.5). 가로(OpenSans-SemiBold, Kit /app/font/file, 안쪽 폭 408): ko 범례 360.7(한 자리), 398.4(두 자리). 숫자 행 200.8/228.2. 완료 행 '4 / 8 (50%)' 340.7, '12 / 12 (100%)' 399.0 으로 모두 들어간다. 뷰포트 구도 검산 도구를 스크래치 복사본에서 HUD y=0.49 로 돌려도 'UI overlap: none' 이다."
+  },
+  {
+   "name": "6) ASCII 전용",
+   "result": "pass",
+   "detail": "isaac_sim_viewport_display.py 59248 바이트 중 비ASCII 0, 탭 0, CR 0. 실행 중 이 파일이 찍는 [hud]/[wrist_cam] 줄도 전부 ASCII 다. Kit 의 Python 3.11(~/.venv)로 ast.parse 도 통과한다."
+  },
+  {
+   "name": "bus_merge run=null 견고성 (HEAD 대 작업 트리)",
+   "result": "fail",
+   "detail": "kitless/bus_merge_run_null.py 출력: 'HEAD load() ok, scan alive = True' / 'working load() raised AttributeError(\"'NoneType' object has no attribute 'get'\") -> HarvestHUD._on_update returns before drawing anything'"
+  }
+ ],
+ "defects": [
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/isaac_sim_viewport_display.py:676,682 (_row_counts, _row_result 추가)",
+   "what": "패널이 런 중 +126px(357.5→484, 숨긴 행이 spacing 을 먹으면 496), 완료 후 +69px(422.5→491.5) 커졌다. 좌하단 그리퍼 창(415.5px, 아래 여백 16)과의 간격은 뷰포트 1000 에서 40.5~52.5px 로 겹치지 않는다. 960 에서는 런 중 0.5~12.5px, 완료 후 5px 로 거의 붙는다. 뷰포트가 약 956~960px 보다 낮으면 패널 맨 아래인 범례 줄(새 핵심 증거)이 카메라 창 제목 줄에 가린다. 전에는 약 833/901px 까지 괜찮았다. 숨긴 행이 VStack spacing 을 먹는지는 Kit 없이 확정할 수 없어 두 경우를 모두 적었다. 녹화 레이아웃의 실제 뷰포트 높이를 한 번 확인해야 한다.",
+   "repro": "bash kitless/run_all.sh → kitless/out/panel_height.txt(HEAD 대 작업 트리 행별 높이), kitless/out/deferred_ko.json 의 budget.vp1000_*/vp960_*/min_vp_h_no_overlap"
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/hud/bus_merge.py:148-149",
+   "what": "새 same_run 계산 `(scan or {}).get(\"run\", {}).get(\"started_at\")` 은 run 키가 null(dict 가 아닌 값)이면 AttributeError 를 낸다. 그러면 load() 전체가 예외로 끝나고, HarvestHUD._on_update(isaac_sim_viewport_display.py:804-807)가 조용히 return 해서 램프·트리·단계·결과 바가 모두 멈춘다. HEAD 는 isinstance 검사로 그 파일 구역만 건너뛰었다. 이 모듈의 원칙('파싱 실패 파일만 조용히 건너뛴다')이 퇴행한 것이다. 현재 status_bus 는 run 을 항상 dict 로 쓰므로 실제로 걸릴 가능성은 낮다.",
+   "repro": "python3 kitless/bus_merge_run_null.py HEAD → 'load() ok' / python3 kitless/bus_merge_run_null.py working → \"load() raised AttributeError(\\\"'NoneType' object has no attribute 'get'\\\")\""
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/isaac_sim_viewport_display.py:769-777 (+ hud/result_bar.py LABEL_EN)",
+   "what": "영문 폴백(labels/ 가 없거나 HARVEST_HUD_LANG=en)에서 범례 'PLACED n  PLACE FAILED n  DETACH FAILED n' 을 22px OpenSans 로 재면 한 자리 숫자 486px, 두 자리 524px 다. 안쪽 폭 408 을 넘어 패널 오른쪽 밖으로 약 62px 나간다. ko PNG 경로는 361/398px 로 들어간다. 영문 완료 행 '4 / 8 (50%)' 458px 넘침은 이번 변경 전부터 있던 것이다.",
+   "repro": "kitless/out/deferred_en.txt budget: legend_w_1digit 486.2, legend_w_2digit 523.9, inner_w 408"
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/isaac_sim_viewport_display.py:901,913,921",
+   "what": "씬 집계가 한 번도 성공하지 못해 _n_cells 가 None 인 채로 결과가 들어오면, 로그 문구에 None 이 그대로 찍힌다: '[hud] result bar 1/None: place_failed', '[hud] WARNING: 3 results but only None scene targets -- the legend counts all, the bar shows the first None'. 화면(0칸, 범례 3개 셈)은 맞고 문구만 어색하다.",
+   "repro": "kitless/harness.py 시나리오 i (get_stage 가 RuntimeError 를 내는 상태로 exec 후 scan/planner T3 + 결과 3개) → kitless/out/deferred_ko.txt 205행"
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/isaac_sim_viewport_display.py:882-891",
+   "what": "'변경마다 로그 한 줄' 요구와 다르게 타겟 수가 바뀌거나 stage 가 다시 열릴 때마다 두 줄이 찍힌다: 'scene fruit: target N / non-target M' 에 'non-target appearance override: k/M ...' 가 매번 따라온다. 결과가 칸 수보다 많으면 WARNING 이 붙어 세 줄이다. 진단 목적이면 둬도 되지만 요구 문구와는 다르다.",
+   "repro": "kitless/out/deferred_ko.json e_log_lines (시나리오 e: 세 줄), e5·rerun 로그에도 override 줄이 반복됨"
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/isaac_sim_viewport_display.py:725-731 대 767,784-795",
+   "what": "칸 스타일(높이 10, 간격 3, 모서리 2, 꺼진 색 C_SEG_OFF)은 단계 바와 같다고 확인했다. 가로 범위는 다르다. 단계 바는 HEAD_W 스페이서 뒤 x 60~408(348px, 11칸 약 28.9px), 결과 바는 x 0~408(8칸 약 48.4px)이라 두 바의 왼쪽 끝이 맞지 않는다. 코드 주석(:754-755)상 의도한 것이다. '같은 스타일' 에 왼쪽 정렬까지 포함되는지는 사용자가 판단할 일이다.",
+   "repro": "kitless/out/deferred_ko.txt '4 (info): phase bar row has a HEAD_W spacer, result bar does not  phase bar x0=60 w=348 / result bar x0=0 w=408'"
+  },
+  {
+   "severity": "note",
+   "where": "strawberry_harvest/scripts/scene_tools/check_camera_framing.py:37",
+   "what": "UI[\"HUD\"] 의 y 상한 0.43(1080 기준 464px)은 이번 변경 뒤 맞지 않는다. 패널 아래 끝이 516~528px 로 1080 의 약 0.48~0.49 다. 스크래치 복사본에서 0.49 로 돌려도 보드 x 가 31.2% 부터라 HUD(x≤24%)와 겹치지 않는다('UI overlap: none'). 현재 구도에는 영향이 없고 상수만 갱신이 필요하다.",
+   "repro": "python3 kitless/framing/check_camera_framing_hud049.py → '[extension.toml] ... frame: all in   UI overlap: none'"
+  }
+ ],
+ "overall": "Isaac 없이 isaac_sim_viewport_display.py 를 실제로 exec 해서 확인했습니다. omni.* 는 스텁으로 바꾸고, pxr 과 main_scene.usd 는 진짜를 썼습니다. 요구한 동작은 모두 통과했습니다. build_fn 지연·즉시 두 의미 × ko·en 네 조합에서 조합마다 85개 검사, FAIL 0 입니다.\n\n- **숫자 행 (a, e):** 씬에서 센 '타겟 8 / 비대상 4' 가 브릿지 규칙으로 따로 센 값과 같습니다. 과실 하나를 빼면 7/4 로 따라가고, stage 가 없으면 '-' 가 뜹니다.\n- **칸 수·색·범례 (a, c, e):** 칸 수는 씬 타겟 수를 따르고, 바뀌면 rebuild 가 한 번 일어납니다. 칸 색은 결과가 들어온 순서대로 칠해지고, 범례는 0 일 때도 보이며 칸 수보다 많은 결과도 전부 셉니다. 넘침 경고는 한 번만 나옵니다.\n- **로그 (c, f):** 결과마다 한 줄, 결과가 줄면 'cleared' 한 줄입니다.\n- **완료 행 (d):** '4 / 8 (50%)' 로 보이고, total 이 다를 때만 note 가 한 번 나옵니다.\n- **bus_merge 동기 규칙 (b, f4):** planner 가 이전 런이거나 동기 전이면 칸은 회색, 범례는 0 입니다.\n- **배치 (4):** 결과 바는 '수확 완료' 행 바로 다음 형제이고, 칸 스타일은 단계 바와 같습니다.\n- **ASCII (6):** 파일 전체가 ASCII 전용입니다.\n- **재실행·리포:** 두 번 Run 해도 표시는 하나이고, 리포 파일(md5)과 USD 레이어 dirty 는 변하지 않았습니다.\n\nmust_fix·should_fix 는 없고, note 가 7건입니다.\n\n- **세로 여유:** 뷰포트 960 에서 런 중 그리퍼 창과의 간격이 0.5~12.5px 입니다. 1000 에서는 40px 이상입니다. 뷰포트가 약 956~960px 보다 낮으면 범례 줄이 카메라 창에 가립니다. 녹화 레이아웃의 실제 뷰포트 높이를 한 번 확인하세요.\n- **bus_merge 견고성 퇴행:** run 이 null 인 스냅샷 하나에 HUD 전체가 멈춥니다. HEAD 는 그 파일만 건너뛰었습니다. 현재 노드들은 run 을 항상 dict 로 쓰므로 실제로 걸릴 가능성은 낮습니다.\n- **영문 폴백 범례 넘침:** 486px 로 안쪽 폭 408 을 넘습니다.\n- **로그 문구의 None:** 씬 집계가 한 번도 성공하지 못한 상태에서 결과가 오면 '1/None' 이 찍힙니다.\n- **로그 줄 수:** 씬 변경마다 override 줄이 붙어 두 줄 이상 나옵니다.\n- **바 왼쪽 정렬:** 결과 바와 단계 바의 왼쪽 끝이 다르고, 코드 주석상 의도한 것입니다.\n- **구도 검산 상수:** check_camera_framing.py 의 HUD 높이 0.43 이 이제 맞지 않습니다. 0.49 로 돌려도 겹침은 없습니다.\n\nKit 없이 확정하지 못한 것은 두 가지입니다: 숨긴 행이 VStack spacing 을 먹는지, Label 의 실제 높이. 세로 예산은 두 경우를 모두 적었습니다. ko 에서는 PNG 높이가 각 행의 높이를 정하므로 Label 높이는 결과에 영향이 없습니다.\n\n하네스는 스크래치 hudtest/kitless/ 에 있습니다. 다른 서브에이전트가 hudtest/ 를 같이 쓰고 있어서 이 하위 폴더로 옮겼습니다. 옮기는 중에 hudtest/__pycache__/harness.cpython-310.pyc 를 지웠는데, 제 하네스는 바이트코드를 만들지 않도록 돌렸으니 다른 에이전트가 만든 캐시였을 수 있습니다. 캐시라 다시 생기지만, 같은 폴더를 쓰는 에이전트에 알려 주세요.\n\n- kitless/run_all.sh: 네 조합과 패널 높이 비교를 한 번에 돌립니다.\n- kitless/harness.py: 시나리오 a~i, 4, 5, 6 을 돌립니다.\n- kitless/kit_stub.py: omni.ui·kit·usd·viewport 스텁과 레이아웃 추정 코드입니다.\n- kitless/measure_panel.py: HEAD 대 작업 트리 패널 높이를 비교합니다.\n- kitless/bus_merge_run_null.py: run=null 재현 스크립트입니다.\n- kitless/framing/check_camera_framing_hud049.py: HUD 높이 0.49 로 바꾼 구도 검산 복사본입니다.\n- 결과는 kitless/out/*.txt, *.json 에 있습니다.\n\n런타임 경로는 HARVEST_HUD_DIR_RUNTIME, HARVEST_HUD_LOG 를 kitless/rt_* 로 돌렸고, /tmp/harvest_hud_* 에는 쓰지 않았습니다.",
+ "harness_path": "/tmp/claude-1000/-home-oceanshape-strawberry-grasp-environment/bcc547be-1fe6-4c91-bfff-415b27806c93/scratchpad/hudtest/kitless/run_all.sh"
+}

@@ -71,7 +71,7 @@ strawberry_grasp_environment/
 | `curobo_planner_node` | `src/strawberry_motion/scripts/` | cuRobo 기반 pre-approach 계획 + pick 시퀀스 실행 |
 | `fake_vision_node` | `src/strawberry_sim_core/` | Isaac Sim 딸기 좌표를 실기 비전과 동일 형식으로 발행 |
 | `sim_executor_bridge_node` | `src/strawberry_sim_core/` | 두산 motion 서비스 모방 → `/joint_command` 변환 (가상 제어기) |
-| `isaac_sim_viewport_display.py` | `strawberry_harvest/scripts/` | 뷰포트 표시 — 상태 HUD 패널(노드 램프·단계·쿼드트리 순회 상태·완료 결과 `배치 n · 낙하 m`) + 보드 작업 영역 하이라이트 + 좌하단 그리퍼 카메라 창(D455 컬러 렌더, 인식 없음). 읽기 전용, 파이프라인에 개입하지 않음 (09-16 `isaac_sim_hud.py` 에서 이름 변경) |
+| `isaac_sim_viewport_display.py` | `strawberry_harvest/scripts/` | 뷰포트 표시 — 상태 HUD 패널(노드 램프·단계·쿼드트리 순회 상태·타겟·비대상 수·결과 바 `배치 성공 n · 배치 실패 m · 분리 실패 k`) + 보드 작업 영역 하이라이트 + 좌하단 그리퍼 카메라 창(D455 컬러 렌더, 인식 없음). 읽기 전용, 파이프라인에 개입하지 않음 (09-16 `isaac_sim_hud.py` 에서 이름 변경) |
 | Script Editor 브릿지 | `strawberry_harvest/scripts/` | Isaac Sim 내부: 딸기 좌표 발행 + 관절 명령 주입 |
 
 > 노드 실행 방법 및 ROS 2 인터페이스 상세: [`docs/pipeline_overview.md`](docs/pipeline_overview.md)
@@ -100,6 +100,7 @@ strawberry_grasp_environment/
 |---|---|---|
 | [`PROJECT_GOAL.md`](PROJECT_GOAL.md) | **원안 시퀀스** | 최종 목표, 작업 단계, §1-2 에 원래 설계했던 수확 6단계 |
 | [`PLANNER_CHANGES.md`](PLANNER_CHANGES.md) | **변경 이력** | 플래너·제어기·씬 수정 로그. 왜 그 값이 됐는지의 근거 |
+| [`docs/result_display_audit.md`](docs/result_display_audit.md) | **배치 실패 표시·용어 (09-17)** | 배치 실패 4건 로그 조사, 분리/배치 실패 구분 가능성, '낙하' 표기와 용어 규칙, HUD 결과 바·타겟 수, 안 익은 딸기 색 오버라이드, 검증 |
 | [`docs/pipeline_overview.md`](docs/pipeline_overview.md) | **노드/토픽 구조** | 데이터 흐름, 노드 역할, ROS 인터페이스 |
 | [`docs/config_reference.md`](docs/config_reference.md) | **설정 파일** | 각 YAML 이 무엇이고 어느 노드가 읽는가 (값 자체는 `parameters.md`) |
 | [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) | 이력서용 요약 | 스냅샷. 상세는 위 문서들이 기준 |

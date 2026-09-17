@@ -1,0 +1,213 @@
+# 안 익은 딸기 색 오버라이드 — 구현 에이전트 보고 + 반박 검증 2건
+# 출처: 2026-09-17 세션 워크플로 wf_0de64051-599 journal (에이전트 3개). 이 파일은 보고 원문 보존본이며, 하네스 스크립트 자체는 세션 스크래치에 있어 남지 않았다.
+
+
+
+==================== [1]  ====================
+안 익은 딸기 4개의 색을 연한 녹백색(#B4D69A)으로 덮는 레이어를 새로 만들었고, 생성기가 끝까지 돌아 종료 코드 0으로 끝났습니다. 저장한 파일을 새로 열어 한 자체 검증과 회귀 검사도 전부 통과했고, 애셋 파일 31개의 md5는 작업 전후가 같습니다. Isaac 화면에서 실제로 그 색으로 보이는지는 오프라인에서 확인할 수 없어서, 씬을 다시 불러와 봐야 합니다.
+
+## 만든 파일, 바꾼 파일
+1. **새 파일** `/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/scripts/scene_tools/gen_unripe_appearance.py` (생성기)
+   - 안 익은 과실은 브릿지 `_ripe_berry_roots`와 같은 규칙으로 /World 직계 자식에서 찾습니다. 개수, 과실 이름, 머티리얼·셰이더 이름은 코드에 없습니다.
+   - 메시마다 `ComputeBoundMaterial()`로 머티리얼을 찾고(allPurpose와 full 둘 다, materialBind 서브셋 포함), surface 셰이더가 UsdPreviewSurface인지 확인한 뒤 `inputs:diffuseColor`를 대상으로 삼습니다.
+   - 명세에 없던 방어 두 가지를 넣었습니다.
+     - 머티리얼에 MDL surface 출력이 따로 있으면 RTX가 이 오버라이드를 쓰지 않으므로 실패로 처리합니다.
+     - `appearance_layer.usd`가 subLayers 맨 앞이 아니면 경고 한 줄을 찍습니다.
+   - 안 익은 과실 하나라도 대상을 못 찾으면 과실마다 경고 한 줄을 찍고, 레이어를 저장하지 않은 채 종료 코드 1로 끝냅니다.
+   - 저장 후 검증은 이렇게 합니다.
+     - 디스크의 레이어 파일을 따로 열어 봅니다: usda 텍스트인지, `over`만 있는지, 속성은 diffuseColor 4개뿐인지.
+     - 씬을 새로 열어 봅니다: 안 익은 과실은 값을 내는 속성이 입력 자신이고 값이 색과 같으며, 다른 입력은 작업 전 스냅샷과 같고, 노말은 여전히 텍스처(UsdUVTexture)에 연결돼 있는지. 익은 과실 8개는 diffuseColor가 그대로 텍스처에 연결돼 있는지.
+   - 색 상수는 `UNRIPE_SRGB = 0xB4D69A` 하나이고, linear 값은 코드가 계산합니다.
+2. **새 파일(생성물)** `/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/scenes/layers/appearance_layer.usd` (usda 텍스트)
+   - 레이어 doc에 목적과 "생성물 — 손으로 고치지 말고 scripts/scene_tools/gen_unripe_appearance.py 를 다시 돌린다"를 적었습니다.
+   - 내용은 `over` 계층 4개뿐이고, 각각 두 줄입니다: `color3f inputs:diffuseColor = (0.45641103, 0.67244315, 0.3231432)` 와 `color3f inputs:diffuseColor.connect = None`.
+   - 두 번 돌려도 파일 md5가 같았습니다(aa8da9db…).
+3. **수정** `/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/scenes/main_scene.usd` (+2줄/−1줄, 텍스트로 직접 편집)
+   - subLayers 맨 앞에 `@./layers/appearance_layer.usd@,` 한 줄을 추가했습니다.
+   - doc 문자열 끝에 `. 외형(색)은 layers/appearance_layer.usd(생성물)`을 붙였습니다.
+   - 그 밖의 줄은 그대로입니다.
+
+## 생성기 실행 출력 전문 (최종 실행, 종료 코드 0)
+```
+Warning: in _ReportErrors at line 3316 of /opt/USD/pxr/usd/usd/stage.cpp -- In </World/robot_assembly/world/visuals>: Unresolved reference prim path @/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/assets/robot/doosan_e0509_rh_p12_rn/configuration/robot_physics.usd@</visuals/world> introduced by @/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/assets/robot/doosan_e0509_rh_p12_rn/configuration/robot_base.usd@</strawberry_grasp_robot/world/visuals> (instantiating stage on stage @/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/scenes/main_scene.usd@ <0x5c65eaf8a4f0>)
+[appearance] 과실: 타겟 8개 (텍스처 유지), 비대상 4개 (덮음: strawberry_unripe_02, strawberry_unripe_04, strawberry_unripe_05, strawberry_unripe_06)
+[appearance] 색 #B4D69A: L* 81.9 C* 34.0, ΔE76 순백 38.5, 회백색(228,228,222) 32.3, 익은 텍스처 frut333.png sRGB 평균 58.8
+[appearance] /World/strawberry_unripe_02/materials/frut_2333_Mat/Principled_BSDF diffuseColor <- #B4D69A linear(0.4564, 0.6724, 0.3231) (texture connection blocked)
+[appearance] /World/strawberry_unripe_04/materials/frut_2333_Mat/Principled_BSDF diffuseColor <- #B4D69A linear(0.4564, 0.6724, 0.3231) (texture connection blocked)
+[appearance] /World/strawberry_unripe_05/materials/frut_2333_Mat/Principled_BSDF diffuseColor <- #B4D69A linear(0.4564, 0.6724, 0.3231) (texture connection blocked)
+[appearance] /World/strawberry_unripe_06/materials/frut_2333_Mat/Principled_BSDF diffuseColor <- #B4D69A linear(0.4564, 0.6724, 0.3231) (texture connection blocked)
+Warning: in _ReportErrors at line 3316 of /opt/USD/pxr/usd/usd/stage.cpp -- In </World/robot_assembly/world/visuals>: Unresolved reference prim path @/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/assets/robot/doosan_e0509_rh_p12_rn/configuration/robot_physics.usd@</visuals/world> introduced by @/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/assets/robot/doosan_e0509_rh_p12_rn/configuration/robot_base.usd@</strawberry_grasp_robot/world/visuals> (instantiating stage on stage @/home/oceanshape/strawberry_grasp_environment/strawberry_harvest/scenes/main_scene.usd@ <0x5c65eaf8a4f0>)
+[appearance] 검증 OK (저장본 재오픈): 비대상 셰이더 4개 diffuseColor = 상수(값 생산 = 입력 자신), 노말 텍스처 연결 4개 유지, 다른 입력 불변 / 타겟 셰이더 8개 diffuseColor 텍스처 연결 유지 / 레이어 스펙 = over + diffuseColor 4개
+[appearance] 요약: 비대상 과실 4개 · 셰이더 4개 diffuseColor <- #B4D69A, 타겟 과실 8개 불변 -> strawberry_harvest/scenes/layers/appearance_layer.usd (씬 재로드 뒤 보인다)
+```
+Warning 줄은 원래부터 있던 로봇 애셋 참조 경고입니다. 색 수치(C* 34, 순백 ΔE 39, 회백색 ΔE 32, 익은 과실 텍스처 평균 ΔE 59)는 명세 값과 일치합니다.
+
+## 검증 결과
+**실패 경로 시험.** 씬 사본(scratchpad, 애셋은 심볼릭 링크)에서 했고, 모두 예상대로였습니다.
+- **머티리얼 없는 `strawberry_unripe_99` 추가:** 경고 한 줄 후 종료 코드 1이 났고, 레이어 md5는 그대로였습니다(저장 안 함).
+- **variant가 ripe인 `strawberry_unripe_98` 추가:** 경고 한 줄 후 정상 적용됐습니다(셰이더 5개).
+- **subLayers 순서 바꿈:** "맨 앞이 아니다" 경고가 나왔습니다.
+
+**검증 함수가 잘못된 레이어를 잡는지 확인.**
+- 올바른 레이어: 오류 0건.
+- `connect = None` 줄을 뺀 레이어: 5건(값을 내는 속성이 `Image_Texture.outputs:rgb`).
+- normal을 건드린 레이어: 3건.
+- 값이 틀린 레이어: 1건.
+- 익은 과실을 덮은 레이어: 3건.
+
+**HUD 쪽 확인(읽기 전용).** 다른 세션이 작업 중인 미추적 파일 `hud/scene_fruit.py`로 확인했습니다. `classify`는 타겟 8 / 비대상 4 / 불일치 0이고, `diffuse_is_constant`는 안 익은 과실 4개가 전부 True, 익은 과실 8개가 전부 False였습니다.
+
+## 회귀 결과
+- **`python3 check_params.py`:** 종료 코드 0, "전부 정합"입니다. 작업 전후 출력이 같습니다.
+- **`verify_vines.py`, `verify_egg_carton.py`:** 둘 다 코드상 읽기 전용입니다(Stage.Open으로 열고, egg 쪽은 run_nodes.sh를 읽기만 함). 결과는 각각 ✅10 ❌0, ✅27 ❌0이고 종료 코드 0이며, 작업 전후 출력이 같습니다.
+- **`git diff --stat`:** assets, layout, physics, lighting, lab_environment 모두 변경 0건입니다. 네 파일은 md5로도 같습니다.
+- **`strawberry_harvest/assets` md5 31개:** 작업 전후 동일합니다.
+- **작업 트리의 다른 변경:** PROJECT_SUMMARY.md, README.md, portfolio/*.md, hud/*, isaac_sim_viewport_display.py 등이 바뀌어 있지만 제가 한 것이 아닙니다. 병행 세션의 작업으로 보이고, 저는 .md 파일을 고치지 않았습니다.
+
+**다른 스크립트가 main_scene이나 appearance_layer를 쓰는지 (코드로 확인, 실행하지 않음)**
+- **`gen_random_layout.py`:** layout_layer.usd와 physics_layer.usd를 정규식으로 다시 쓰고, `log/m3/random/layouts/*.json`만 씁니다. `--snapshot-base`/`--restore`도 이 두 파일의 좌표를 JSON으로 보존하고 되돌리는 것뿐이라 영향이 없습니다.
+- **`isaac_batch_orchestrator.py`:** `open_stage(main_scene.usd)`로 재로드만 하고, 쓰는 것은 `/tmp/harvest_batch/isaac_state.json`뿐입니다. 저장하지 않습니다. 오히려 런마다 재로드하므로 배치 런에서는 새 색이 자동으로 반영됩니다.
+- **`run_batch.sh`:** gen_random_layout `--apply`/`--restore`를 부르고, request.json과 로그 복사만 합니다. 영향이 없습니다.
+- **그 밖에:** 스크립트, Kit 확장, 브릿지를 통틀어 subLayers 순서에 기대거나 스테이지를 저장하는 코드는 없습니다.
+
+## 남는 한계
+- **RTX 화면 반영:** 오프라인에서 확인할 수 없습니다. 판단은 pxr 합성 결과 기준입니다. 씬을 다시 불러와야 보이고, 이미 열려 있는 Kit 스테이지에는 반영되지 않습니다. 재로드 뒤에도 텍스처 색이 보이면, Kit의 UsdPreviewSurface 변환이 빈 연결(`connect = None`)을 무시하는 경우를 의심해야 합니다.
+- **꼭지(꽃받침) 색:** 과실은 메시 하나에 텍스처 하나를 씁니다. 안 익은 과실 텍스처의 약 19%가 녹색 계열인데(꽃받침 영역으로 추정), 이 부분도 녹백색 한 색이 됩니다. 노말과 러프니스 텍스처는 그대로라 요철과 광택은 남습니다.
+- **ΔE 수치의 의미:** 텍스처와 sRGB 공간에서 잰 값입니다. 조명과 톤매핑을 거친 실제 렌더 화면의 색차가 아닙니다. "익은 과실 텍스처 평균"도 UV가 쓰지 않는 영역까지 포함한 파일 전체 평균입니다.
+- **색을 바꾸려면:** 생성기의 `UNRIPE_SRGB` hex 하나를 고치고 다시 돌리면 됩니다. 과실이 추가되거나 이름이 바뀌었을 때도 다시 돌리면 됩니다.
+
+==================== [2]  ====================
+{
+ "checks": [
+  {
+   "item": "Composition, 4 unripe fruits: bound material, then surface shader, then diffuseColor",
+   "verdict": "pass",
+   "detail": "I wrote my own script and opened a fresh Usd.Stage.Open(main_scene.usd). Fruits were collected by rule, with no names in code: direct children of /World, name contains 'strawberry' but not 'robot', 'unripe' means non-target. That gives 12 fruits, 4 unripe. Each fruit has one gprim, /World/<fruit>/geo/fruit/mesh. For each mesh I called ComputeBoundMaterial with the allPurpose, full and preview purposes; all three give the same result. The surface shader is Principled_BSDF (id UsdPreviewSurface), and ComputeSurfaceSource('mdl') returns that same shader. On all 4 unripe fruits: diffuseColor GetValueProducingAttributes is the input itself, GetConnections is [], and the value is (0.45641103, 0.67244315, 0.3231432). That matches the linear value I computed from #B4D69A myself. Property stack: appearance_layer.usd (default = color, connectionPathList explicit with 0 items) sits above strawberry_unripe.usd (explicit connection to Image_Texture.outputs:rgb)."
+  },
+  {
+   "item": "Composition, 8 ripe fruits: diffuseColor texture connection kept",
+   "verdict": "pass",
+   "detail": "On all 8 ripe fruits (frut333_Mat/Principled_BSDF) the value comes from Image_Texture.outputs:rgb, with exactly one connection and no constant value. The results are the same for all three purposes (allPurpose, full, preview). The bridge rule written like _ripe_berry_roots (Traverse, direct /World child, Xformable) also gives 8 fruits. No prim named 'strawberry' exists anywhere except as a direct child of /World."
+  },
+  {
+   "item": "Normal, roughness and other inputs unchanged",
+   "verdict": "pass",
+   "detail": "On the 4 unripe fruits, normal still comes from Image_Texture_002.outputs:rgb and roughness from Image_Texture_001.outputs:r. clearcoat, emissive, ior, metallic, opacity and specular all come from the shader's own values. I also compared the whole stage (LoadAll, including the payload) with appearance_layer loaded against the same stage with it muted. Across 5166 keys (prim metadata, every attribute's value and connections, every relationship target), only 4 differ: the diffuseColor input of each of the 4 unripe shaders."
+  },
+  {
+   "item": "appearance_layer.usd text and specs: explicit connect = None, no unneeded opinions",
+   "verdict": "pass",
+   "detail": "The text contains `color3f inputs:diffuseColor.connect = None` 4 times, each next to its value line. At the Sdf level: every prim spec is `over` with an empty typeName and only the 'specifier' info key. There are 4 attribute specs, all inputs:diffuseColor (custom=False, connectionPaths explicit with 0 items). No relationships, no xform, physics or visibility, no variant sets. Layer-level metadata is documentation, metersPerUnit=1 and upAxis=Z. That is layer metadata, not a prim opinion, and it matches the format of layout, physics and lighting. The doc contains the purpose and the 'generated file — rerun the script' text."
+  },
+  {
+   "item": "subLayers order and the main_scene.usd diff",
+   "verdict": "pass",
+   "detail": "subLayers = [./layers/appearance_layer.usd, layout, physics, lighting], and the stack is session > main_scene > appearance > layout > physics > lighting. git diff --numstat shows main_scene.usd at 2 added, 1 removed, in one hunk: the subLayers line added, and '. 외형(색)은 layers/appearance_layer.usd(생성물)' appended to the doc string. No other lines changed."
+  },
+  {
+   "item": "Idempotency (rerun, diff against a scratch backup)",
+   "verdict": "pass",
+   "detail": "I copied appearance_layer.usd to scratch and ran the generator once more; it exited 0 and printed the same log as the report. diff showed IDENTICAL; md5 aa8da9dbb8515587024483d5ec0fe274 before and after. I also deleted the layer in a scratch copy and ran from nothing: the empty layer was created, the overrides applied, and the result was byte-identical to the repo file."
+  },
+  {
+   "item": "Generator writes no file other than appearance_layer (code check plus md5 of the whole repo)",
+   "verdict": "pass",
+   "detail": "In the code the only write calls are Sdf.Layer.CreateNew(LAYER).Save() (only when the file is missing) and layer.Save() on the layer from FindOrOpen(LAYER). Nothing saves main_scene or any other layer, and Stage.Open, OpenAsAnonymous and Reload do not write. I took md5 of all 10489 files (excluding .git) before and after the rerun: the diff was empty. find -newer turned up only appearance_layer.usd (mtime updated, content unchanged). main_scene.usd mtime did not change. After the scratch tests, a third md5 pass of the whole repo still showed no change."
+  },
+  {
+   "item": "Failure paths and no hardcoding (scratch copy, assets symlinked)",
+   "verdict": "pass",
+   "detail": "(A) With the subLayers line removed, the generator printed the guidance message and exited 1; md5 of main_scene and the layer did not change. (C) After adding a fruit named 'Extra_StrawBerry_UNRIPE_zz' (mixed case) it covered 5 fruits and 5 shaders, wrote 5 connect = None lines, and exited 0 with verification OK. So nothing depends on fruit count or names."
+  },
+  {
+   "item": "Unripe color actually shows in the RTX viewport and is distinguishable at slide size",
+   "verdict": "unverifiable",
+   "detail": "It cannot be checked offline with pxr. It depends on Kit's UsdPreviewSurface translation honoring the composed empty connection, and it needs a scene reload. The diffuse Image_Texture node is still in the material network with nothing connected to it. That is harmless in USD, but whether RTX ignores it cannot be confirmed offline."
+  }
+ ],
+ "must_fix": [],
+ "overall": "I found no spec violations in USD composition correctness. My own script, on a freshly opened stage, found by rule 4 unripe fruits whose diffuseColor is the constant #B4D69A (the input itself produces the value, 0 connections), 8 ripe fruits still connected to their texture, and normal and roughness still on their textures. Muting only appearance_layer changes 4 of 5166 keys, and those 4 are the diffuseColor inputs. The layer contains only overs plus explicit connect = None. subLayers has it first. The main_scene.usd diff is 2 added / 1 removed. A rerun produced a byte-identical file, and md5 of the whole repo showed nothing else was written. The two remaining risks cannot be checked offline: whether Kit/RTX honors the explicit empty connection, and whether the color is distinguishable once rendered. Reloading the scene and looking at the viewport is still required."
+}
+
+==================== [3]  ====================
+{
+ "checks": [
+  {
+   "item": "No changes to imported assets (strawberry_harvest/assets/**) or to the layout/physics/lighting/lab_environment layers",
+   "verdict": "pass",
+   "detail": "All 31 asset files are git-tracked, and `git status --porcelain --ignored` and `git diff --stat` show nothing under assets, scenes/layers (other than the new untracked appearance_layer.usd) or lab_environment.usd. Git being clean against HEAD is stronger evidence than the implementer's before/after md5 comparison. My own md5 of assets+scenes (38 files) was identical before and after this review, including after running the verify scripts."
+  },
+  {
+   "item": "main_scene.usd diff is only the subLayers line and the doc phrase",
+   "verdict": "pass",
+   "detail": "`git diff` shows 2 lines added, 1 removed: `@./layers/appearance_layer.usd@,` first in subLayers, and `. 외형(색)은 layers/appearance_layer.usd(생성물)` appended to the doc string. `git diff --check` finds no whitespace problems. The file header's upAxis, metersPerUnit and the rest are unchanged."
+  },
+  {
+   "item": "Relative sublayer path resolves (./layers/... from main_scene)",
+   "verdict": "pass",
+   "detail": "pxr: Sdf.ComputeAssetPathRelativeToLayer gives /home/oceanshape/strawberry_grasp_environment/strawberry_harvest/scenes/layers/appearance_layer.usd (file exists). The layer stack is [session, main_scene, appearance, layout, physics, lighting]. The path has the same form as the existing ./layers/layout_layer.usd, which Isaac already loads. Kit (OmniUsdResolver) itself was not run."
+  },
+  {
+   "item": "Composed result: unripe diffuse is constant, ripe keeps its texture, normal/roughness untouched",
+   "verdict": "pass",
+   "detail": "Independent pxr probe: for the 4 unripe fruit, GetValueProducingAttributes = Principled_BSDF.inputs:diffuseColor itself, value (0.45641103, 0.67244315, 0.3231432), strongest spec appearance_layer.usd with connect=[] above the strawberry_unripe.usd connection. Normal is still Image_Texture_002.outputs:rgb and roughness still Image_Texture_001.r. All 8 ripe fruit keep diffuseColor connected to Image_Texture.outputs:rgb. No instancing. Each material has only a 'surface' output. displayColor is unset."
+  },
+  {
+   "item": "No hardcoded fruit names, counts, or material/shader names in the generator",
+   "verdict": "pass",
+   "detail": "Code search found only rule strings ('strawberry', 'robot', 'unripe'), the variant name 'ripeness' and input/shader-id tokens given in the spec (diffuseColor, normal, UsdPreviewSurface, UsdUVTexture). There are no fruit, material or shader names. Scratch test: renaming strawberry_unripe_02 to strawberry_UNRIPE_77 was detected automatically and the layer was rebuilt under the new name. Adding a material-less strawberry_unripe_99 raised the non-target count to 5, printed a one-line warning and exited 1 without saving. The rule matches the bridge `_ripe_berry_roots` (lines 293-302), including the `IsA(UsdGeom.Xformable)` check."
+  },
+  {
+   "item": "Color constant is a single hex and the sRGB-to-linear conversion is correct",
+   "verdict": "pass",
+   "detail": "The only override constant is UNRIPE_SRGB = 0xB4D69A, converted by srgb_to_linear using the IEC 61966-2-1 piecewise EOTF (0.04045 threshold, /12.92, ((c+0.055)/1.055)^2.4). My independent numpy calculation gives linear (0.45641102, 0.67244316, 0.32314321), which matches the layer's float32 values to 1e-7. REF_WHITE/REF_GRAY_WHITE are reference colors for the log only. Both asset diffuse textures have sourceColorSpace = sRGB, so a linear constant is consistent with them."
+  },
+  {
+   "item": "Color meets the requirement (light greenish-white, not white, distinct from ripe) — CIELAB recomputed",
+   "verdict": "pass",
+   "detail": "Checked with both skimage and my own code: L* 81.9, C* 34.0, hue 130°. ΔE76/ΔE2000: pure white 38.5/23.8, gray-white (228,228,222) 32.3/19.4, ripe texture sRGB whole-file mean 58.8/43.9, ripe mean over the UV-used area only (52.6% of the texture) 60.4/44.0. With simulated deuteranopia/protanopia (Machado), ΔE2000 vs ripe is 24.9/31.2 and vs gray-white 14.7/16.2, so the colors still separate. I projected the real mesh with texture sampled at the UVs, downsampled to 32x32 and viewed it: the override reads as a clearly pastel green, distinct from the red ripe fruit and from the white reference. Limitation: this is a flat-shaded CPU projection, not an RTX render, so lighting and tone mapping are not included (scratchpad thumb32_compare.png)."
+  },
+  {
+   "item": "One log line per change",
+   "verdict": "pass",
+   "detail": "Each shader written gets one line `[appearance] <shader path> diffuseColor <- #B4D69A linear(0.4564, 0.6724, 0.3231) (texture connection blocked)`, followed by a verification line and a summary line. My scratch rerun printed the same lines as the report."
+  },
+  {
+   "item": "Only appearance_layer is saved; reruns are identical; failure paths",
+   "verdict": "pass",
+   "detail": "The only Save calls are ensure_layer_file (creating the appearance layer) and layer.Save(). Scratch copies (assets symlinked): (A) plain rerun exits 0 with md5 aa8da9db… identical to the repo layer; (C) with the layer file deleted, an empty layer is created first and the result is identical; (B) with the subLayers line removed, the guidance message prints, exit 1, and main_scene and the layer are unchanged; (D) a fruit without a material exits 1 and the layer is unchanged. The extra MDL guard also really works: in pxr 0.26.5, ComputeSurfaceSource(\"mdl\") returns the mdl:surface shader."
+  },
+  {
+   "item": "check_params.py exit code 0",
+   "verdict": "pass",
+   "detail": "Rerun: exit=0, prints \"전부 정합 (docs/parameters.md 기준)\"."
+  },
+  {
+   "item": "verify_vines.py / verify_egg_carton.py are read-only and pass",
+   "verdict": "pass",
+   "detail": "The only file access in the code is reading run_nodes.sh. Ran both: vines exit 0 (\"T3 검증 통과\"), egg exit 0 (\"T4-3 검증 통과\"). md5 of assets+scenes unchanged afterwards."
+  },
+  {
+   "item": "gen_random_layout --apply/--restore/--snapshot-base cannot overwrite main_scene or defeat the override",
+   "verdict": "pass",
+   "detail": "Code reading: it only writes LAYOUT and PHYSICS (translate / localPos0 regex substitution) and the JSON files in log/m3/random/layouts. It never touches main_scene, subLayers, fruit names or variants, so the fruit paths the override points at stay valid. Its FRUITS list is hardcoded, but that is existing code outside this change."
+  },
+  {
+   "item": "isaac_batch_orchestrator / run_batch.sh load the new sublayer",
+   "verdict": "pass",
+   "detail": "The orchestrator calls self.ctx.open_stage(SCENE = strawberry_harvest/scenes/main_scene.usd) directly and writes only /tmp/harvest_batch/isaac_state.json. run_batch.sh only runs gen_random_layout --apply/--restore, cp and request.json. No code in the repo saves or exports a stage, changes subLayerPaths or mutes layers. Runtime writes by the bridge, HUD and extension go to the session layer and are limited to xform/physics/visibility; nothing writes fruit materials."
+  },
+  {
+   "item": "Actual on-screen appearance in RTX/Kit, and Kit's reload caching",
+   "verdict": "unverifiable",
+   "detail": "Isaac was not run, as instructed. Two things remain unconfirmed: whether Kit/RTX (including the Fabric scene delegate) honors the explicit empty connection (`connect = None`), and whether the pastel green washes out toward white under the scene's lighting and tone mapping. The batch loop reloads the scene each run, and the layout layer already picks up changes that way, so the new layer should load the same way."
+  },
+  {
+   "item": "Implementer did not edit .md files (including PLANNER_CHANGES.md)",
+   "verdict": "unverifiable",
+   "detail": "PLANNER_CHANGES.md is unchanged (mtime 05:02, not in git status). PROJECT_SUMMARY.md, README.md and portfolio/*.md are modified, but all four share mtime 07:38:17, just before main_scene (07:39:23) and the generator (07:40), and none of the diffs mention appearance, unripe color or 외형. This looks like another session's work, but authorship cannot be proven."
+  }
+ ],
+ "must_fix": [],
+ "overall": "I found no spec violations; nothing needs fixing. On the prohibitions: nothing changed under assets or in the layout, physics, lighting or lab_environment layers (checked with git and md5). The main_scene.usd diff is exactly the subLayers line plus the doc phrase. On the generator: it contains no fruit, material or shader names, and it found a renamed fruit in a scratch test. The color comes from a single hex constant and the sRGB-to-linear conversion is exact (float32, to 1e-7). There is one log line per change. It saves only appearance_layer.usd, and a scratch rerun gave the same md5 (aa8da9db…). The failure cases exit 1 and write nothing. check_params.py and both verify scripts exit 0. gen_random_layout.py, isaac_batch_orchestrator.py and run_batch.sh have no code path that overwrites main_scene.usd or weakens the override, and the orchestrator opens main_scene.usd directly, so the new sublayer loads with it. I recomputed the color numbers independently and they match the report (C* 34.0, ΔE76 to white 38.5, to gray-white 32.3, to the ripe texture mean 58.8, or 60.4 over the used area only). In a 32x32 mock-up the unripe fruit reads clearly apart from both ripe and white fruit. What stays unverified: how RTX actually renders it (whether it honors `connect = None`, and whether lighting and tone mapping wash the green toward white), and who edited the modified .md files, which looks like another session. Scratch evidence is in /tmp/claude-1000/-home-oceanshape-strawberry-grasp-environment/bcc547be-1fe6-4c91-bfff-415b27806c93/scratchpad (probe.py, color.py, thumb.py, thumb32_compare.png, and the A–E scratch copies).\""
+}

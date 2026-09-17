@@ -41,6 +41,7 @@ strawberry_harvest/
 │   ├── main_scene.usd                     # ★ 최상위 씬 — 조립 전용, 직접 수정 최소화
 │   ├── lab_environment.usd                # 정적 환경 조립본 (테이블+보드) — payload로 로드됨
 │   ├── layers/
+│   │   ├── appearance_layer.usd           # 외형 오버라이드(생성물, 2026-09-17): 안 익은 딸기 색 — scene_tools/gen_unripe_appearance.py
 │   │   ├── layout_layer.usd               # 배치: 딸기 위치, 로봇 베이스, 초기 관절 포즈 (domain randomization 대상)
 │   │   ├── physics_layer.usd              # PhysicsScene, 정적 콜라이더, 딸기 줄기(stem) fixed joint
 │   │   └── lighting_layer.usd             # 무텍스처 DomeLight(채움) + 상단 RectLight 1개(주광)
@@ -109,15 +110,18 @@ strawberry_harvest/
 
 | 레이어 | 역할 |
 |---|---|
+| `appearance_layer.usd` | **생성물 (2026-09-17)** — 안 익은(비대상) 딸기의 바인딩 UsdPreviewSurface `inputs:diffuseColor` 를 연한 녹백색 sRGB #B4D69A 상수로 덮고 텍스처 연결을 명시적 빈 연결(`connect = None`)로 막는다. 애셋(`assets/strawberry/**`)은 그대로, 노말·러프니스 연결 유지, 시각 전용(플래너 입출력 불변). 손으로 고치지 말고 `scripts/scene_tools/gen_unripe_appearance.py` 를 다시 돌린다. 근거·조건은 [`result_display_audit.md`](result_display_audit.md) §4·§6-1 |
 | `physics_layer.usd` | PhysicsScene, gravity, solver, 전역 충돌 그룹, 딸기 줄기 joint |
 | `lighting_layer.usd` | 무텍스처 DomeLight(채움 300) + RectLight `key_top`(로봇·보드 사이 위 1.9 m, 보드 쪽 20° 기울임). 뷰포트 Lights 는 **Stage Lights** 로 둘 것 — Default Light Rig 를 고르면 이 레이어의 조명이 세션 레이어에서 invisible 처리되고 리그의 DistantLight(햇빛)가 대신 켜진다 |
 | `layout_layer.usd` | 딸기 위치, 로봇 베이스 위치, 초기 관절 포즈 — 반복 실험 대상 |
 
 sublayer 순서(strength ordering)에 유의하세요. USD의 `subLayers`는 **strongest-first** —
 목록에서 **앞에 있는 레이어가 더 강한 opinion**을 가집니다.
-`main_scene.usd`의 순서는 `layout_layer` → `physics_layer` → `lighting_layer`이므로
-같은 속성을 두 레이어가 건드리면 `layout_layer`가 이깁니다.
-(현재는 세 레이어가 서로 다른 속성만 다루므로 실제 충돌은 없습니다.)
+`main_scene.usd`의 순서는 `appearance_layer` → `layout_layer` → `physics_layer` → `lighting_layer`이므로
+같은 속성을 두 레이어가 건드리면 앞의 레이어가 이깁니다.
+(현재는 네 레이어가 서로 다른 속성만 다루므로 실제 충돌은 없습니다. `appearance_layer` 를 맨 앞에 둔 것은 다른 로컬 레이어와의 순서만 정한다 —
+로컬 레이어 스택의 opinion 은 어느 자리든 애셋 reference 보다 강하다.)
+`appearance_layer` 를 `layout_layer` 에 합치지 않은 이유: `gen_random_layout.py` 가 layout·physics 레이어를 텍스트로 다시 쓴다(2026-09-17).
 
 ---
 
@@ -129,6 +133,7 @@ sublayer 순서(strength ordering)에 유의하세요. USD의 `subLayers`는 **s
 | 딸기 물리 파라미터 튜닝 (질량, 마찰) | `assets/strawberry/strawberry_physics.usd` |
 | 줄기 분리 강도 튜닝 (breakForce) | `scenes/layers/physics_layer.usd` |
 | 조명 변경 | `scenes/layers/lighting_layer.usd` |
+| 안 익은 딸기 색 변경 / 과실 추가·이름 변경 뒤 색 재적용 | `scripts/scene_tools/gen_unripe_appearance.py` 의 `UNRIPE_SRGB` 를 고치고 다시 돌린다 → `scenes/layers/appearance_layer.usd` 를 통째로 새로 쓴다. 애셋 crate·텍스처는 고치지 않는다. **씬 재로드 필요** (2026-09-17) |
 | 로봇 커스터마이징 (카메라 위치 등) | `assets/robot/robot_assembly.usd`의 오버라이드 |
 | 로봇 관절 강성/감쇠 튜닝 (출렁임·떨림) | `assets/robot/robot_assembly.usd`의 joint drive 오버라이드 (§3 로봇 참고) |
 | 물리 없이 비주얼만 확인 | Layer 창에서 `physics_layer.usd`를 mute |

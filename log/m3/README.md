@@ -707,3 +707,16 @@ ripe_05 원위치 바로 아래(x −98)에 떨어져 있던 것과 혼동됐을
 - **플래너 쪽 불변(예상대로)**: ATTACH 8 / PLACED 4(ripe_01·03·05·06) / DROPPED 4(`TAUGHT_TRAY_SLOT0·1·1·6_PLACE_BLOCKED: above plan failed`), `clamped`·`JOINT_COMMAND_REJECTED`·`*_TIMEOUT` 0.
 - **기록만**: `ARM_ARRIVAL_STALLED` 1건 — MoveSpline 잔차 0.64°(손끝 3.4mm), 검출기가 수락하고 진행. 첫 낙하 5.5초 뒤라(과실은 이미 2초 넘게 바닥) 낙하 수정과 시간상 무관. 오늘 앞선 런 3개는 0.
 - **기록만(순서)**: 뷰포트 표시 스크립트를 씬 로드 전에 한 번 Run(08:15:13, prim 못 찾음 경고) → 로드 뒤 재Run 정상. 브릿지도 로드 전 Run 흔적(`/World/robot_assembly` invalid, 08:15:18) → 08:16:09 재Run, `initialize failed 1 → recovered` 는 문서화된 복구 경로.
+
+**09-17 조사 메모 (이 런의 배치 실패 4건, 판정표 수치는 그대로)** — 상세 [`docs/result_display_audit.md`](../../docs/result_display_audit.md) §1.
+
+| 과실 | 슬롯 | 거부 줄 (`curobo_planner.log`) | Kit `DROPPED` |
+|---|---|---|---|
+| ripe_07 | 0 | :43 `J6 spline jump 356.6deg > 270.0deg at waypoint 29` | :21346 |
+| ripe_02 | 1 | :118 `J6 spline jump 356.1deg > 270.0deg at waypoint 42` | :21383 |
+| ripe_08 | 1 (다시 배정) | :151 `J3 swing 185.5deg > 120.0deg (start=-51.4deg -> end=134.1deg)` | :21404 |
+| ripe_04 | 6 | :295 `J3 swing 201.0deg > 120.0deg (start=78.0deg -> end=-123.1deg)` | :21485 |
+
+- 4건 모두 RETREAT 직후 교시 슬롯 위 Cartesian 계획의 후처리 가드 거부(`TAUGHT_TRAY_SLOTn_PLACE_BLOCKED: above plan failed`), 하강·릴리스 단계 도달 0, 재계획 0. 가드 너머 원인은 로그로 특정 불가.
+- 슬롯 번호는 배치 성공 때만 올라 slot0·slot1 이 두 번 배정됐다.
+- **위 표의 "릴리스점 아래로부터" 와 본문 "릴리스점 아래 28\~47mm" 는 수평 거리다** — `DROP_REST … N mm from below the release point` 의 N 은 릴리스점 바로 아래 지점과의 XY 거리(브릿지 `drift`)이고, 실제 낙하 높이는 약 1.1m 다.
