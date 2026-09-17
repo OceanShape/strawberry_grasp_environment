@@ -1,0 +1,70 @@
+#usda 1.0
+(
+    doc = "외형 오버라이드 레이어 — 안 익은(비대상) 과실의 diffuseColor 를 연한 녹백색 상수로 덮어 익은 과실과 구분한다. 애셋(assets/strawberry/**)은 불변, 텍스처 연결은 이 레이어의 빈 연결로만 막는다 (시각 전용, 플래너 입출력 불변). 생성물 — 손으로 고치지 말고 scripts/scene_tools/gen_unripe_appearance.py 를 다시 돌린다"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "World"
+{
+    over "strawberry_unripe_02"
+    {
+        over "materials"
+        {
+            over "frut_2333_Mat"
+            {
+                over "Principled_BSDF"
+                {
+                    color3f inputs:diffuseColor = (0.45641103, 0.67244315, 0.3231432)
+                    color3f inputs:diffuseColor.connect = None
+                }
+            }
+        }
+    }
+
+    over "strawberry_unripe_04"
+    {
+        over "materials"
+        {
+            over "frut_2333_Mat"
+            {
+                over "Principled_BSDF"
+                {
+                    color3f inputs:diffuseColor = (0.45641103, 0.67244315, 0.3231432)
+                    color3f inputs:diffuseColor.connect = None
+                }
+            }
+        }
+    }
+
+    over "strawberry_unripe_05"
+    {
+        over "materials"
+        {
+            over "frut_2333_Mat"
+            {
+                over "Principled_BSDF"
+                {
+                    color3f inputs:diffuseColor = (0.45641103, 0.67244315, 0.3231432)
+                    color3f inputs:diffuseColor.connect = None
+                }
+            }
+        }
+    }
+
+    over "strawberry_unripe_06"
+    {
+        over "materials"
+        {
+            over "frut_2333_Mat"
+            {
+                over "Principled_BSDF"
+                {
+                    color3f inputs:diffuseColor = (0.45641103, 0.67244315, 0.3231432)
+                    color3f inputs:diffuseColor.connect = None
+                }
+            }
+        }
+    }
+}
+
