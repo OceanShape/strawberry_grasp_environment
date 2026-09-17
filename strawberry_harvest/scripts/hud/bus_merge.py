@@ -9,7 +9,9 @@ HUD 는 계산하지 않는다(사양 7-3). 그래서 '합치는 판단'을 hud.
   nodes.<role>.last_seen  <- 그 role 의 파일만
   targets, region, run    <- scan  (수확 리스트와 순회 영역을 아는 것은 scan_executor 뿐)
   tree                    <- scan  (쿼드트리 순회 결정도 scan_executor 만 안다, 2026-09-11)
-  result.succeeded/failed/dropped <- planner (파지 판정과 릴리스를 실행하는 곳)
+  result.succeeded/failed/dropped/outcomes <- planner (파지 판정과 릴리스를 실행하는 곳)
+                             단, planner 의 run.started_at 이 scan 의 것과 다르면 직전 런 값이라
+                             가져오지 않는다 (2026-09-17, 아래 load 주석)
   result.finished         <- scan  (시퀀스 종료를 아는 곳)
   sequence                <- since 가 가장 최근인 파일
                              (아무것도 발행하지 않은 로컬 IDLE 은 since=0.0 이라
@@ -139,11 +141,26 @@ def load(directory: str = None) -> Tuple[Dict[str, Any], Dict[str, bool]]:
             merged["result"]["finished"] = bool(scan["result"].get("finished", False))
 
     planner = files.get("planner", {}).get("state")
-    if isinstance(planner, dict) and isinstance(planner.get("result"), dict):
+    # [2026-09-17] 결과 바는 런 내내 보이므로, 노드를 재시작하지 않고 다음 런을 트리거하면 planner 가
+    # 첫 픽에서 run 을 맞추기(harvest_probe._sync_run) 전까지 직전 런의 칸이 떠 있었을 것이다.
+    # scan 이 새 런을 시작했는데(run.started_at) planner 가 아직 그 런에 맞춰지지 않았으면 planner 결과를
+    # 가져오지 않는다 — 카운터는 0, 칸은 전부 회색. 같은 런이면 종전과 같다.
+    # run 이 dict 가 아닌 스냅샷(손상)은 그 값만 없는 것으로 본다 — 파일 하나로 load() 전체가 죽지 않게.
+    def _started(state):
+        run = state.get("run") if isinstance(state, dict) else None
+        return run.get("started_at") if isinstance(run, dict) else None
+
+    scan_started = _started(scan)
+    planner_started = _started(planner)
+    same_run = scan_started is None or planner_started == scan_started
+    if same_run and isinstance(planner, dict) and isinstance(planner.get("result"), dict):
         for field in ("succeeded", "failed", "dropped"):
             value = planner["result"].get(field)
             if isinstance(value, int):
                 merged["result"][field] = value
+        outcomes = planner["result"].get("outcomes")
+        if isinstance(outcomes, list):
+            merged["result"]["outcomes"] = [o for o in outcomes if isinstance(o, str)]
 
     best = merged["sequence"]
     for payload in files.values():

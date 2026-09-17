@@ -28,8 +28,10 @@ Data: the four nodes (fake_vision / sim_executor_bridge / curobo_planner /
 scan_executor) write a snapshot to /tmp/harvest_hud_<role>.json every 0.1 s.
 This file only draws. Merging rules live in hud/bus_merge.py.
 
-Layout (2026-09-11: the AREA / TARGET / PLACED rows were replaced by the tree):
+Layout (2026-09-11: the AREA / TARGET / PLACED rows were replaced by the tree;
+2026-09-17: TARGET / NON-TARGET counts and the result bar added):
     NODES   * vision  * planner  * control  * scan     green = working now
+    TARGET 8 / NON-TARGET 4                            always; counted from the scene
     ------------------------------------------
     TREE                  [ROOT]                       the scan as a quadtree
             [NW   2] [NE   1] [SE   0] [SW   3]        number = candidates in that cell
@@ -41,6 +43,8 @@ Layout (2026-09-11: the AREA / TARGET / PLACED rows were replaced by the tree):
             [####.......]                              11-cell progress bar
     ------------------------------------------
               HARVEST DONE  5 / 6 (83%)                only after the run ends
+    [##|##|##|##|  |  ]                                result bar, one cell per target, always
+      PLACED 4   PLACE FAILED 1   DETACH FAILED 0      legend, zeros shown
 
 The tree paints the scan executor's own decisions as they happen (overview
 prune, leaf, split, sub-pose fallback); nothing is decided here. Geometry,
@@ -51,6 +55,16 @@ border, 2026-09-16); green border = finished.
 "HARVEST DONE" is not "success": this repo has no attach that glues the fruit
 to the gripper, so it can only count "grasp check passed + released at the tray
 slot" (hud/README.md).
+
+[2026-09-17] Result bar. The number of cells is the number of TARGET fruit counted in
+the open scene (hud/scene_fruit.py, the bridge's own publish filter) -- never a fixed
+number. Each pick that reaches a result paints the next cell: green = placed, red =
+place failed, amber = detach failed (rules, wording and colors: hud/result_bar.py; the
+planner-side probe appends the results, bus key result.outcomes). A target with no
+result (skipped before the grasp, grasp check failed) leaves its cell grey. The legend
+under the bar replaces the old second line of the ending (placed n / dropped m) and is
+shown the whole run, zeros included. result.dropped is still counted on the bus (it
+matches the Kit bridge's dropped=n) but is no longer drawn.
 
 Besides the panel, the HUD also marks the working area ON THE BOARD (2026-09-10):
 it toggles the quadrant overlays in whiteboard.usd (cyan glowing borders) to
@@ -77,7 +91,7 @@ HUD_DIR = os.path.expanduser(os.environ.get(
 if HUD_DIR not in sys.path:
     sys.path.insert(0, HUD_DIR)
 # Kit caches modules; reload so edits take effect on the next Run.
-for _m in ("tree_model", "status_bus", "bus_merge"):
+for _m in ("tree_model", "result_bar", "scene_fruit", "status_bus", "bus_merge"):
     if _m in sys.modules:
         importlib.reload(sys.modules[_m])
 
@@ -89,6 +103,8 @@ from omni.ui import color as cl
 from pxr import Usd, UsdGeom
 
 import bus_merge
+import result_bar
+import scene_fruit
 import status_bus
 import tree_model
 
@@ -139,6 +155,9 @@ C_BAD = _rgb(0xFF4D5E)
 # same green as the PLACE / DONE phases); headings and ratios stay white (C_TEXT).
 # The final row was drawn in C_ACCENT (0xFF6B81, pink-red) until this date, which
 # read as an error message; that was its only use, so the constant is gone.
+# [2026-09-17] The ending's second line became the result bar legend: placed green,
+# place failed red (still failure-only), detach failed amber so the two failures differ.
+# Those three colors live in hud/result_bar.py (make_labels.py uses the same values).
 C_SEG_OFF = cl(1.0, 1.0, 1.0, 0.12)
 C_SEG_DONE = cl(1.0, 1.0, 1.0, 0.35)
 
@@ -157,7 +176,10 @@ PHASE_COLOR = {
 EN = {
     "nodes": "NODES", "region": "AREA", "targets": "TARGET",
     "placed": "PLACED", "phase": "PHASE", "final": "HARVEST DONE", "tree": "TREE",
-    "final_placed": "PLACED", "final_dropped": "DROPPED",
+    "final_placed": result_bar.LABEL_EN["placed"],
+    "final_dropped": result_bar.LABEL_EN["place_failed"],
+    "final_detach_failed": result_bar.LABEL_EN["detach_failed"],
+    "count_targets": "TARGET", "count_non_targets": "NON-TARGET",
     "node": {"vision": "VISION", "planner": "PLANNER",
              "controller": "CONTROL", "scan": "SCAN"},
     "state": {"IDLE": "IDLE", "SCAN_MOVE": "SCAN MOVE", "DETECT": "DETECT",
@@ -170,6 +192,10 @@ EN = {
 }
 
 NODE_ORDER = ["vision", "planner", "controller", "scan"]
+SCENE_POLL_SEC = 1.0          # recount the scene's fruit prims at most this often (cheap: /World children)
+# legend: result key -> label PNG key (the PNG keys predate the result bar and stay as widget keys)
+LEGEND_LABEL = {"placed": "final_placed", "place_failed": "final_dropped",
+                "detach_failed": "final_detach_failed"}
 BAR_STATES = [s for s in status_bus.SEQUENCE_STATES if s != "IDLE"]   # 11 cells
 
 # ---- board area highlight ------------------------------------------------------
@@ -608,6 +634,17 @@ class HarvestHUD:
         self._hl = _BoardHighlight()
         self._tree = None
         self._tree_warned = False
+        # [2026-09-17] scene counts + result bar
+        self._bar_frame = None
+        self._cells = []                     # ui.Rectangle per target
+        self._cell_keys = []                 # result key (or None) per cell, last painted
+        self._n_cells = None                 # scene target count the bar was built for
+        self._scene_key = None               # ((targets, non_targets), stage key) last logged
+        self._next_scene = 0.0
+        self._scene_warned = False
+        self._outcomes_seen = 0
+        self._overflow_warned = False
+        self._total_noted = False
         self.region_listener = None          # wrist camera caption follows the area (2026-09-16)
         self.phase_listener = None           # ... and its guide fades with the phase
         self._build()
@@ -636,12 +673,13 @@ class HarvestHUD:
                                 ui.Spacer(width=PAD)
                                 with ui.VStack(height=0, spacing=ROW_GAP):
                                     self._row_nodes()
+                                    self._row_counts()
                                     self._divider()
                                     self._row_tree()
                                     self._divider()
                                     self._row_phase()
                                     self._row_bar()
-                                    self._row_final()
+                                    self._row_result()
                                 ui.Spacer(width=PAD)
                             ui.Spacer(height=PAD)
                     ui.Spacer()
@@ -692,31 +730,69 @@ class HarvestHUD:
                     self._seg.append(ui.Rectangle(
                         height=10, style={"background_color": C_SEG_OFF, "border_radius": 2}))
 
-    def _row_final(self):
-        # Hidden together with its divider -- a lone line before the run ends looks odd.
-        # [T4c 2026-09-15] Second line: 'placed n / dropped m' (Korean PNG labels). A fruit that was detached but
-        # whose transfer plan the planner rejected is released where it stands and falls
-        # (bridge drop physics); the count comes from harvest_probe (result.dropped) so the
-        # ending states the failure instead of only the placed/total ratio.
-        # [2026-09-16] Colors: heading and ratio white, 'placed' green, 'dropped' red
-        # -- see the color block at the top. Nothing here means "success" (hud/README.md).
-        with ui.VStack(height=0, spacing=ROW_GAP) as block:
+    def _row_counts(self):
+        # [2026-09-17] Always on: 'TARGET N / NON-TARGET M'. Both numbers are counted from the open
+        # scene's fruit prims every SCENE_POLL_SEC (hud/scene_fruit.py -- the same filter the
+        # bridge uses to publish targets), so a changed layout or a reloaded scene shows up
+        # by itself. '-' until a stage with /World is open.
+        with ui.HStack(height=0, spacing=6):
+            _label("count_targets", EN["count_targets"], C_TEXT, 24)
+            self._w["count_targets_num"] = ui.Label("-", width=0, style=_text(C_TEXT, 24))
+            ui.Spacer(width=4)
+            ui.Label("/", width=0, style=_text(C_DIM, 24))
+            ui.Spacer(width=4)
+            _label("count_non_targets", EN["count_non_targets"], C_DIM, 24)
+            self._w["count_non_targets_num"] = ui.Label("-", width=0, style=_text(C_DIM, 24))
+            ui.Spacer()
+
+    def _row_result(self):
+        # The HARVEST DONE line is hidden until the run ends (as before, 2026-09-10).
+        # [2026-09-17] Right under it: the result bar and its legend, shown the whole run.
+        # They replace the ending's second line 'placed n / dropped m' (T4c 2026-09-15): the
+        # legend carries the same placed count and the same failure count under the terms
+        # fixed on 2026-09-17, plus the detach failure count. The bar has one cell per scene
+        # target and is styled like the phase bar above (height, gap, corner radius); it spans
+        # the full inner width because this block is centered, not aligned to the row heads.
+        with ui.VStack(height=0, spacing=ROW_GAP):
             self._divider()
-            with ui.HStack(height=0, spacing=12):
+            with ui.HStack(height=0, spacing=12) as final_row:
                 ui.Spacer()
                 _label("final", EN["final"], C_TEXT, 34)
                 self._w["final_num"] = ui.Label("", width=0, style=_text(C_TEXT, 34))
                 ui.Spacer()
-            with ui.HStack(height=0, spacing=8):
+            self._w["final"] = final_row
+            final_row.visible = False
+            # Rebuilt only when the scene target count changes (_update_scene); painting
+            # a result never rebuilds it.
+            self._bar_frame = ui.Frame(height=result_bar.CELL_H, build_fn=self._build_cells)
+            size = result_bar.LEGEND_SIZE
+            with ui.HStack(height=0, spacing=4):
                 ui.Spacer()
-                _label("final_placed", EN["final_placed"], C_OK, 32)
-                self._w["final_placed_num"] = ui.Label("", width=0, style=_text(C_OK, 32))
-                ui.Spacer(width=24)
-                _label("final_dropped", EN["final_dropped"], C_BAD, 32)
-                self._w["final_dropped_num"] = ui.Label("", width=0, style=_text(C_BAD, 32))
+                for i, key in enumerate(result_bar.OUTCOMES):
+                    if i:
+                        ui.Spacer(width=10)
+                    col = _c(result_bar.COLOR[key])
+                    _label(LEGEND_LABEL[key], EN[LEGEND_LABEL[key]], col, size)
+                    self._w["legend_" + key] = ui.Label("0", width=0, style=_text(col, size))
                 ui.Spacer()
-        self._w["final"] = block
-        block.visible = False
+
+    @staticmethod
+    def _cell_style(key):
+        return {"background_color": C_SEG_OFF if key is None else _c(result_bar.COLOR[key]),
+                "border_radius": result_bar.CELL_RADIUS}
+
+    def _build_cells(self):
+        """build_fn of the result bar frame: one cell per scene target, painted from the last view."""
+        self._cells = []
+        n = int(self._n_cells or 0)
+        with ui.HStack(height=result_bar.CELL_H, spacing=result_bar.CELL_GAP):
+            if n <= 0:
+                ui.Spacer()
+                return
+            for i in range(n):
+                key = self._cell_keys[i] if i < len(self._cell_keys) else None
+                self._cells.append(ui.Rectangle(height=result_bar.CELL_H,
+                                                style=self._cell_style(key)))
 
     # -- update (values only; widgets are never rebuilt) ---------------------------
 
@@ -742,6 +818,8 @@ class HarvestHUD:
             except Exception:                                      # noqa: BLE001
                 pass                       # the caption must never take the HUD down
         self._update_tree(snap.get("tree"))
+        self._update_scene(now)
+        self._update_result(snap)
 
         tg = snap["targets"]
 
@@ -766,9 +844,82 @@ class HarvestHUD:
             # Percentage of the target count; total can be 0 (no ripe fruit seen).
             pct = int(round(100.0 * done / total)) if total > 0 else 0
             self._w["final_num"].text = "%d / %d (%d%%)" % (done, total, pct)
-            self._w["final_placed_num"].text = "%d" % done
-            self._w["final_dropped_num"].text = "%d" % int(snap["result"].get("dropped", 0))
+            # [2026-09-17] N here is the scan executor's candidate total, the bar's is the scene
+            # target count. They were equal in every kept run; say so once if they are not.
+            if not self._total_noted and self._n_cells is not None and total != self._n_cells:
+                self._total_noted = True
+                print("[hud] note: HARVEST DONE total %d (scan candidates) != scene targets %d "
+                      "(result bar cells)" % (total, self._n_cells))
         self._w["final"].visible = finished
+
+    def _update_scene(self, now):
+        """Recount the scene's target / non-target fruit; one log line whenever the count changes."""
+        if now < self._next_scene:
+            return
+        self._next_scene = now + SCENE_POLL_SEC
+        try:
+            ctx = omni.usd.get_context()
+            stage = ctx.get_stage()
+            fruit = scene_fruit.classify(stage)
+            try:
+                stage_id = ctx.get_stage_id()
+            except Exception:                                      # noqa: BLE001
+                stage_id = None
+            layer = stage.GetRootLayer().identifier if stage is not None else ""
+        except Exception as exc:                                   # noqa: BLE001
+            if not self._scene_warned:
+                self._scene_warned = True
+                print("[hud] scene fruit count failed: %r" % (exc,))
+            return
+        n, m = len(fruit["targets"]), len(fruit["non_targets"])
+        key = ((n, m), (stage_id, layer))
+        if key == self._scene_key:
+            return
+        self._scene_key = key
+        have = stage is not None and bool(layer)
+        self._w["count_targets_num"].text = "%d" % n if have else "-"
+        self._w["count_non_targets_num"].text = "%d" % m if have else "-"
+        # One line per change. The appearance part says whether the non-target color override
+        # (layers/appearance_layer.usd) is in the open stage: 0/M = scene not reloaded since then.
+        const = sum(1 for p in fruit["non_targets"] if scene_fruit.diffuse_is_constant(stage, p))
+        print("[hud] scene fruit: target %d / non-target %d (%s; bridge publish filter; "
+              "non-target constant diffuse %d/%d)"
+              % (n, m, os.path.basename(layer) if layer else "no stage", const, m))
+        if fruit["mismatch"]:
+            print("[hud] WARNING: ripeness variant disagrees with the prim name for %s -- "
+                  "the pipeline follows the name" % ", ".join(fruit["mismatch"]))
+        if n != self._n_cells:
+            self._n_cells = n
+            self._cell_keys = []
+            if self._bar_frame is not None:
+                self._bar_frame.rebuild()
+
+    def _update_result(self, snap):
+        """Paint the result bar and legend; one log line per new result."""
+        outcomes = [o for o in (snap["result"].get("outcomes") or []) if isinstance(o, str)]
+        v = result_bar.view(outcomes, self._n_cells or 0)
+        cells_text = "?" if self._n_cells is None else "%d" % self._n_cells
+        if v["cells"] != self._cell_keys and len(self._cells) == len(v["cells"]):
+            self._cell_keys = list(v["cells"])
+            for rect, key in zip(self._cells, self._cell_keys):
+                rect.style = self._cell_style(key)
+        for key in result_bar.OUTCOMES:
+            text = "%d" % v["counts"][key]
+            lbl = self._w.get("legend_" + key)
+            if lbl is not None and lbl.text != text:
+                lbl.text = text
+        if len(outcomes) > self._outcomes_seen:
+            for i in range(self._outcomes_seen, len(outcomes)):
+                print("[hud] result bar %d/%s: %s" % (i + 1, cells_text, outcomes[i]))
+        elif len(outcomes) < self._outcomes_seen:
+            print("[hud] result bar cleared (new run)")
+            self._overflow_warned = False
+            self._total_noted = False
+        self._outcomes_seen = len(outcomes)
+        if v["overflow"] and not self._overflow_warned:
+            self._overflow_warned = True
+            print("[hud] WARNING: %d results but only %s scene targets -- the legend counts all, "
+                  "the bar shows the first %s" % (len(outcomes), cells_text, cells_text))
 
     def _update_tree(self, tree):
         # The tree must never take the HUD down -- same rule as the board highlight.
@@ -792,6 +943,8 @@ class HarvestHUD:
             self._frame = None
         self._w.clear()
         self._seg.clear()
+        self._cells = []
+        self._bar_frame = None
         self._tree = None
 
 

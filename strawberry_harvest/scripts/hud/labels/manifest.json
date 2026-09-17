@@ -55,14 +55,29 @@
   "text": "수확 완료"
  },
  "final_placed": {
-  "w": 60.5,
-  "h": 47.0,
-  "text": "배치"
+  "w": 89.0,
+  "h": 32.5,
+  "text": "배치 성공"
  },
  "final_dropped": {
-  "w": 60.5,
-  "h": 47.0,
-  "text": "낙하"
+  "w": 89.0,
+  "h": 32.5,
+  "text": "배치 실패"
+ },
+ "final_detach_failed": {
+  "w": 89.0,
+  "h": 32.5,
+  "text": "분리 실패"
+ },
+ "count_targets": {
+  "w": 46.0,
+  "h": 35.0,
+  "text": "타겟"
+ },
+ "count_non_targets": {
+  "w": 68.0,
+  "h": 35.0,
+  "text": "비대상"
  },
  "cam_title": {
   "w": 320.0,

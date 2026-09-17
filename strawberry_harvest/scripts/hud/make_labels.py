@@ -17,6 +17,7 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import result_bar  # noqa: E402
 import tree_model  # noqa: E402
 
 SRC = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
@@ -32,6 +33,7 @@ TEXT = _rgb = lambda h: ((h >> 16) & 255, (h >> 8) & 255, h & 255, 255)
 C_TEXT, C_DIM = _rgb(0xE8EDF5), _rgb(0x7B8494)
 C_OK = _rgb(0x5AD469)    # isaac_sim_viewport_display.C_OK — 배치 단계·완료와 같은 초록
 C_BAD = _rgb(0xFF4D5E)   # isaac_sim_viewport_display.C_BAD — 노드 램프 빨강과 같은 값 (빨강은 실패 전용)
+RESULT = {k: tuple(v) for k, v in result_bar.COLOR.items()}   # [2026-09-17] 결과 바 범례 색 (단일 출처 result_bar)
 PHASE = {"IDLE": 0x7B8494, "SCAN_MOVE": 0x4A9EFF, "DETECT": 0x00C8C8, "PLAN": 0xA78BFA,
          "APPROACH": 0xFFB547, "ENTER": 0xFFB547, "GRASP": 0xFF7A3D,
          "DETACH": 0xFF3D5C, "RETREAT": 0x4A9EFF,
@@ -59,8 +61,16 @@ ITEMS = [
     # 종전 '수확 완료' 는 C_ACCENT(0xFF6B81) 분홍빨강이라 에러처럼 읽혔다.
     ("final", "수확 완료", 34, C_TEXT, True),
     # [T4c 2026-09-15] 완료 둘째 줄 '배치 n · 낙하 m' (isaac_sim_viewport_display.HarvestHUD._row_final)
-    ("final_placed", "배치", 32, C_OK, False),
-    ("final_dropped", "낙하", 32, C_BAD, False),
+    # [2026-09-17] 둘째 줄이 결과 바 범례로 바뀌었다 — 문구·색·크기는 result_bar 가 단일 출처.
+    #   '배치 성공 n · 배치 실패 m · 분리 실패 k' 세 항목이 패널 안쪽 폭에 들어가도록 32px -> 22px.
+    #   라벨 키(final_placed·final_dropped)는 HUD 위젯 키라 그대로 두고 분리 실패 키만 새로 둔다.
+    ("final_placed", result_bar.LABEL_KO["placed"], result_bar.LEGEND_SIZE, RESULT["placed"], False),
+    ("final_dropped", result_bar.LABEL_KO["place_failed"], result_bar.LEGEND_SIZE, RESULT["place_failed"], False),
+    ("final_detach_failed", result_bar.LABEL_KO["detach_failed"], result_bar.LEGEND_SIZE,
+     RESULT["detach_failed"], False),
+    # [2026-09-17] 상시 표시 '타겟 N / 비대상 M' — 숫자는 HUD 가 씬에서 센다(scene_fruit.py).
+    ("count_targets", "타겟", 24, C_TEXT, False),
+    ("count_non_targets", "비대상", 24, C_DIM, False),
     # [2026-09-16] 그리퍼 카메라 창 제목 (isaac_sim_viewport_display._WristCamera) — 인식 결과가 아니라 렌더라는 것을 창에 적는다.
     #   화면 이름만 '그리퍼 카메라' 로 바꿨다(09-16 사용자). 코드·환경변수·콘솔 접두는 wrist_cam 그대로다 — 카메라 prim 이 손목 링크에 붙어 있다.
 #   '컬러' 는 뺐다 — 캡션 + '영역 NW/sw' 가 창 폭 480 을 20px 넘겼다. 컬러/깊이 구분은 hud/README 가 설명한다.

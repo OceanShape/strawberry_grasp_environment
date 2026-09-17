@@ -35,6 +35,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 import bus_sink          # noqa: E402
+import result_bar        # noqa: E402
 import status_bus        # noqa: E402
 import tree_model        # noqa: E402
 
@@ -89,6 +90,17 @@ def _warn(message):
     if message in _warned:
         return
     _warned.add(message)
+    try:
+        sys.stderr.write("[harvest_probe] %s\n" % message)
+    except Exception:
+        pass
+
+
+def _note(message):
+    """판정이 바뀔 때마다 한 줄 (2026-09-17). _warn 과 달리 같은 문구도 거르지 않는다.
+
+    stderr 는 노드 로그(~/.ros/log/python3_*.log -> log/m3/<run>/curobo_planner.log)에 남는다.
+    """
     try:
         sys.stderr.write("[harvest_probe] %s\n" % message)
     except Exception:
@@ -208,8 +220,11 @@ def _attach_planner(node):
     # scan 스냅샷 파일의 run.started_at 이 바뀌었으면 이쪽도 비운다. 픽마다 한 번
     # 읽는 정도라 비용은 없다.
     seen = {"started_at": None}
+    # [2026-09-17] 이번 픽의 파지 판정. 분리 실패 칸은 과실을 잡았다고 판정된 픽에만 붙인다(아래 _after_detach).
+    pick = {"grasp": None}
 
     def _sync_run(*_):
+        pick["grasp"] = None
         try:
             import json
             with open(bus_sink.path_for("scan"), encoding="utf-8") as f:
@@ -237,6 +252,28 @@ def _attach_planner(node):
     #   _execute_retreat_steps_fn  -> 후퇴   (같은 파일 :316, 그리고 파지 실패 후퇴 :268)
     # 파지 실패 경로(handle_gripper_close_failed)도 같은 후퇴 함수를 쓰는데,
     # 거기서도 '후퇴' 표시가 맞다.
+    # [2026-09-17] 결과 바 — 분리 실패. 두 이음매(당김·후퇴)를 감싼 함수 전체가 None 을 돌려주면
+    # 분리 단계가 끝까지 못 간 것이다(후퇴 실패로 실행기가 시퀀스를 잡음, pick_sequence_executor.py
+    # execute_detach_and_retreat). 당김 하나만 실패하면 실행기가 무시하고 계속하므로 여기서도 세지 않는다.
+    # 실행기 메서드를 인스턴스 속성으로 감쌀 뿐이고 run() 의 호출·반환값은 그대로다.
+    def _record(outcome, why):
+        if outcome is None:
+            return
+        index = status_bus.append("result", "outcomes", outcome)
+        if index <= 0:
+            _warn("결과 바 칸을 붙이지 못함: status_bus result.outcomes 가 목록이 아니다 (%s)" % outcome)
+            return
+        _note("결과 바 %d번째 = %s (%s, %s)" % (index, outcome, result_bar.LABEL_KO[outcome], why))
+
+    def _after_detach(result):
+        # 파지 판정이 GRASP_CONTACT_DETECTED 가 아니면(빈손 등) 떼어낼 과실이 없던 픽이라 분리 실패로 세지 않는다
+        # — 실행기는 빈손이어도 당김·후퇴를 그대로 하므로 후퇴 실패가 날 수 있다. 그 픽의 칸은 회색으로 남는다.
+        if pick["grasp"] != "GRASP_CONTACT_DETECTED":
+            return
+        _record(result_bar.outcome_of_detach(result),
+                "execute_detach_and_retreat returned None")
+
+    _wrap("planner", executor, "execute_detach_and_retreat", after=_after_detach)
     _wrap("planner", executor, "_execute_pitch_detach_fn", before=_seq("DETACH"))
     _wrap("planner", executor, "_execute_retreat_steps_fn", before=_seq("RETREAT"))
     _wrap("planner", executor, "return_to_pick_start_and_complete",
@@ -249,6 +286,7 @@ def _attach_planner(node):
             grasp_result = result[0] if isinstance(result, (tuple, list)) else result
         except Exception:
             return
+        pick["grasp"] = grasp_result
         if grasp_result != "GRASP_CONTACT_DETECTED":
             status_bus.bump("result", "failed")
 
@@ -270,6 +308,8 @@ def _attach_planner(node):
             return
         if status == "success":
             status_bus.bump("result", "succeeded")
+        # [2026-09-17] 결과 바 — 같은 반환값으로 배치 성공 / 배치 실패를 한 칸 붙인다(result_bar.py).
+        _record(result_bar.outcome_of_place_status(status), "place_status=%s" % (status,))
 
     _wrap("planner", tray, "execute_marker_place_after_retreat",
           before=_seq("PLACE"), after=_after_place)

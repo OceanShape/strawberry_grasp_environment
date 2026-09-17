@@ -36,6 +36,12 @@ HUD_SPEC.md 4.1 참조 구현. 아래 네 가지가 사양과 다르다.
       (hold_on_place_failure=false 일 때만 불린다). 파지 자체가 실패한 경우
       (PLACE_GATE_BLOCKED) 는 과실이 없으므로 세지 않는다 — 그건 failed 다.
       소유자는 planner. 완료 줄에 '배치 n · 낙하 m' 으로 나간다.
+
+  (6) result.outcomes 추가 (2026-09-17).
+      결과 바의 칸 목록. 시도 순서대로 'placed' / 'place_failed' / 'detach_failed' 를 하나씩 붙인다
+      (판정 규칙·문구·색은 result_bar.py). 소유자는 planner. HUD 는 이 목록으로 칸을 칠하고 범례
+      '배치 성공 n · 배치 실패 m · 분리 실패 k' 를 센다 — 이날부터 완료 블록 둘째 줄은 이 범례로 바뀌었다.
+      result.dropped 는 그대로 센다(Kit 브릿지 dropped=n 과 맞춰 보는 계측값). 화면에는 더 안 나간다.
 """
 from __future__ import annotations
 
@@ -123,7 +129,7 @@ def _blank() -> Dict[str, Any]:
         "region": {"name": "home"},
         "tree": tree_model.blank(),
         "sequence": {"state": "IDLE", "since": 0.0},
-        "result": {"succeeded": 0, "failed": 0, "dropped": 0, "finished": False},
+        "result": {"succeeded": 0, "failed": 0, "dropped": 0, "outcomes": [], "finished": False},
         "run": {"started_at": None},
     }
 
@@ -201,6 +207,29 @@ def bump(section: str, field: str, delta: int = 1) -> None:
     except Exception:
         return
     _log(section, changed)
+
+
+def append(section: str, field: str, value: Any) -> int:
+    """목록 필드 끝에 value 를 붙이고 붙인 뒤 길이를 돌려준다 (실패하면 0).
+
+    [2026-09-17] result.outcomes(결과 바) 용. bump 와 같은 이유로 락 안에서 붙인다 — 호출부가 목록을
+    읽어 새 목록을 publish 하면 읽기-쓰기 사이에 다른 스레드의 결과가 사라질 수 있다.
+    로그에는 붙인 값과 몇 번째인지 한 줄을 남긴다.
+    """
+    try:
+        with _LOCK:
+            target = _STATE.get(section)
+            if not isinstance(target, dict):
+                return 0
+            current = target.get(field)
+            if not isinstance(current, list):
+                return 0
+            current.append(value)
+            size = len(current)
+    except Exception:
+        return 0
+    _log(section, {field + "_append": value, "index": size})
+    return size
 
 
 def reset() -> None:
