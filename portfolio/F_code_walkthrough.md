@@ -148,7 +148,7 @@ L742–778. **이 프로젝트에서 원인 규명이 가장 어려웠던 버그
 | 4 | **속도 하한이 스플라인에만 있음** | `move_spline_cb` 에는 `SPLINE_MAX_JOINT_SPEED_DEG_S=120` 으로 실행 시간의 바닥을 깔았는데 MoveLine 에는 상한(`MOVELINE_MAX_TOTAL_SEC=2.0`)만 있다. MoveLine 은 45mm급이라 스텝당 1도 수준이지만, `MOVELINE_SHORT` 진단이 존재한다는 것 자체가 이 구간도 짧게 끝난 적이 있다는 뜻이다 |
 | 5 | **플래너와의 계약이 런타임 검증되지 않음** | 브릿지 `tool_tcp_offset_m` 과 플래너 `ee_to_tcp_offset_m` 이 같아야 하고(다르면 전 타겟 빈손 판정), `grasp_target_z_bias_m` 과 `pick_target_z_bias_m` 도 같아야 한다. 지금은 주석 + 기동 로그 경고로만 지킨다. 노드 간 파라미터 대조를 자동화하는 게 맞다 |
 | 6 | 진단 블록 전체가 `try/except Exception: pass` (L691, L728) | 계측 실패가 조용히 묻힌다 |
-| 7 | HUD 계측 훅이 `sys.path` 조작 + bare except 4줄로 `__init__` 끝에 삽입 (L190–194) | 임시 계측임을 주석에 명시해 둔 상태 |
+| 7 | HUD 계측용으로 끼워 넣은 코드 4줄(`sys.path` 조작 + bare except)이 `__init__` 끝에 들어가 있음 (L190–194) | 임시 계측임을 주석에 명시해 둔 상태 |
 
 **코드가 아니라 범위로 넘긴 세 가지** — 가림·군집, 그리퍼가 이웃 과실을 지나감, 줄기 형상(끈) — 는 `H_scope_decisions.md` §3·§4·§5 에
 사실·판정·면접 답변·되물음이 있다(09-15 현재 배치로 재측정). 실기와 대조해 물어볼 만한 항목이라 먼저 꺼낸다.

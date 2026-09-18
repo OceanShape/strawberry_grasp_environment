@@ -164,7 +164,7 @@ J1 이 176° 도는 해가 20% 나온 것이 그 증상이었다 (F §4). 분면
 
 **있는 것 (기계장치):**
 
-| 훅 | 위치 | 동작 |
+| 기존 장치 | 위치 | 동작 |
 |---|---|---|
 | 계층 이름 | `cell_id` = `root/nw/se` 식 | 트리 경로가 그대로 셀 이름 |
 | YAML 세부 자세 탐색 | `scan_executor_node._compute_scan_order` | `target_cell:=root/nw` 로 띄우면 YAML 에 `root/nw/nw..sw` 가 있을 때 그 4자세를 순서대로 방문 (`SUBCELL_SCAN_STARTED`) |
