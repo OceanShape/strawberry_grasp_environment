@@ -60,6 +60,13 @@ def Xform "robot_assembly" (
                         }
                     }
 
+                    over "OmniGlass" (
+                        active = false
+                        doc = "[2026-09-19] 비활성화 — 원본에서 이 재질을 쓰던 곳은 Visual/Glass 하나뿐이고 09-16 에 lens_cover 로 바꿨다. 아무도 안 쓰는데 남아 있으면 런마다 첫 ATTACH 때 이 셰이더가 처음 컴파일되며 Isaac 이 약 0.55초 멈췄다(Kit 로그, 09-16 04:07 세션부터 매 세션). 그동안 플래너가 당김을 명령해 첫 딸기에서 그리퍼 닫힘과 하강이 겹쳐 보였다"
+                    )
+                    {
+                    }
+
                     def Material "lens_cover" (
                         "[2026-09-16] 앞면 렌즈 커버(Visual/Glass) 대체 재질. 순정 OmniGlass 는 RTX 실시간 렌더에서 불투명 케이스 뒤에 있어도 깊이 판정 없이 합성돼, 뒤에서 봐도 알약 모양 앞면이 케이스를 뚫고 보였다(헤드리스 재현: Glass 숨기면 정상). OmniPBR 블렌드 불투명도 0.35 는 깊이 판정이 되고 렌즈도 비친다"
                     )
