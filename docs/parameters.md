@@ -106,7 +106,7 @@ USD 조인트 프레임이 URDF 와 **0.000°** 로 일치한다. 평행도 실�
 | 값 | 현재 |
 |---|---|
 | 깊이 1 순회 순서 | `_ALL_CELLS_CLOCKWISE_ORDER = ["root/nw", "root/ne", "root/se", "root/sw"]` — 원 팀 실기 기록(민1 STEP 6) 순서 그대로. 기준은 인접 이동: 처음 Z-order(nw → ne → sw → se)에 끼어 있던 ne → sw 대각선 이동을 없애려고 시계 방향으로 바꿨다. 원본 이름 `_ALL_CELLS_ZORDER` 는 Z-order 시절 이름이라 09-17 에 바꿈(동작 불변). `overview_prescan:=true` 면 익은 과실 0개 분면만 빠지고 순서는 유지 |
-| 깊이 2 순서 | `_group_poses_by_subcell` 고정 목록 sw → se → nw → ne (원본 "lower-first": 실기 NW 가림 런에서 시야 위쪽 목표점이 잎·과실 윗부분 오탐이었던 경험 — 낮은 목표점을 진짜 줄기 목표일 가능성이 높다고 보고 먼저 시도. 근거·면접 문장 G §8 순서 Q). 후보 0개 칸 건너뜀. 칸 안 과실은 `(x, z)` 오름차순 |
+| 깊이 2 순서 | `_group_poses_by_subcell` 고정 목록 sw → se → nw → ne (원본 "lower-first": 실기 NW 가림 런에서 시야 위쪽 목표점이 잎·과실 윗부분 오탐이었던 경험 — 낮은 목표점을 진짜 줄기 목표일 가능성이 높다고 보고 먼저 시도. 근거·면접 문장 G §8 순서 Q). 후보 0개 칸 건너뜀. 칸 안 과실은 그 칸 후보들의 bbox 중점으로 다시 4분할해 아래쪽 먼저(SW → SE → NW → NE), 같은 분할 안에서는 x, z 순 — pick 직전 `_deduplicate_poses` 재정렬이 `_group_poses_by_subcell` 의 `(x, z)` 정렬을 덮어쓴다 |
 | 실행 인자 | `-p target_cell:=all` — 4분면 전부. 단일 분면은 `root/nw` 등 |
 | 스캔 자세 | `config/scan_pose_candidates_refit_candidate.yaml` `version: v12_gripper_centered_manual_teach` — **실기 DART 수동 티칭 값 그대로** |
 | overview | `[87.98, −94.92, 129.89, 175.94, −31.34, 93.42]` |

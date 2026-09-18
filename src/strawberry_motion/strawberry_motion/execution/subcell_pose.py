@@ -9,10 +9,12 @@
 여기서는 세부 자세를 **부모 분면 자세에서 계산**한다 — 새 좌표를 하드코딩하지 않는다:
 
   1. 부모 관절 → FK → ee 자세 (위치 + 방향)
-  2. ee 위치를 x·z 만 세부 칸 중심 쪽으로 평행이동 (y·방향은 부모와 동일 — 실기 세부 자세의 성질)
+  2. ee 위치를 x·z 로 세부 칸 중심 쪽(분면 폭·높이의 1/4)으로 평행이동. 방향은 부모와 동일.
+     y 는 [2026-09-14] 사다리(`derive_subcell_joints_tiered`)로 정한다: ① lab_plane — 실기 깊이 2 티칭
+     평면 `LAB_SUBCELL_EE_Y_M` 으로 옮김, ② parent_y — 부모 y 유지(09-11 동작). ①이 실패할 때만 ②를 시도한다.
   3. 부모 관절을 시드로 IK. 돌아온 해 중 부모와 가장 가까운 것을 고른다 (J1/J4/J6 은 360° 등가 중 최근접)
-  4. 부모 대비 관절 변화 최대값이 한도(기본 60°)를 넘거나 IK 가 실패하면 None — 호출자는
-     부모 자세에서 pick 하는 종전 동작으로 퇴화한다 (SUBDIVIDE_REJECTED)
+  4. IK 실패(IK_FAIL)·관절 한계(LIMIT)·부모 대비 관절 변화 최대값이 한도(기본 60°) 초과(JOINT_DELTA)면 그 단계는
+     실패. 두 단계 모두 실패하면 None — 호출자는 부모 자세에서 pick 하는 종전 동작으로 퇴화한다 (SUBDIVIDE_REJECTED)
 
 이 모듈은 rclpy 를 import 하지 않는다. scan_executor_node 와 오프라인 검사
 (`scripts/check_subcell_scan_poses.py`) 가 같은 함수를 쓴다 — 단일 출처.

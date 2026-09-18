@@ -251,10 +251,12 @@ class ScanExecutorNode(Node):
         # [T4b 2026-09-11] 적응 분할 — 분면 근거리 스캔의 중복 제거 후보가 이 수 이상이면 그 분면을
         # 2×2 로 쪼개고 **후보가 있는 세부 칸만** 부모 자세에서 유도한 세부 자세로 내려가 다시 스캔·pick.
         # 0 = 끔(기본) = 실기와 동일. 실기는 쪼갤지 여부를 사람이 오프라인에서 정해 YAML 에 세부 자세를
-        # 넣었다(NW 4칸) — 런타임 판정이 없다. 세부 자세는 부모 관절 FK → x·z 만 세부 칸 중심으로
-        # 평행이동(y·방향 동일) → 부모 시드 IK 로 계산한다(새 좌표 하드코딩 없음). 관절 변화가
-        # subdivide_max_joint_delta_deg 를 넘거나 IK 가 실패하면 SUBDIVIDE_REJECTED 로 그 칸은
-        # 부모 자세 pick(종전 동작)으로 퇴화한다. 깊이 상한 2 — 세부 칸은 다시 쪼개지 않는다.
+        # 넣었다(NW 4칸) — 런타임 판정이 없다. 세부 자세는 부모 관절 FK → 부모 시드 IK 로 계산하는
+        # 사다리다(09-14, subcell_pose.derive_subcell_joints_tiered, 새 좌표 하드코딩 없음):
+        # ① lab_plane — ee 를 세부 칸 중심 쪽 x·z 로 옮기고 y 는 실기 깊이 2 평면(subcell_ee_y_m)으로,
+        # ② parent_y — y 는 부모 그대로, x·z 만. 한 단계는 IK 실패·관절 한계·관절 변화가
+        # subdivide_max_joint_delta_deg 초과면 실패다. 둘 다 실패하거나 IK 예외면 SUBDIVIDE_REJECTED 로
+        # 그 칸은 부모 자세 pick(종전 동작)으로 퇴화한다. 깊이 상한 2 — 세부 칸은 다시 쪼개지 않는다.
         # 이동은 실기와 같은 MoveJoint (오프라인 FK 검사: check_subcell_scan_poses.py).
         self.declare_parameter("subdivide_min_candidates", 0)
         self.declare_parameter("subdivide_max_joint_delta_deg", 60.0)

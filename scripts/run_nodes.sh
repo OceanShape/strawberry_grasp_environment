@@ -166,11 +166,13 @@ done
 
 # overview_prescan: 원안 1·2단계(overview 1차 스캔 → 익은 과실 있는 분면만 순회). 실기 기본 false.
 # scan_dwell_sec: 실기 12초는 fusion 다중 프레임 안정화용. fake_vision 은 2Hz 결정적 좌표라 3초면 된다.
-# subdivide_min_candidates (T4b, 2026-09-11): 적응 분할. 분면 근거리 스캔 후보가 3개 이상이면 그 분면을 2×2 로 쪼개
-#   후보 있는 세부 칸만 세부 자세(부모 자세 FK → x·z 평행이동 → 부모 시드 IK, 새 좌표 없음)로 내려가 재스캔·pick.
-#   실기 기본 0 = 끔(실기는 쪼갤지 여부를 사람이 오프라인에서 정했다). 임계 3은 현재 배치(nw2/ne1/se0/sw3)에서
-#   가지치기·잎·분할이 한 런에 다 나오도록 고른 시뮬 값. 오프라인 검사: check_subcell_scan_poses.py
-#   (sw 세부 4칸 관절 변화 23~34°, 보드 여유 ≥184mm; nw·ne 위쪽 칸은 IK 밖 → SUBDIVIDE_REJECTED 로 부모 자세 pick).
+# subdivide_min_candidates (T4b, 2026-09-11): 적응 분할. 분면 근거리 스캔 후보(30mm 중복 제거)가 3개 이상이면 그 분면을
+#   2×2 로 쪼개 후보 있는 세부 칸만 sw → se → nw → ne 순으로 세부 자세에 내려가 재스캔·pick. 세부 자세 유도(09-14 사다리,
+#   새 좌표 없음): ① lab_plane — 부모 자세 FK → 실기 깊이 2 티칭 평면 ee y 0.433(코드 기본 subcell_ee_y_m) 으로 x·y·z 이동
+#   → 부모 시드 IK, ② parent_y — 부모 y 유지·x·z 만 이동, ③ 둘 다 안 되면 SUBDIVIDE_REJECTED → 그 칸만 부모 자세 pick.
+#   실기 기본 0 = 끔(실기는 쪼갤지 여부를 사람이 오프라인에서 정했다). 임계 3은 현재 8/4 배치(nw3/ne2/se0/sw3)에서
+#   가지치기(se)·잎(ne)·분할(nw·sw)이 한 런에 다 나오도록 고른 시뮬 값. 오프라인 검사: check_subcell_scan_poses.py
+#   → log/m3/offline_checks/subcell_poses_tiered_20260914.txt (16칸 중 ① 10 / ② 2 / IK 밖 4 = nw·ne 위쪽 칸, 보드 여유 최소 68mm).
 stdbuf -oL -eL python3 -m strawberry_motion.execution.scan_executor_node --ros-args \
     -p execute_motion:=true \
     -p target_cell:=all \
