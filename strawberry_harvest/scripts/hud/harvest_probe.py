@@ -48,11 +48,13 @@ _warned = set()
 
 # ---- 래핑 도구 -----------------------------------------------------------
 
-def _wrap(role, owner, name, before=None, after=None, after_call=None):
-    """owner.name 을 래퍼로 바꾼다. before/after/after_call 은 실패해도 무시된다.
+def _wrap(role, owner, name, before=None, after=None, after_call=None, always=None):
+    """owner.name 을 래퍼로 바꾼다. before/after/after_call/always 는 실패해도 무시된다.
 
-    before(args, kwargs) 는 원본 호출 직전에, after(result) 는 직후에 불린다.
+    before(args, kwargs) 는 원본 호출 직전에, after(result) 는 정상 반환 직후에 불린다.
     after_call(args, kwargs, result) 는 인자와 결과가 같이 필요할 때 쓴다 (트리 계측).
+    always(result, raised) 는 원본이 예외로 끝나도 불린다(그때 result=None, raised=True) —
+    원본 예외는 그대로 다시 던진다. 픽 종료 판정처럼 '어떻게 끝났든 한 번' 이 필요한 곳에만 쓴다 (2026-09-18).
     """
     try:
         original = getattr(owner, name)
@@ -67,7 +69,15 @@ def _wrap(role, owner, name, before=None, after=None, after_call=None):
                 before(args, kwargs)
             except Exception:
                 pass
-        result = original(*args, **kwargs)
+        try:
+            result = original(*args, **kwargs)
+        except BaseException:
+            if always is not None:
+                try:
+                    always(None, True)
+                except Exception:
+                    pass
+            raise
         if after is not None:
             try:
                 after(result)
@@ -76,6 +86,11 @@ def _wrap(role, owner, name, before=None, after=None, after_call=None):
         if after_call is not None:
             try:
                 after_call(args, kwargs, result)
+            except Exception:
+                pass
+        if always is not None:
+            try:
+                always(result, False)
             except Exception:
                 pass
         return result
@@ -220,11 +235,29 @@ def _attach_planner(node):
     # scan 스냅샷 파일의 run.started_at 이 바뀌었으면 이쪽도 비운다. 픽마다 한 번
     # 읽는 정도라 비용은 없다.
     seen = {"started_at": None}
-    # [2026-09-17] 이번 픽의 파지 판정. 분리 실패 칸은 과실을 잡았다고 판정된 픽에만 붙인다(아래 _after_detach).
-    pick = {"grasp": None}
+    # [2026-09-18] 이번 픽의 상태. 결과 칸은 픽당 정확히 하나만 붙는다(recorded 래치).
+    #   grasp    : 파지 판정 문자열 (status_bus result.failed 카운터용)
+    #   entered  : 직선 진입이 시작됐다(프리어프로치 도달) — 사용자 정의 '분리' 경계의 시작
+    #   recorded : 이 픽에 결과 칸이 붙었다(배치 성공/배치 실패, 또는 run 종료 시 분리 실패)
+    #   why      : 마지막으로 지난 판정 지점 — 분리 실패 칸의 사유로 로그에만 남는다(화면엔 안 나간다)
+    # 스레드별로 둔다: 한 픽의 계측 코드는 전부 그 픽의 run() 과 같은 스레드에서 돌고, 플래너 노드는
+    # ReentrantCallbackGroup + MultiThreadedExecutor 라 run() 두 개가 겹칠 틈이 이론상 있다(_pick_busy 의
+    # 읽기·쓰기가 갈라져 있음). 공유 dict 였다면 앞 픽의 run 종료 판정이 뒤 픽의 상태를 읽어 배치 성공 픽에
+    # 분리 실패 칸을 붙일 수 있었다(리뷰 재현, 2026-09-18).
+    local = threading.local()
+
+    def _pick():
+        state = getattr(local, "pick", None)
+        if state is None:
+            state = {"grasp": None, "entered": False, "recorded": False, "why": None}
+            local.pick = state
+        return state
+
+    if not hasattr(executor, "_enable_marker_place"):
+        _warn("실행기에 _enable_marker_place 가 없다 — 배치 켜짐으로 보고 판정한다(이름이 바뀌었는지 확인할 것)")
 
     def _sync_run(*_):
-        pick["grasp"] = None
+        _pick().update(grasp=None, entered=False, recorded=False, why=None)
         try:
             import json
             with open(bus_sink.path_for("scan"), encoding="utf-8") as f:
@@ -238,55 +271,104 @@ def _attach_planner(node):
             seen["started_at"] = started
         status_bus.publish("sequence", state="PLAN")
 
-    _wrap("planner", executor, "run", before=_sync_run)
-    _wrap("planner", executor, "search_grasp", after=_seq("APPROACH"))
-    _wrap("planner", executor, "_execute_final_approach_fn", before=_seq("ENTER"))
-    # 열린 조우로 줄기 옆을 하강하는 구간. 화면에서는 파지의 일부로 본다
-    # ('파지 + 하강') — 실제로 이 하강이 끝나는 자리에서 바로 닫는다.
-    _wrap("planner", executor, "execute_open_stem_descent_if_needed", before=_seq("GRASP"))
-    # [FIX 2026-09-10] execute_detach_and_retreat 하나를 RETREAT 로 찍고 있었다.
-    # 그 함수는 **분리(BASE -Z 40mm 당겨 떼기)와 후퇴(진입 역순)를 연달아** 하므로,
-    # 화면에는 '후퇴' 라고 떠 있는 동안 실제로는 아래로 당겨 분리하는 동작이 먼저 보였다.
-    # 함수 안쪽의 두 이음매를 각각 찍어 분리와 후퇴를 나눈다.
-    #   _execute_pitch_detach_fn   -> 분리   (pick_sequence_executor.py:298)
-    #   _execute_retreat_steps_fn  -> 후퇴   (같은 파일 :316, 그리고 파지 실패 후퇴 :268)
-    # 파지 실패 경로(handle_gripper_close_failed)도 같은 후퇴 함수를 쓰는데,
-    # 거기서도 '후퇴' 표시가 맞다.
-    # [2026-09-17] 결과 바 — 분리 실패. 두 이음매(당김·후퇴)를 감싼 함수 전체가 None 을 돌려주면
-    # 분리 단계가 끝까지 못 간 것이다(후퇴 실패로 실행기가 시퀀스를 잡음, pick_sequence_executor.py
-    # execute_detach_and_retreat). 당김 하나만 실패하면 실행기가 무시하고 계속하므로 여기서도 세지 않는다.
+    # 결과 칸 하나 붙이기. 픽당 한 번만(recorded 래치) — 배치 쪽 기록과 run 종료 판정이 겹쳐도 칸은 하나다.
     # 실행기 메서드를 인스턴스 속성으로 감쌀 뿐이고 run() 의 호출·반환값은 그대로다.
     def _record(outcome, why):
-        if outcome is None:
+        pick = _pick()
+        if outcome is None or pick["recorded"]:
             return
         index = status_bus.append("result", "outcomes", outcome)
         if index <= 0:
             _warn("결과 바 칸을 붙이지 못함: status_bus result.outcomes 가 목록이 아니다 (%s)" % outcome)
             return
+        pick["recorded"] = True
         _note("결과 바 %d번째 = %s (%s, %s)" % (index, outcome, result_bar.LABEL_KO[outcome], why))
 
+    # [2026-09-18] 결과 바 — 분리 실패의 판정은 run() 이 끝난 직후 한 곳에서 한다(result_bar.outcome_of_pick_end).
+    # 직선 진입이 시작된 픽(entered)이 결과 칸 없이 끝났으면 어디서 막혔든 분리 실패다 — 실패 출구를 열거하지
+    # 않으므로 빠지는 출구가 없다. 배치 기능이 꺼진 구성(_enable_marker_place=False)에서는 정상 픽도 배치 호출
+    # 없이 끝나므로 판정하지 않는다(실행기 속성을 읽기만 한다). run() 이 예외로 끝나도(always) 진입했던 픽이면
+    # 붙인다 — 예외는 그대로 다시 던져지고, 사유에 'run() raised' 가 남는다.
+    def _after_run(_result, raised):
+        pick = _pick()
+        place_enabled = bool(getattr(executor, "_enable_marker_place", True))
+        outcome = result_bar.outcome_of_pick_end(pick["entered"], pick["recorded"], place_enabled)
+        why = pick["why"] or "run() ended before place"
+        if raised:
+            why = "run() raised after %s" % why
+        _record(outcome, why)
+
+    _wrap("planner", executor, "run", before=_sync_run, always=_after_run)
+    _wrap("planner", executor, "search_grasp", after=_seq("APPROACH"))
+
+    # 직선 진입 시작 = 사용자 정의 '분리' 경계의 시작(프리어프로치 도달, 경로는 이미 계산됨).
+    def _enter(*_):
+        _pick().update(entered=True, why="straight_entry")
+        status_bus.publish("sequence", state="ENTER")
+
+    _wrap("planner", executor, "_execute_final_approach_fn", before=_enter)
+
+    # 진입 뒤 선택적 추가 전진(leftmost, 기본 비활성). 실패했을 때만 사유를 남긴다 — 성공은 진입의 연장이다.
+    def _after_extra_advance(result):
+        if isinstance(result, (tuple, list)) and result and not result[0]:
+            _pick()["why"] = "leftmost_extra_advance"
+
+    _wrap("planner", executor, "execute_leftmost_extra_advance_if_needed", after=_after_extra_advance)
+
+    # 열린 조우로 줄기 옆을 하강하는 구간. 화면에서는 파지의 일부로 본다
+    # ('파지 + 하강') — 실제로 이 하강이 끝나는 자리에서 바로 닫는다.
+    def _before_descent(*_):
+        _pick()["why"] = "open_stem_descent"
+        status_bus.publish("sequence", state="GRASP")
+
+    def _after_descent(result):
+        if result:                  # 하강은 됐다 — 다음 실패 지점은 NW 보정 이동 또는 그리퍼 닫기
+            _pick()["why"] = "after_descent"
+
+    _wrap("planner", executor, "execute_open_stem_descent_if_needed",
+          before=_before_descent, after=_after_descent)
+
+    # NW 높은 타겟의 BASE +Y 보정 이동(기본 비활성). 실패했을 때만 사유를 남긴다.
+    def _after_nudge(result):
+        if result is not None and not result:
+            _pick()["why"] = "nw_base_y_nudge"
+
+    _wrap("planner", executor, "execute_nw_base_y_nudge_if_needed", after=_after_nudge)
+
+    # [FIX 2026-09-10] execute_detach_and_retreat 하나를 RETREAT 로 찍고 있었다.
+    # 그 함수는 **당김(BASE -Z 40mm 당겨 떼기)과 후퇴(진입 역순)를 연달아** 하므로,
+    # 화면에는 '후퇴' 라고 떠 있는 동안 실제로는 아래로 당기는 동작이 먼저 보였다.
+    # 함수 안쪽의 두 이음매를 각각 찍어 당김과 후퇴를 나눈다.
+    #   _execute_pitch_detach_fn   -> 당김   (pick_sequence_executor.py:298) — 화면 라벨 09-18 '분리'→'당김'
+    #   _execute_retreat_steps_fn  -> 후퇴   (같은 파일 :316, 그리고 파지 실패 후퇴 :268)
+    # 파지 실패 경로(handle_gripper_close_failed)도 같은 후퇴 함수를 쓰는데,
+    # 거기서도 '후퇴' 표시가 맞다. 후퇴 지점에는 사유를 남기지 않는다 — 그리퍼 닫기 실패 사유가 덮인다.
+    # [2026-09-18] 여기서는 칸을 붙이지 않는다(사유만). 후퇴 실패로 함수가 None 을 돌려주면 run() 이 결과 없이
+    # 끝나고 위 _after_run 이 분리 실패로 붙인다. 당김 하나만 실패하면 실행기가 무시하고 후퇴·배치를 계속하므로
+    # 결과는 배치 쪽에서 정해진다 — 로그 한 줄만 남긴다(판정표의 '당김 명령 실패' 열).
     def _after_detach(result):
-        # 파지 판정이 GRASP_CONTACT_DETECTED 가 아니면(빈손 등) 떼어낼 과실이 없던 픽이라 분리 실패로 세지 않는다
-        # — 실행기는 빈손이어도 당김·후퇴를 그대로 하므로 후퇴 실패가 날 수 있다. 그 픽의 칸은 회색으로 남는다.
-        if pick["grasp"] != "GRASP_CONTACT_DETECTED":
-            return
-        _record(result_bar.outcome_of_detach(result),
-                "execute_detach_and_retreat returned None")
+        if result is None:
+            _pick()["why"] = "retreat_failed"
+
+    def _after_pull(result):
+        if result is not None and not result:      # 반환은 bool 이지만 numpy bool·0 이 와도 놓치지 않게
+            _note("당김 명령 실패 — 실행기는 무시하고 후퇴·배치를 계속한다(결과 칸에는 영향 없음)")
 
     _wrap("planner", executor, "execute_detach_and_retreat", after=_after_detach)
-    _wrap("planner", executor, "_execute_pitch_detach_fn", before=_seq("DETACH"))
+    _wrap("planner", executor, "_execute_pitch_detach_fn", before=_seq("DETACH"), after=_after_pull)
     _wrap("planner", executor, "_execute_retreat_steps_fn", before=_seq("RETREAT"))
     _wrap("planner", executor, "return_to_pick_start_and_complete",
           before=_seq("RETURN"))
 
     # 파지 판정. GRASP_CONTACT_DETECTED 가 아니면 실패로 센다.
     # (harvest_result_policy.allow_place_after_grasp 와 같은 기준)
+    # 칸은 여기서 안 붙인다 — 빈손 픽은 배치 게이트에서 차단돼 run() 이 결과 없이 끝나므로 분리 실패가 된다.
     def _after_grasp(result):
         try:
             grasp_result = result[0] if isinstance(result, (tuple, list)) else result
         except Exception:
             return
-        pick["grasp"] = grasp_result
+        _pick().update(grasp=grasp_result, why="grasp=%s" % (grasp_result,))
         if grasp_result != "GRASP_CONTACT_DETECTED":
             status_bus.bump("result", "failed")
 

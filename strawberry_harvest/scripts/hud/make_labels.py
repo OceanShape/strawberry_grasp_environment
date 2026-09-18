@@ -38,9 +38,12 @@ PHASE = {"IDLE": 0x7B8494, "SCAN_MOVE": 0x4A9EFF, "DETECT": 0x00C8C8, "PLAN": 0x
          "APPROACH": 0xFFB547, "ENTER": 0xFFB547, "GRASP": 0xFF7A3D,
          "DETACH": 0xFF3D5C, "RETREAT": 0x4A9EFF,
          "PLACE": 0x5AD469, "RETURN": 0x4A9EFF, "DONE": 0x5AD469}
+# [2026-09-18] DETACH 단계 라벨 '분리' -> '당김'. 결과 바의 '분리 실패' 가 진입~배치 호출 직전 구간을 뜻하게 되면서
+#   (result_bar.py) 단계 바의 '분리'(BASE -Z 40mm 당김 한 동작)와 같은 글자가 한 화면에 두 뜻으로 뜨게 돼서다.
+#   enum 키 DETACH·색(PHASE)·영문 폴백은 그대로.
 STATE_KO = {"IDLE": "대기", "SCAN_MOVE": "스캔 이동", "DETECT": "타겟 수신", "PLAN": "경로 계산",
             "APPROACH": "접근", "ENTER": "진입", "GRASP": "하강 + 파지",
-            "DETACH": "분리", "RETREAT": "후퇴",
+            "DETACH": "당김", "RETREAT": "후퇴",
             "PLACE": "배치", "RETURN": "복귀", "DONE": "완료"}
 
 REGION_KO = {"home": "HOME", "nw": "북서 NW", "ne": "북동 NE",

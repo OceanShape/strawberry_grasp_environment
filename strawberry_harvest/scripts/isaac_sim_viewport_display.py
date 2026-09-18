@@ -60,8 +60,13 @@ slot" (hud/README.md).
 the open scene (hud/scene_fruit.py, the bridge's own publish filter) -- never a fixed
 number. Each pick that reaches a result paints the next cell: green = placed, red =
 place failed, amber = detach failed (rules, wording and colors: hud/result_bar.py; the
-planner-side probe appends the results, bus key result.outcomes). A target with no
-result (skipped before the grasp, grasp check failed) leaves its cell grey. The legend
+planner-side probe appends the results, bus key result.outcomes). [2026-09-18] Amber
+means the pick started its straight entry but ended without ever calling the tray place
+executor -- any step between the straight entry and the place call failed (or run()
+raised); judged once when the executor's run() ends, and skipped when marker place is
+disabled. A target that never reached the pre-approach pose (all grasp candidates
+IK-failed, pre-approach spline failed, guard skip) leaves its cell grey. The stage label for
+DETACH is "PULL" (Korean '당김') so the word '분리' is not used twice on screen. The legend
 under the bar replaces the old second line of the ending (placed n / dropped m) and is
 shown the whole run, zeros included. result.dropped is still counted on the bus (it
 matches the Kit bridge's dropped=n) but is no longer drawn.
@@ -184,7 +189,7 @@ EN = {
              "controller": "CONTROL", "scan": "SCAN"},
     "state": {"IDLE": "IDLE", "SCAN_MOVE": "SCAN MOVE", "DETECT": "DETECT",
               "PLAN": "PLAN", "APPROACH": "APPROACH", "ENTER": "ENTER",
-              "GRASP": "DESCEND + GRASP", "DETACH": "DETACH",
+              "GRASP": "DESCEND + GRASP", "DETACH": "PULL",
               "RETREAT": "RETREAT", "PLACE": "PLACE",
               "RETURN": "RETURN", "DONE": "DONE"},
     "area": {"home": "HOME", "nw": "NW", "ne": "NE", "se": "SE", "sw": "SW"},
