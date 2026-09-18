@@ -50,4 +50,45 @@ def Xform "lab_environment"
         double3 xformOp:translate = (0.4, 0.3, -0.95)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
     }
+
+    # [2026-09-19] 테이블 다리 — 시뮬 전용 소품, **보이기만 한다**. 상판이 공중에 떠 보이지 않게 넣었다 (사용자 지정 치수).
+    #   단면 30 x 30mm (09-19 50mm 에서 줄임 — 롱샷에서 두꺼워 보였다), 길이 415mm = 상판 아랫면(z -0.035) ~ 바닥 윗면(z -0.45). 네 개, 다리 바깥 면이 상판 외곽
+    #   (x -0.18~1.02, y +-0.30)에서 50mm 안쪽 -> 중심 x -0.115 / 0.955, y +-0.235. 실기 테이블 다리 자료는 없다.
+    #   콜라이더 없음 — physics_layer.usd 에 over 를 달지 않는다 (낙하 과실 물리는 런 14 검증 그대로). cuRobo world 에도 없다.
+    #   바닥 높이(floor)를 바꾸면 여기 scale z 와 translate z 도 같이 바꾼다 (길이 = -0.035 - 바닥 윗면, 중심 = 둘의 중점).
+    def Xform "table_legs"
+    {
+        def Cube "leg_back_left"
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.40, 0.40, 0.40)]
+            double3 xformOp:scale = (0.03, 0.03, 0.415)
+            double3 xformOp:translate = (-0.115, 0.235, -0.2425)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Cube "leg_back_right"
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.40, 0.40, 0.40)]
+            double3 xformOp:scale = (0.03, 0.03, 0.415)
+            double3 xformOp:translate = (-0.115, -0.235, -0.2425)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Cube "leg_front_left"
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.40, 0.40, 0.40)]
+            double3 xformOp:scale = (0.03, 0.03, 0.415)
+            double3 xformOp:translate = (0.955, 0.235, -0.2425)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+        def Cube "leg_front_right"
+        {
+            double size = 1
+            color3f[] primvars:displayColor = [(0.40, 0.40, 0.40)]
+            double3 xformOp:scale = (0.03, 0.03, 0.415)
+            double3 xformOp:translate = (0.955, -0.235, -0.2425)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+    }
 }
