@@ -14,6 +14,13 @@ HUD(../isaac_sim_viewport_display.py)는 2·3 을 받아 칠하기만 한다. �
 노드 상태
   root : pending(런 전) / active(overview 1차 스캔 중) / base(순회 중) / done(완료)
   분면·세부 칸 : pending / active(로봇이 지금 여기) / parent(자식 칸에 내려가 있음) / done / pruned
+
+흐림 (2026-09-19, 사용자 승인)
+  상태와 따로, 로봇이 지금 없는 노드는 흐리게 그린다(view 의 dim). 노드는 지우지 않는다 —
+  1단의 제외·분할·완료 표시가 어느 장면에서나 보여야 해서다. (2단 줄은 전처럼 가장 최근에
+  분할한 분면의 자식만 그린다 — 두 번째 분면이 분할하면 앞 분면의 세부 칸 줄은 바뀐다.) 깊이에 따라 보이는 노드를 16 → 4 → 1 로
+  줄이는 안은 버렸다(깊이 0 에 세부 칸 데이터가 없고, 잎 분면에 가짜 세부 칸이 생기고, 떠난 분면의
+  판정이 화면에서 사라진다).
 """
 from __future__ import annotations
 
@@ -81,6 +88,35 @@ NODE_STYLE = {
 REJECTED_BORDER = (255, 181, 71, 200)
 EDGE, EDGE_DIM, EDGE_ON = _w(56), _w(18), ACTIVE + (220,)
 
+#: [2026-09-19] 흐림 — 로봇이 지금 없는 노드에 곱하는 불투명도. 채움·테두리·글자·둘째 줄 PNG 의
+#: 알파에 모두 곱한다(그룹 불투명도와 같은 효과). 0.35 는 사용자가 고른 대화 그림의 값 그대로다.
+#: 언제 흐리나: 로봇이 어느 분면에 있을 때(current 가 비어 있지 않을 때)만.
+#:   1단 — 로봇이 있는 분면 말고 나머지 셋 (제외·완료·대기 모두).
+#:   2단 — 2단 줄이 로봇이 있는 분면의 자식이 아니면 넷 다, 로봇이 세부 칸에 내려가 있으면 그 칸 말고 셋.
+#:   ROOT·연결선은 흐리지 않는다. 로봇이 분할 분면의 부모 자세에 있으면(분할 직후, 세부 자세 거부로
+#:   복귀) 그 분면의 세부 칸 넷은 흐리지 않는다 — 다음에 내려갈 곳이라서.
+#: 홈(1차 스캔 중, 마지막 복귀 뒤)에서는 아무것도 흐리지 않는다 — 트리 전체가 그 순간의 정보다.
+#: 흐림은 제외(pruned)와 다른 효과다: 제외는 노드 고유의 옅은 스타일 + 둘째 줄 '제외' 이고, 흐림은
+#: 그 스타일 위에 곱해진다. 같은 순간 같은 흐림 상태끼리 비교하면 제외 노드가 늘 한 단계 더 옅다.
+DIM_ALPHA = 0.35
+
+
+def _alpha(rgba, k: float):
+    r, g, b, a = rgba
+    return (r, g, b, int(round(a * k)))
+
+
+def node_paint(style: str, border=None, dim: bool = False) -> Dict:
+    """스타일 키(+테두리 덮어쓰기, 흐림) -> 칠할 RGBA. HUD 는 이 값을 그대로 칠한다.
+
+    tag = 영문 폴백 둘째 줄 글자색, tag_alpha = 한글 PNG 둘째 줄에 곱할 불투명도.
+    """
+    st = NODE_STYLE.get(style, NODE_STYLE["pending"])
+    k = DIM_ALPHA if dim else 1.0
+    return {"fill": _alpha(st["fill"], k), "border": _alpha(border or st["border"], k),
+            "bw": st["bw"], "name": _alpha(st["name"], k), "count": _alpha(st["count"], k),
+            "tag": _alpha(DIM, k), "tag_alpha": k}
+
 
 # ---- 1. 상태 -------------------------------------------------------------------------
 
@@ -114,6 +150,8 @@ class TreeModel:
         with self._lock:
             self._t = blank()
             self._children: Dict[str, Dict[str, Dict]] = {}
+            #: [2026-09-19] 분면 자세 첫 방문에서 숫자가 정해진 분면. 아래 detected·decided 참고.
+            self._counted: set = set()
 
     def snapshot(self) -> Dict:
         with self._lock:
@@ -154,24 +192,37 @@ class TreeModel:
             self._set_current(q, sub)
 
     def detected(self, cell_id, count) -> None:
-        """분면 자세 dwell 결과. 0 이면 여기서 끝나므로 숫자를 0 으로 고친다."""
+        """분면 자세 dwell 결과. 첫 방문에서 0 이면 여기서 끝나므로 숫자를 0 으로 고친다.
+
+        [2026-09-19 사용자 결정] 숫자는 분면 자세 **첫 방문** 값에서 고정한다. 실행기는 픽을 한 분면에
+        다시 와서 재스캔하는데(_scan_sequence 의 rescan 루프), 그때 dwell 0 으로 숫자를 덮으면 끝난 분면이
+        전부 0 이 되고 흐린 노드가 'NW 0 분할' 처럼 모순으로 읽혔다(09-19 01:14 런: NW 3 -> 0, SW 3 -> 0).
+        """
         q, sub = parse_cell(cell_id)
         if q is None or sub is not None or count is None:
             return
         with self._lock:
-            if int(count) == 0:
+            if int(count) == 0 and q not in self._counted:
                 self._t["nodes"][q]["count"] = 0
+                self._counted.add(q)
+
 
     def decided(self, cell_id, n_candidates, split) -> None:
-        """_should_subdivide 의 입력(중복 제거 후 후보 수)과 결과."""
+        """_should_subdivide 의 입력(중복 제거 후 후보 수)과 결과.
+
+        [2026-09-19] 숫자는 첫 방문 값에서 고정(detected 참고) — 재스캔이 남은 수로 덮지 않는다.
+        '분할' 도 한 번 붙으면 이 런 동안 유지한다: 분할한 분면을 재스캔해 남은 후보가 임계 미만이면
+        실행기는 SUBDIVIDE_SKIP 으로 판정하는데, 그 두 번째 판정이 첫 분할 이력을 지우면 안 된다.
+        """
         q, sub = parse_cell(cell_id)
         if q is None or sub is not None:
             return
         with self._lock:
             node = self._t["nodes"][q]
-            if n_candidates is not None:
+            if n_candidates is not None and q not in self._counted:
                 node["count"] = int(n_candidates)
-            node["split"] = bool(split)
+                self._counted.add(q)
+            node["split"] = bool(node.get("split")) or bool(split)
 
     def split(self, cell_id, counts: Dict[str, int]) -> None:
         """_subdivide_and_pick 진입 — 부모 자세 시야의 세부 칸별 후보 수. 0 인 칸은 2단 가지치기."""
@@ -356,11 +407,12 @@ def l1_tag(q: str, state: str, split: bool) -> str:
 
 
 def view(tree, lay: Dict) -> Dict:
-    """스냅샷 -> {"nodes": {key: {style, count, tag, border}}, "lines": {key: RGBA}, "group": 분할 분면|None}.
+    """스냅샷 -> {"nodes": {key: {style, count, tag, border, dim}}, "lines": {key: RGBA}, "group": 분할 분면|None}.
 
     노드 키: "root", 분면 "nw".., 2단 "sub:nw".. / 선 키: 1단 그대로, 2단은 "g:" 접두.
     show_l2: 순회가 끝나면(root done) False — 2단 영역을 통째로 접는다 (사용자 지정 2026-09-12).
     그 자리에 HUD 의 '수확 완료' 줄이 뜬다.
+    dim: 로봇이 지금 없는 노드 (규칙은 DIM_ALPHA 주석, 2026-09-19). 색은 node_paint 가 정한다.
     모르는 값이 와도 예외 없이 pending 으로 그린다 — 계측이 HUD 를 죽이면 안 된다.
     """
     t = tree if isinstance(tree, dict) else {}
@@ -374,7 +426,7 @@ def view(tree, lay: Dict) -> Dict:
     out_n, out_l = {}, {}
     root = t.get("root")
     out_n["root"] = {"style": root if root in ROOT_STATES else "pending",
-                     "count": "", "tag": None, "border": None}
+                     "count": "", "tag": None, "border": None, "dim": False}
     show_l2 = out_n["root"]["style"] != "done"
     if not show_l2:
         sp = None
@@ -382,7 +434,8 @@ def view(tree, lay: Dict) -> Dict:
         n = nodes.get(q) if isinstance(nodes.get(q), dict) else {}
         st = n.get("state") if n.get("state") in NODE_STATES else "pending"
         out_n[q] = {"style": st, "count": _cnt(n.get("count")),
-                    "tag": l1_tag(q, st, bool(n.get("split"))), "border": None}
+                    "tag": l1_tag(q, st, bool(n.get("split"))), "border": None,
+                    "dim": cq is not None and q != cq}
         out_l["drop1:" + q] = EDGE_ON if q == cq else (EDGE_DIM if st == "pruned" else EDGE)
     out_l["stem"] = EDGE_ON if cq else EDGE
     for key, a, b in lay["bus1"]:
@@ -397,6 +450,8 @@ def view(tree, lay: Dict) -> Dict:
             k = kids.get(s) if isinstance(kids.get(s), dict) else {}
             st = k.get("state") if k.get("state") in NODE_STATES else "pending"
             border = REJECTED_BORDER if (k.get("rejected") and st == "done") else None
-            out_n["sub:" + s] = {"style": st, "count": _cnt(k.get("count")), "tag": None, "border": border}
+            dim = cq is not None and (cq != sp or (cs is not None and s != cs))
+            out_n["sub:" + s] = {"style": st, "count": _cnt(k.get("count")), "tag": None,
+                                 "border": border, "dim": dim}
             out_l["g:drop2:" + s] = EDGE_ON if (on and s == cs) else (EDGE_DIM if st == "pruned" else EDGE)
     return {"nodes": out_n, "lines": out_l, "group": sp, "show_l2": show_l2}

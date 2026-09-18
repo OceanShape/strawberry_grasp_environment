@@ -590,13 +590,13 @@ RELEASE 착지 (mm, 수확 순서 = 시퀀스 순서). 치우침은 런 9 실측
 | 1 | 분할 판정 | ✅ 09-12 | scan.log `SUBDIVIDE root/sw candidates=3 >= 3 cells=['se', 'nw', 'ne']` 1건, **`SUBDIVIDE root/nw candidates=3 >= 3`** 1건(8/4 전환 뒤), `SUBDIVIDE_SKIP root/ne candidates=2 < 3` |
 | 2 | 세부 칸 방문 | ✅ 09-12 | `AT_SCAN_POSE root/sw/se`·`root/sw/nw`·`root/sw/ne` 각 1건, `root/sw/sw` 는 `SUBCELL_EMPTY` 만(방문 없음), `SUBCELL_SCAN … unique=1` 3건 |
 | 3 | 세부 자세 | 🔶 09-12 (거부 1건 — 8/4 배치에선 예상된 값) | `SUBCELL_POSE` 3건 dJ_max ≤ 60°(오프라인 25.4 / 33.6 / 26.2), `SUBDIVIDE_REJECTED` 0건, 도착 `AT_SCAN_POSE` 관절이 `SUBCELL_POSE` 값과 J4/J6 등가 안에서 일치 |
-| 4 | 보드 여유 | ⏳ | 오프라인 FK 최소 183.8mm(사전) + 화면에서 세부 이동 중 보드 접촉 없음(사용자) |
+| 4 | 보드 여유 | ⏳ T5 화면 확인에서 닫음 | 오프라인 FK 최소 183.8mm(사전) + 화면에서 세부 이동 중 보드 접촉 없음(사용자) |
 | 5 | 종전 기준 | 🔶 09-12 (PICK COMPLETE 8, 배치 7 — ripe_08 이송 거부는 H §9) | `PICK COMPLETE` **8**(8/4 전환), `clamped`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`JOINT_COMMAND_REJECTED`·`EXEC_TIMEOUT` 0, `GRASP_JUDGE` 8/8 CONTACT, `OVERVIEW_SCAN nw:3 ne:2 se:0 sw:3` → se 미방문 |
-| 6 | 배치(T4-3 회귀 없음) | ⏳ | `_PLACE_BLOCKED` 0, `RELEASE frozen at` **8**건 전부 컵 안(8-3), 화면: 4차 계란판 옆 빈 컵 뚫림 없음(런 9 의 화면 항목 5 를 여기서 닫는다) |
+| 6 | 배치(T4-3 회귀 없음) | ⏳ T5 화면 확인에서 닫음 | `_PLACE_BLOCKED` 0, `RELEASE frozen at` **8**건 전부 컵 안(8-3), 화면: 4차 계란판 옆 빈 컵 뚫림 없음(런 9 의 화면 항목 5 를 여기서 닫는다) |
 | 7 | 시간 | ✅ 283.0초 (분할 오버헤드 ~22초) | 전체 초(런 9 217.2). 세부 이동 3회 + dwell 3회로 약 +10~15초 예상 — 근거가 아니라 부산물(G §7) |
-| 8 | HUD 트리(화면) | ⏳ | 1차 스캔 뒤 SE `남동(제외)` → NW `북서(분할)`·세부 칸 줄(세부 자세가 거부된 칸은 끝나면 호박색 테두리) → NE `북동` → SW `남서(분할)`·세부 칸 se→nw→ne 순으로 주황 → 완료 때 ROOT 초록·세부 칸 줄 접힘. 보드 하이라이트가 세부 자세에서는 그 세부 칸 하나만(09-12, 씬 재로드 뒤). 사용자 육안(T5 녹화와 같이) |
+| 8 | HUD 트리(화면) | ⏳ T5 화면 확인에서 닫음 | **기대 — 현행 표시 기준(09-19 갱신)**: 1차 스캔 뒤 SE 둘째 줄 `제외` → NW 하늘색·`분할`·세부 칸 줄(세부 자세가 거부된 칸이 있으면 끝날 때 호박색 테두리) → NE 하늘색·둘째 줄 없음(잎) → SW `분할`·세부 칸 se→nw→ne 차례로 하늘색 → 완료 때 ROOT 초록·세부 칸 줄 접힘. 로봇이 분면·세부 칸에 있는 동안 나머지 노드는 흐려지고 지워지지 않는다. 홈과 완료 때는 아무것도 흐리지 않는다. 분면 숫자는 첫 분면 자세 값을 끝까지 유지한다(시연 배치 NW 3·NE 2·SE 0·SW 3). 보드 하이라이트는 세부 자세에서 그 세부 칸 하나만(씬 재로드 뒤). 방위 글자(`북서` 등)와 주황색은 09-16 에 없어졌으니 찾지 않는다 |
 
-**런 10 판정 (09-14 기입)** — 1 `SUBDIVIDE root/nw cells=['sw','se']`·`SUBDIVIDE root/sw cells=['se','nw','ne']`·`SUBDIVIDE_SKIP root/ne 2<3`·`TRAVERSAL_PRUNED se` 전부 있음. 2 `AT_SCAN_POSE root/nw/sw`·`root/sw/se`·`root/sw/nw`·`root/sw/ne`, `root/sw/sw` 는 `SUBCELL_EMPTY` 만. 3 `SUBCELL_POSE` 4건 dJ_max 32.1/25.4/33.6/26.2 ≤ 60, **`SUBDIVIDE_REJECTED root/nw/se JOINT_DELTA 66.3`** 1건 → `SUBDIVIDE_RETURN_TO_PARENT` 뒤 부모 자세 pick(오프라인 예측과 일치; 표의 '0건' 기대는 6/6 배치 기준이었다). 5 `PICK COMPLETE` 8, `GRASP_JUDGE` 8/8 CONTACT, `clamped`·`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED` 0, 배치 7(ripe_08 slot 4 `J3 swing 186.3>175` → 실기 플래너 한계로 기록). 7 전체 283.0초. **4·6·8(화면)은 런 12(T4c, 씬 재로드 뒤)에서 본다.**
+**런 10 판정 (09-14 기입)** — 1 `SUBDIVIDE root/nw cells=['sw','se']`·`SUBDIVIDE root/sw cells=['se','nw','ne']`·`SUBDIVIDE_SKIP root/ne 2<3`·`TRAVERSAL_PRUNED se` 전부 있음. 2 `AT_SCAN_POSE root/nw/sw`·`root/sw/se`·`root/sw/nw`·`root/sw/ne`, `root/sw/sw` 는 `SUBCELL_EMPTY` 만. 3 `SUBCELL_POSE` 4건 dJ_max 32.1/25.4/33.6/26.2 ≤ 60, **`SUBDIVIDE_REJECTED root/nw/se JOINT_DELTA 66.3`** 1건 → `SUBDIVIDE_RETURN_TO_PARENT` 뒤 부모 자세 pick(오프라인 예측과 일치; 표의 '0건' 기대는 6/6 배치 기준이었다). 5 `PICK COMPLETE` 8, `GRASP_JUDGE` 8/8 CONTACT, `clamped`·`ARM_ARRIVAL_TIMEOUT`·`JOINT_COMMAND_REJECTED` 0, 배치 7(ripe_08 slot 4 `J3 swing 186.3>175` → 실기 플래너 한계로 기록). 7 전체 283.0초. **4·6·8(화면)은 런 12(T4c, 씬 재로드 뒤)에서 본다.** 런 12·14 에서도 사용자 확인 기록이 남지 않아 **T5 화면 확인에서 닫는다**(`SUBMISSION_PLAN.md` T5 '판정표 화면 행 닫기', 09-19).
 
 **런 10 결과 메모 (09-12)** — 로그 [`20260912T013357-ea2ae427/`](20260912T013357-ea2ae427/). PICK COMPLETE 8, 배치 7: ripe_08 을 분리한 뒤 4번 칸 이송 계획이 `J3 swing 186.3 > 175` 로 거부돼 그 자리에서 릴리스(공중 동결). **실기 플래너 한계로 기록**(`PLANNER_CHANGES.md` 09-12, `portfolio/H_scope_decisions.md` §9). 오프라인 재현 파일 두 개가 같은 폴더에 있다. 이어 돈 런 11(02:13)은 [`20260912T021353-03ef3b5c/`](20260912T021353-03ef3b5c/): ripe_08 직선 진입 IK 실패로 미파지, ripe_04 가 9번 칸 이송에서 같은 가드(J3 197.9)에 걸림.
 
@@ -622,7 +622,7 @@ MoveJoint 사다리꼴 페이싱, `sim_speed_scale` 1.0) ③ D1 로봇 USD J2/J3
 | 7 | 방어선·도착 | ✅ | `JOINT_COMMAND_REJECTED`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`clamped`·`EXEC_TIMEOUT` 0 — J3 가 135° 한계에 닿는 트레이 자세에서도 도착 잔차 정상 |
 | 8 | D3 기록 | ✅ | `MOVEJ_OVER_DOOSAN_MOVEIT` 12건(J1 acc 145\~171 · J2 144\~180 · J3 154\~180 > 120/120/150) — 자르지 않고 실행, 기록만 |
 | 9 | 시간 | **277초** | `OVERVIEW_SCAN_STARTED` → `READY_FOR_NEXT_START` (런 10 283.0). 분할 5칸 + `sim_speed_scale` 1.0 |
-| 10 | 화면 | ⏳ 사용자 | HUD 트리 패널(북서·남서 `(분할)` + 세부 칸 줄), 세부 칸 주황 하이라이트, 4차 계란판 — 런 10 판정표 4·6·8 을 여기서 닫는다 |
+| 10 | 화면 | ⏳ T5 화면 확인에서 닫음 | HUD 트리 패널(NW·SW 둘째 줄 `분할` + 세부 칸 줄, 기대는 런 10 판정표 8행), 보드 세부 칸 하늘색 테두리 하이라이트, 4차 계란판 — 런 10 판정표 4·6·8 과 같이 닫는다 |
 
 **이 런이 보여준 것**: 실기 원본 값으로 되돌린 상태의 정직한 수치 — 8개 중 7개 분리, 4개 배치, 3개는 이송 계획 거부로 보드 앞에서 놓음(공중 동결 표현), 1개는 진입 실패.
 **이 런 뒤 (T4c ①②, 09-15)**: 공중 동결은 실패를 가린다 → 브릿지가 트레이 밖 릴리스를 **떨어뜨리고**(바닥 콜라이더 신설, 헤드리스 검증), HUD 완료 줄에 **배치 n · 낙하 m**. 화면 확인은 런 13.
@@ -667,7 +667,7 @@ MoveJoint 사다리꼴 페이싱, `sim_speed_scale` 1.0) ③ D1 로봇 USD J2/J3
 | 6 | 방어선·도착 | ✅ | `JOINT_COMMAND_REJECTED`·`ARM_ARRIVAL_TIMEOUT`·`STALLED`·`clamped`·`EXEC_TIMEOUT` 0; `MOVEJ_OVER_DOOSAN_MOVEIT` 12(기록만) |
 | 7 | Kit 오류 | ✅ | `[Error]` 2건 — 둘 다 RSD455 xformstack reset(기존, 무관) |
 | 8 | 시간 | **292초** | 런 12 277(7 pick) → 8 pick + 낙하 대기 없음 |
-| 9 | 화면 | ⏳ 사용자 | HUD 트리·세부 칸 하이라이트·완료 둘째 줄·낙하 장면 |
+| 9 | 화면 | ⏳ T5 화면 확인에서 닫음 | HUD 트리(기대는 런 10 판정표 8행)·세부 칸 하이라이트·결과 바와 범례(09-17 부터 완료 둘째 줄 `배치 n · 낙하 m` 대신)·낙하 장면 |
 
 **T4c 완료 기준 충족(로그 기준)**: 트레이 밖 릴리스 4건 전부 떨어져 바닥에 정지, 완료 줄 카운트가 브릿지·플래너와 일치, 실기 원본 값에서의 정직한 수치 8 파지 / 4 배치 / 4 낙하.
 **T4d 로 넘긴다**: 서로 다른 배치 3~5개(09-15 개정 — 30 런 비율은 버림). 런당 카운트는 이 표의 1·2·3 행 + 분할 발생·단계, 배치별 기록표는 [`random/README.md`](random/README.md). → **09-15 완료: 배치 5개 전부 완주.**

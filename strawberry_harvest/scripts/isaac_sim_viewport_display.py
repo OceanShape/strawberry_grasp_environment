@@ -35,6 +35,8 @@ Layout (2026-09-11: the AREA / TARGET / PLACED rows were replaced by the tree;
     ------------------------------------------
     TREE                  [ROOT]                       the scan as a quadtree
             [NW   2] [NE   1] [SE   0] [SW   3]        number = candidates in that cell
+                                                       (first look at the quadrant pose;
+                                                       rescans after picks keep it, 09-19)
             [dir   ] [dir   ] [dir+skip] [dir+split]   2nd line (Korean PNG)
                          [nw 1][ne 1][se 1][sw 0]      children of the latest split;
                                                        folded away when the run ends
@@ -50,7 +52,9 @@ The tree paints the scan executor's own decisions as they happen (overview
 prune, leaf, split, sub-pose fallback); nothing is decided here. Geometry,
 colors and wording come from hud/tree_model.py (make_labels.py uses the same
 wording). Cyan node + path = where the robot is now (same cyan as the board's lit
-border, 2026-09-16); green border = finished.
+border, 2026-09-16); green border = finished. [2026-09-19] While the robot is in a
+quadrant, every node off its path is drawn at 35% opacity -- faded, never removed.
+At home (overview scan, return at the end) nothing is faded.
 
 "HARVEST DONE" is not "success": this repo has no attach that glues the fruit
 to the gripper, so it can only count "grasp check passed + released at the tray
@@ -66,7 +70,8 @@ executor -- any step between the straight entry and the place call failed (or ru
 raised); judged once when the executor's run() ends, and skipped when marker place is
 disabled. A target that never reached the pre-approach pose (all grasp candidates
 IK-failed, pre-approach spline failed, guard skip) leaves its cell grey. The stage label for
-DETACH is "PULL" (Korean '당김') so the word '분리' is not used twice on screen. The legend
+DETACH is "PULL" (Korean "dang-gim") so the Korean word for detach ("bun-ri") is not
+used twice on screen. The legend
 under the bar replaces the old second line of the ending (placed n / dropped m) and is
 shown the whole run, zeros included. result.dropped is still counted on the bus (it
 matches the Kit bridge's dropped=n) but is no longer drawn.
@@ -475,8 +480,13 @@ class _Swappable:
     def _url(self, key):
         return os.path.join(LABEL_DIR, "%s_%s.png" % (self._prefix, key))
 
-    def set(self, key, color):
+    def set(self, key, color, alpha=None):
+        """alpha (0..1) fades the Korean PNG through the image tint -- the tree dims nodes
+        off the robot's path (2026-09-19). None leaves the tint alone (phase label).
+        The English label takes its fade through color instead."""
         if self._img is not None:
+            if alpha is not None:
+                self._img.style = {"color": cl(1.0, 1.0, 1.0, alpha)}
             meta = LABEL_IMG.get("%s_%s" % (self._prefix, key))
             if meta is None:
                 self._img.visible = False
@@ -505,6 +515,13 @@ class _TreeView:
     group under the latest split quadrant is visible, so the panel height never
     changes during a run. When the traversal is done the whole 2nd-level area
     folds away and the HARVEST DONE row appears in its place.
+
+    [2026-09-19] Nodes off the robot's path are drawn faded (tree_model.DIM_ALPHA on
+    every alpha: fill, border, text, second-line PNG tint). Nothing is removed, so the
+    first-level skip / split / done marks stay on screen in every frame (the 2nd-level
+    row still shows only the latest split quadrant's cells, as before). The rule and the
+    colors live in tree_model (view() sets "dim", node_paint() returns the colors);
+    this class only paints them.
     """
 
     def __init__(self, width):
@@ -548,17 +565,17 @@ class _TreeView:
             ui.Spacer()
 
     @staticmethod
-    def _rect_style(style, border):
-        return {"background_color": _c(style["fill"]),
-                "border_color": _c(border or style["border"]),
-                "border_width": style["bw"], "border_radius": 6}
+    def _rect_style(paint):
+        return {"background_color": _c(paint["fill"]),
+                "border_color": _c(paint["border"]),
+                "border_width": paint["bw"], "border_radius": 6}
 
     @classmethod
     def _node(cls, w, h, name, size, center=False, tag_key=None):
-        st = tree_model.NODE_STYLE["pending"]
+        st = tree_model.node_paint("pending")
         out = {"size": size}
         with ui.ZStack(width=w, height=h):
-            out["rect"] = ui.Rectangle(style=cls._rect_style(st, None))
+            out["rect"] = ui.Rectangle(style=cls._rect_style(st))
             if center:
                 out["name"] = ui.Label(name, alignment=ui.Alignment.CENTER,
                                        style=_text(_c(st["name"]), size))
@@ -615,18 +632,20 @@ class _TreeView:
                     r, "style", {"background_color": _c(c)}))
 
     def _paint(self, wkey, wid, nv):
-        st = tree_model.NODE_STYLE[nv["style"]]
+        dim = bool(nv.get("dim"))
+        p = tree_model.node_paint(nv["style"], nv["border"], dim)
         size = wid["size"]
-        self._put(wkey + ("rect",), (nv["style"], nv["border"]), lambda _v: setattr(
-            wid["rect"], "style", self._rect_style(st, nv["border"])))
-        self._put(wkey + ("name",), nv["style"], lambda _v: setattr(
-            wid["name"], "style", _text(_c(st["name"]), size)))
+        self._put(wkey + ("rect",), (nv["style"], nv["border"], dim), lambda _v: setattr(
+            wid["rect"], "style", self._rect_style(p)))
+        self._put(wkey + ("name",), (nv["style"], dim), lambda _v: setattr(
+            wid["name"], "style", _text(_c(p["name"]), size)))
         if "count" in wid:
-            self._put(wkey + ("count",), (nv["style"], nv["count"]), lambda _v: (
+            self._put(wkey + ("count",), (nv["style"], nv["count"], dim), lambda _v: (
                 setattr(wid["count"], "text", nv["count"]),
-                setattr(wid["count"], "style", _text(_c(st["count"]), size))))
+                setattr(wid["count"], "style", _text(_c(p["count"]), size))))
         if "tag" in wid and nv["tag"]:
-            self._put(wkey + ("tag",), nv["tag"], lambda k: wid["tag"].set(k, C_DIM))
+            self._put(wkey + ("tag",), (nv["tag"], dim), lambda _v: wid["tag"].set(
+                nv["tag"], _c(p["tag"]), p["tag_alpha"]))
 
 
 class HarvestHUD:
