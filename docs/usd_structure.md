@@ -53,7 +53,8 @@ strawberry_harvest/
     ├── isaac_sim_script_editor_bridge.py  # 딸기 좌표 발행 + /joint_command 수신 → 로봇 구동
     │                                       #   ⚠️ ASCII 전용 (Kit 이 한글을 '?' 로 찍는다)
     ├── isaac_sim_viewport_display.py       # 뷰포트 표시: 상태 HUD + 보드 분면 하이라이트 + 그리퍼 카메라 창 (ASCII 전용)
-    └── self_collision_logger_script.py    # 자기 충돌 감지 → log/collision_*.log 기록
+    ├── isaac_sim_run_all.py                # 브릿지 → 뷰포트 렌더 1080p → 뷰포트 표시를 한 번의 Run 으로 (2026-09-18)
+    └── isaac_sim_save_camera.py            # 지금 뷰포트 구도를 kit_ext extension.toml 의 persp_* 에 저장 (2026-09-18)
 ```
 
 ---
