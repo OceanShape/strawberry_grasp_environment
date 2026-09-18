@@ -115,15 +115,13 @@ _INITIAL_SINGLE_CELL_CANDIDATES = [
     "root/se",
     "root/sw",
 ]
-# 깊이 1 분면 순회 순서. 기준 = 원 팀 실기 기록(민1 STEP 6·민2 §7)의 순서 그대로:
-# nw -> ne -> se -> sw, 분면 사이 INTER_CELL_DIRECT(overview 미경유)로 4셀 순회 실기 검증.
-# 기록에 이 순서를 고른 이유는 적혀 있지 않다. 모양은 왼쪽 위에서 시작하는 시계 방향이라
-# 매 이동이 옆 분면으로만 간다(대각선 없음) — 이건 관찰이지 원 팀이 적은 근거가 아니다.
-# 깊이 2(_group_poses_by_subcell)는 기준이 달라 아래쪽 먼저 sw -> se -> nw -> ne 다.
+# 깊이 1 분면 순회 순서 nw -> ne -> se -> sw (원 팀 실기 기록 민1 STEP 6·민2 §7 의 순서, 분면 사이
+# INTER_CELL_DIRECT(overview 미경유)로 4셀 순회 실기 검증). 기준 = 인접 이동: 처음엔 Z-order
+# (nw -> ne -> sw -> se)였는데 ne -> sw 대각선 이동이 끼어 있어서, 옆 분면으로만 도는 시계 방향으로 바꿨다.
+# 깊이 2(_group_poses_by_subcell)는 기준이 달라 아래쪽 먼저 sw -> se -> nw -> ne 다(위쪽 목표점 오탐 경험).
 # [2026-09-09] 순서 복원: 종전 값 ["root/sw", "root/nw_flat", "root/ne", "root/se"] 는 원본의
 # 데모 촬영용 SW 시작 순서(이것도 시계 방향)였다.
-# [2026-09-17] 이름 변경(동작 불변): 원본 이름 _ALL_CELLS_ZORDER 는 틀린 이름이다 — Z-order 면
-# nw -> ne -> sw -> se 인데 원본 값·현재 값 모두 시계 방향이다.
+# [2026-09-17] 이름 변경(동작 불변): 원본 이름 _ALL_CELLS_ZORDER 는 Z-order 시절 이름이 남은 것이다.
 _ALL_CELLS_CLOCKWISE_ORDER = ["root/nw", "root/ne", "root/se", "root/sw"]
 
 _MAX_SPLINE_PTS = 12
