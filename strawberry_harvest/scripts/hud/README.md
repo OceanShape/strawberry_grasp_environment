@@ -74,7 +74,7 @@ python3 ~/strawberry_grasp_environment/strawberry_harvest/scripts/hud/make_label
 | `tree_model.py` | 쿼드트리 패널의 상태 전이·배치·표시 규칙·문구. 순수 파이썬 | scan 노드 · Isaac Sim |
 | `result_bar.py` | (2026-09-17) 결과 바의 판정 규칙(배치 성공·배치 실패·분리 실패)·범례 문구·색·칸 모양. 순수 파이썬. (2026-09-18) 분리 실패 판정 범위 재정의 — `docs/result_display_audit.md` §9 | planner 노드 · Isaac Sim |
 | `scene_fruit.py` | (2026-09-17) 열린 씬의 딸기 prim 을 타겟/비대상으로 센다 — 브릿지 발행 필터와 같은 규칙. pxr 만 | Isaac Sim |
-| `make_labels.py` → `labels/` | 한글 라벨 PNG 45장 + manifest.json 생성 (Pillow, Noto Sans CJK KR). `labels/final.png` 는 manifest 에 없는 옛 파일(09-19 `harvest_done.png` 로 옮김) — 옛 표시 스크립트를 띄운 Kit 세션이 참조해 남겨 뒀고, 표시 스크립트를 다시 Run 한 뒤 지워도 된다 | 오프라인 |
+| `make_labels.py` → `labels/` | 한글 라벨 PNG 45장 + manifest.json 생성 (Pillow, Noto Sans CJK KR) | 오프라인 |
 
 ---
 
