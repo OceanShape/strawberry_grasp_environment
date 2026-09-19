@@ -6,7 +6,7 @@ status_bus.py — 수확 시퀀스 상태의 단일 진실 원천 (in-process).
   * 상태 '판정'은 전부 여기서. HUD 는 읽어서 그리기만 한다.
   * 어떤 함수도 예외를 밖으로 던지지 않는다. 계측 코드가 시뮬을 죽이면 안 된다.
 
-HUD_SPEC.md 4.1 참조 구현. 아래 네 가지가 사양과 다르다.
+HUD_SPEC.md 4.1 참조 구현. 아래 일곱 가지가 사양과 다르다.
 
   (1) _LOG_PATH 기본값에 role 을 붙인다.
       사양은 단일 프로세스를 전제하지만 이 저장소에서는 계측 대상 4개가
@@ -44,6 +44,12 @@ HUD_SPEC.md 4.1 참조 구현. 아래 네 가지가 사양과 다르다.
       result.dropped 는 그대로 센다(Kit 브릿지 dropped=n 과 맞춰 보는 계측값). 화면에는 더 안 나간다.
       (2026-09-18) 'detach_failed' 의 범위가 넓어졌다: 직선 진입이 시작된 픽이 트레이 배치 실행기를 부르지
       못하고 끝나면 어디서 막혔든 이 키다. 판정은 실행기 run() 종료 직후 한 곳(result_bar.outcome_of_pick_end).
+
+  (7) run.ended_at 추가 (2026-09-19).
+      scan 프로브가 _scan_sequence_run 이 어떻게 끝났든 한 번 찍는 시각(harvest_probe._attach_scan _run_end).
+      result.finished 는 _finish_scan_sequence 가 정상 반환해야만 서므로, 스캔 이동 실패·예외로 끝난 런은
+      이 값만 남는다 — HUD 결과 바 위 줄이 그 런을 '수확 중단' 으로 그린다(isaac_sim_viewport_display.harvest_key).
+      reset() 이 run 을 통째로 새로 만들므로 다음 트리거에서 저절로 빠진다. _blank() 에는 넣지 않는다(없음 = 안 끝남).
 """
 from __future__ import annotations
 

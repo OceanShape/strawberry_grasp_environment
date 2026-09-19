@@ -410,8 +410,9 @@ def view(tree, lay: Dict) -> Dict:
     """스냅샷 -> {"nodes": {key: {style, count, tag, border, dim}}, "lines": {key: RGBA}, "group": 분할 분면|None}.
 
     노드 키: "root", 분면 "nw".., 2단 "sub:nw".. / 선 키: 1단 그대로, 2단은 "g:" 접두.
-    show_l2: 순회가 끝나면(root done) False — 2단 영역을 통째로 접는다 (사용자 지정 2026-09-12).
-    그 자리에 HUD 의 '수확 완료' 줄이 뜬다.
+    show_l2: 순회가 끝나면(root done) False — 2단 세부 칸을 비운다(group None). HUD 는 그 자리의 높이를 빈칸으로
+    남겨 아래가 움직이지 않는다(사용자 지정 2026-09-19. 09-12 부터는 영역을 통째로 접었다).
+    같은 때 HUD 결과 바 위 줄이 '수확 진행 중' → '수확 완료' 로 바뀐다(09-19 전에는 이때 완료 줄이 새로 떴다).
     dim: 로봇이 지금 없는 노드 (규칙은 DIM_ALPHA 주석, 2026-09-19). 색은 node_paint 가 정한다.
     모르는 값이 와도 예외 없이 pending 으로 그린다 — 계측이 HUD 를 죽이면 안 된다.
     """

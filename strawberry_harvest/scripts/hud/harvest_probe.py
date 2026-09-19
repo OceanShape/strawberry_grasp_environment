@@ -29,6 +29,7 @@ import os
 import re
 import sys
 import threading
+import time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
@@ -444,12 +445,27 @@ def _attach_scan(node):
         except Exception:
             pass
 
+    # 런마다 스레드가 따로 뜬다(실행기 threading.Thread(target=_scan_sequence_run)) — 그 런의 started_at 을 스레드별로 쥔다.
+    run_token = threading.local()
+
     def _run_start(*_):
         status_bus.reset()          # region 도 home 으로 돌아간다 (로봇이 overview 에서 시작)
+        run_token.started_at = status_bus.snapshot()["run"]["started_at"]
         state.update(total=0, skipped=0, index=0, seen=False)
         _tree(tree.reset)
 
-    _wrap("scan", node, "_scan_sequence_run", before=_run_start)
+    def _run_end(_result, _raised):
+        # [2026-09-19] 런이 어떻게 끝났든 한 번 — HUD 결과 바 위 줄(isaac_sim_viewport_display.harvest_key)용.
+        # result.finished 는 _finish_scan_sequence 가 정상 반환해야만 서는데, 실행기 _scan_sequence 는 스캔 이동
+        # 실패(EXEC_FAIL·EXEC_TIMEOUT)·설정 오류·예외로 그 호출 없이 끝나는 출구가 있다. 이 표시가 없으면 멈춘 런이
+        # 다음 트리거까지 '수확 진행 중' 으로 남는다. 정상 완주에서도 찍히지만 HUD 는 finished 를 먼저 본다.
+        # 다음 reset() 이 run 을 통째로 비우므로 따로 지우지 않는다. 실행기 finally 가 _started 를 푼 뒤에 이 함수가
+        # 돌므로, 그 틈에 받아들여진 다음 트리거가 먼저 reset() 했으면 이 런의 표시를 새 런에 찍지 않는다.
+        with status_bus._LOCK:
+            if status_bus.snapshot()["run"]["started_at"] == getattr(run_token, "started_at", None):
+                status_bus.publish("run", ended_at=time.time())
+
+    _wrap("scan", node, "_scan_sequence_run", before=_run_start, always=_run_end)
     def _at_cell(state):
         """cell_id 를 첫 인자로 받는 메서드용 — 영역과 단계를 함께 찍는다.
 

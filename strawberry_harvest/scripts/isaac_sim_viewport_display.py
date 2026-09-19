@@ -6,7 +6,7 @@ A HUD is status drawn over the main view; a camera inset is a second rendered vi
 and the board highlight toggles scene prims. The file now holds all three, so it is
 named for the viewport; "HUD" stays the name of the status panel inside it. The
 hud/ package, HARVEST_HUD_DIR and /tmp/harvest_hud_*.json keep their names: the
-probe hooks in the nodes pin that path, and renaming it would edit node code.
+probe code added to the nodes pins that path, and renaming it would edit node code.
 
   1. status HUD panel (top-left)      -- HarvestHUD, data from the hud/ bus
   2. board area highlight (in scene)  -- _BoardHighlight, driven by the HUD's area value
@@ -39,12 +39,14 @@ Layout (2026-09-11: the AREA / TARGET / PLACED rows were replaced by the tree;
                                                        rescans after picks keep it, 09-19)
             [dir   ] [dir   ] [dir+skip] [dir+split]   2nd line (Korean PNG)
                          [nw 1][ne 1][se 1][sw 0]      children of the latest split;
-                                                       folded away when the run ends
+                                                       emptied when the run finishes
+                                                       (its height stays, 2026-09-19)
     ------------------------------------------
     PHASE            DESCEND + GRASP                   centered, colored per phase
             [####.......]                              11-cell progress bar
     ------------------------------------------
-              HARVEST DONE  5 / 6 (83%)                only after the run ends
+              HARVEST IN PROGRESS                      one row, always (2026-09-19): NOT STARTED
+          (or) HARVEST DONE  5 / 8 (62%)               / IN PROGRESS / STOPPED / DONE + counts
     [##|##|##|##|  |  ]                                result bar, one cell per target, always
       PLACED 4   PLACE FAILED 1   DETACH FAILED 0      legend, zeros shown
 
@@ -59,6 +61,18 @@ At home (overview scan, return at the end) nothing is faded.
 "HARVEST DONE" is not "success": this repo has no attach that glues the fruit
 to the gripper, so it can only count "grasp check passed + released at the tray
 slot" (hud/README.md).
+
+[2026-09-19] The HARVEST line above the result bar is shown the whole run (user
+request). While it was hidden, the phase bar and the result bar sat one divider apart
+and read as one block. Before the scan node starts a run it says NOT STARTED, during
+the run IN PROGRESS (both dim); a finished run says DONE + counts, a run that ended
+without the finish call (scan move failed, exception) says STOPPED (both white) --
+harvest_key() picks which. All four are 34 px, so the line itself never changes height.
+When a run finishes the tree's 2nd level is emptied but keeps its 54 px (user,
+2026-09-19; until then it folded away, 2026-09-12, and the DONE row appearing at that
+same moment took most of the freed height). With the HARVEST line always there, a fold
+would have moved the phase bar, the result bar and the legend up 54 px at the finish;
+now no row on the panel changes position from the first frame to the last.
 
 [2026-09-17] Result bar. The number of cells is the number of TARGET fruit counted in
 the open scene (hud/scene_fruit.py, the bridge's own publish filter) -- never a fixed
@@ -185,7 +199,9 @@ PHASE_COLOR = {
 # ---- English fallback text (used only when labels/ is missing) ------------------
 EN = {
     "nodes": "NODES", "region": "AREA", "targets": "TARGET",
-    "placed": "PLACED", "phase": "PHASE", "final": "HARVEST DONE", "tree": "TREE",
+    "placed": "PLACED", "phase": "PHASE", "tree": "TREE",
+    "harvest": {"idle": "HARVEST NOT STARTED", "running": "HARVEST IN PROGRESS",
+                "stopped": "HARVEST STOPPED", "done": "HARVEST DONE"},
     "final_placed": result_bar.LABEL_EN["placed"],
     "final_dropped": result_bar.LABEL_EN["place_failed"],
     "final_detach_failed": result_bar.LABEL_EN["detach_failed"],
@@ -207,6 +223,28 @@ SCENE_POLL_SEC = 1.0          # recount the scene's fruit prims at most this oft
 LEGEND_LABEL = {"placed": "final_placed", "place_failed": "final_dropped",
                 "detach_failed": "final_detach_failed"}
 BAR_STATES = [s for s in status_bus.SEQUENCE_STATES if s != "IDLE"]   # 11 cells
+# [2026-09-19] HARVEST line: not started / in progress are status notes (dim); the two end
+# states are white. make_labels.py HARVEST_KO bakes the same colors into the Korean PNGs.
+HARVEST_COLOR = {"idle": C_DIM, "running": C_DIM, "stopped": C_TEXT, "done": C_TEXT}
+
+
+def harvest_key(snap):
+    """Which HARVEST line to show. All values come from the scan node's snapshot:
+      done     result.finished (probe, after _finish_scan_sequence returns)
+      stopped  run.ended_at without finished -- the scan thread ended some other way
+               (the probe stamps ended_at however _scan_sequence_run ends, 2026-09-19)
+      running  run.started_at (status_bus.reset() at the start of _scan_sequence_run)
+      idle     none of these (no trigger yet, or a fresh scan node)
+    A new trigger resets run and finished, so the line goes back to running. A scan node
+    that dies mid-run leaves its last snapshot, so the line stays running (its lamp goes red).
+    Nodes started before ended_at existed never write it: an aborted run then stays running."""
+    if snap["result"]["finished"]:
+        return "done"
+    run = snap.get("run")
+    if not isinstance(run, dict) or not run.get("started_at"):
+        return "idle"
+    return "stopped" if run.get("ended_at") else "running"
+
 
 # ---- board area highlight ------------------------------------------------------
 # [2026-09-10] Replaces the quadrant corner rods (cell_markers.usd, removed).
@@ -453,7 +491,7 @@ def _label(name, en_text, color, size, width=None):
 
 
 class _Swappable:
-    """A label whose image (or text) changes with a key -- for the phase and tree-tag slots.
+    """A label whose image (or text) changes with a key -- for the phase, tree-tag and HARVEST slots.
 
     Korean: swaps the source_url to `<prefix>_<key>.png` and matches the width. A key
     with no PNG hides the image (the tree's leaf tag has no second line since S5).
@@ -513,8 +551,10 @@ class _TreeView:
     items, so only the stack primitives the rest of this HUD already uses are
     needed. The four possible 2nd-level groups sit in one ZStack and only the
     group under the latest split quadrant is visible, so the panel height never
-    changes during a run. When the traversal is done the whole 2nd-level area
-    folds away and the HARVEST DONE row appears in its place.
+    changes during a run. When the traversal is done every 2nd-level group is hidden
+    (tree_model.view returns group None) but the ZStack keeps its fixed height, so
+    that area is left empty and nothing below it moves (2026-09-19, user; it used to
+    fold away). The HARVEST line below the phase bar turns to DONE at the same time.
 
     [2026-09-19] Nodes off the robot's path are drawn faded (tree_model.DIM_ALPHA on
     every alpha: fill, border, text, second-line PNG tint). Nothing is removed, so the
@@ -533,7 +573,8 @@ class _TreeView:
         with ui.VStack(width=width, height=0):
             for band in self._lay["bands"]:
                 self._band(band, self._lines, self._nodes)
-            with ui.ZStack(height=self._lay["l2_h"]) as l2_box:
+            # Fixed height: hidden groups (before the first split, after the run) leave it empty.
+            with ui.ZStack(height=self._lay["l2_h"]):
                 for q in tree_model.QUADS:
                     grp = {"lines": {}, "nodes": {}}
                     with ui.VStack(height=0) as frame:
@@ -542,7 +583,6 @@ class _TreeView:
                     frame.visible = False
                     grp["frame"] = frame
                     self._groups[q] = grp
-        self._l2_box = l2_box
 
     def _band(self, band, lines, nodes):
         h = band["h"]
@@ -609,7 +649,6 @@ class _TreeView:
     def update(self, tree):
         v = tree_model.view(tree, self._lay)
         group = v["group"]
-        self._put(("l2",), v["show_l2"], lambda on: setattr(self._l2_box, "visible", on))
         for q, grp in self._groups.items():
             self._put(("vis", q), group == q,
                       lambda on, f=grp["frame"]: setattr(f, "visible", on))
@@ -770,7 +809,10 @@ class HarvestHUD:
             ui.Spacer()
 
     def _row_result(self):
-        # The HARVEST DONE line is hidden until the run ends (as before, 2026-09-10).
+        # The HARVEST DONE line was hidden until the run ends (2026-09-10).
+        # [2026-09-19] It is shown the whole run now: NOT STARTED / IN PROGRESS until the end, then
+        # DONE + counts (or STOPPED) in the same slot (harvest_key). Hidden, it left the phase bar
+        # and the result bar one divider apart, and the two bars read as one (user request).
         # [2026-09-17] Right under it: the result bar and its legend, shown the whole run.
         # They replace the ending's second line 'placed n / dropped m' (T4c 2026-09-15): the
         # legend carries the same placed count and the same failure count under the terms
@@ -779,13 +821,13 @@ class HarvestHUD:
         # the full inner width because this block is centered, not aligned to the row heads.
         with ui.VStack(height=0, spacing=ROW_GAP):
             self._divider()
-            with ui.HStack(height=0, spacing=12) as final_row:
+            with ui.HStack(height=0, spacing=12):
                 ui.Spacer()
-                _label("final", EN["final"], C_TEXT, 34)
+                self._w["harvest"] = _Swappable("harvest", "idle", EN["harvest"],
+                                                HARVEST_COLOR["idle"], 34)
                 self._w["final_num"] = ui.Label("", width=0, style=_text(C_TEXT, 34))
                 ui.Spacer()
-            self._w["final"] = final_row
-            final_row.visible = False
+            self._w["final_num"].visible = False
             # Rebuilt only when the scene target count changes (_update_scene); painting
             # a result never rebuilds it.
             self._bar_frame = ui.Frame(height=result_bar.CELL_H, build_fn=self._build_cells)
@@ -863,6 +905,8 @@ class HarvestHUD:
                          "border_radius": 2}
 
         finished = bool(snap["result"]["finished"])
+        hkey = harvest_key(snap)
+        self._w["harvest"].set(hkey, HARVEST_COLOR[hkey])
         if finished:
             done, total = snap["result"]["succeeded"], tg["total"]
             # Percentage of the target count; total can be 0 (no ripe fruit seen).
@@ -874,7 +918,7 @@ class HarvestHUD:
                 self._total_noted = True
                 print("[hud] note: HARVEST DONE total %d (scan candidates) != scene targets %d "
                       "(result bar cells)" % (total, self._n_cells))
-        self._w["final"].visible = finished
+        self._w["final_num"].visible = finished
 
     def _update_scene(self, now):
         """Recount the scene's target / non-target fruit; one log line whenever the count changes."""

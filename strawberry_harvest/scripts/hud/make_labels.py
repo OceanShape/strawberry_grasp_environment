@@ -28,7 +28,7 @@ SCALE = 2          # HiDPI 대비 2배로 그려서 절반 크기로 표시한�
 
 # (이름, 글자, 크기px, 색, 볼드)  — 크기·색은 ../isaac_sim_viewport_display.py 와 같은 값
 # [2026-09-16 S5] 1080p 녹화 가독성: 본문 24px(노드), 머리 22px, 핵심 수치(배치·낙하) 32px, 단계 40px,
-#   완료 제목 34px, 카메라 캡션 20px(폭 480 안에 '영역 NE' 까지 들어가야 해서 24 는 넘친다).
+#   완료 제목 34px(09-19 부터 결과 바 위 줄 전체 — HARVEST_KO), 카메라 캡션 20px(폭 480 안에 '영역 NE' 까지 들어가야 해서 24 는 넘친다).
 TEXT = _rgb = lambda h: ((h >> 16) & 255, (h >> 8) & 255, h & 255, 255)
 C_TEXT, C_DIM = _rgb(0xE8EDF5), _rgb(0x7B8494)
 C_OK = _rgb(0x5AD469)    # isaac_sim_viewport_display.C_OK — 배치 단계·완료와 같은 초록
@@ -49,6 +49,14 @@ STATE_KO = {"IDLE": "대기", "SCAN_MOVE": "스캔 이동", "DETECT": "타겟 �
 REGION_KO = {"home": "HOME", "nw": "북서 NW", "ne": "북동 NE",
              "sw": "남서 SW", "se": "남동 SE"}
 
+# [2026-09-19] 결과 바 위 줄 — 완료 때만 보이던 '수확 완료' 줄을 런 내내 띄운다(사용자 요청). 숨겨져 있으면 단계 진행 바와
+#   결과 바가 구분선 하나만 두고 붙어 보였다. 런 전 '수확 시작 전'·런 중 '수확 진행 중' 은 흐린 색(상태 안내),
+#   끝난 상태는 흰색 — 완주 '수확 완료'(뒤에 숫자), 완료 호출 없이 끝난 런 '수확 중단'(스캔 이동 실패 등, 숫자 없음).
+#   런 전 문구를 '수확 대기' 로 하면 바로 위 단계 라벨 '대기' 와 같은 말이 두 줄 겹쳐서 '시작 전' 으로 했다.
+#   네 장 모두 34px 볼드라 줄 높이가 같다. 키는 isaac_sim_viewport_display.harvest_key() 가 고른다.
+HARVEST_KO = {"idle": ("수확 시작 전", C_DIM), "running": ("수확 진행 중", C_DIM),
+              "stopped": ("수확 중단", C_TEXT), "done": ("수확 완료", C_TEXT)}
+
 ITEMS = [
     ("head_nodes", "노드", 22, C_DIM, False),
     ("head_region", "영역", 20, C_DIM, False),
@@ -62,7 +70,7 @@ ITEMS = [
     ("node_scan", "스캔", 24, C_TEXT, False),
     # [2026-09-16] 색 의미: 제목·비율은 흰색(중립), 배치는 초록, 낙하만 빨강.
     # 종전 '수확 완료' 는 C_ACCENT(0xFF6B81) 분홍빨강이라 에러처럼 읽혔다.
-    ("final", "수확 완료", 34, C_TEXT, True),
+    # [2026-09-19] '수확 완료'(키 final)는 harvest_done 으로 옮겼다 — 시작 전·진행 중·중단과 한 자리를 바꿔 쓴다(HARVEST_KO, 아래 목록 끝).
     # [T4c 2026-09-15] 완료 둘째 줄 '배치 n · 낙하 m' (isaac_sim_viewport_display.HarvestHUD._row_final)
     # [2026-09-17] 둘째 줄이 결과 바 범례로 바뀌었다 — 문구·색·크기는 result_bar 가 단일 출처.
     #   '배치 성공 n · 배치 실패 m · 분리 실패 k' 세 항목이 패널 안쪽 폭에 들어가도록 32px -> 22px.
@@ -79,7 +87,8 @@ ITEMS = [
 #   '컬러' 는 뺐다 — 캡션 + '영역 NW/sw' 가 창 폭 480 을 20px 넘겼다. 컬러/깊이 구분은 hud/README 가 설명한다.
     ("cam_title", "그리퍼 카메라 · D455 렌더 · 인식 없음", 20, C_DIM, False),
 ] + [("state_" + k, v, 40, _rgb(PHASE[k]), True) for k, v in STATE_KO.items()] \
-  + [("region_" + k, v, 24, C_TEXT, False) for k, v in REGION_KO.items()]
+  + [("region_" + k, v, 24, C_TEXT, False) for k, v in REGION_KO.items()] \
+  + [("harvest_" + k, t, 34, c, True) for k, (t, c) in HARVEST_KO.items()]
 
 
 def render(text, size, color, bold):
